@@ -9,8 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
+import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfessorIdRouteImport } from './routes/professor.$id'
 import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
@@ -18,6 +23,21 @@ import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 
+const SobreRoute = SobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SejaProfessorRoute = SejaProfessorRouteImport.update({
+  id: '/seja-professor',
+  path: '/seja-professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
+  id: '/meus-agendamentos',
+  path: '/meus-agendamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
@@ -26,6 +46,16 @@ const FeedRoute = FeedRouteImport.update({
 const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
   id: '/escolher-perfil',
   path: '/escolher-perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -61,8 +91,13 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
+  '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/seja-professor': typeof SejaProfessorRoute
+  '/sobre': typeof SobreRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
@@ -71,8 +106,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
+  '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/seja-professor': typeof SejaProfessorRoute
+  '/sobre': typeof SobreRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
@@ -82,8 +122,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
+  '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/seja-professor': typeof SejaProfessorRoute
+  '/sobre': typeof SobreRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
@@ -94,8 +139,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/dashboard'
     | '/escolher-perfil'
     | '/feed'
+    | '/meus-agendamentos'
+    | '/seja-professor'
+    | '/sobre'
     | '/auth/login'
     | '/auth/signup'
     | '/cadastro/aluno'
@@ -104,8 +154,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
+    | '/dashboard'
     | '/escolher-perfil'
     | '/feed'
+    | '/meus-agendamentos'
+    | '/seja-professor'
+    | '/sobre'
     | '/auth/login'
     | '/auth/signup'
     | '/cadastro/aluno'
@@ -114,8 +169,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
+    | '/dashboard'
     | '/escolher-perfil'
     | '/feed'
+    | '/meus-agendamentos'
+    | '/seja-professor'
+    | '/sobre'
     | '/auth/login'
     | '/auth/signup'
     | '/cadastro/aluno'
@@ -125,8 +185,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
   EscolherPerfilRoute: typeof EscolherPerfilRoute
   FeedRoute: typeof FeedRoute
+  MeusAgendamentosRoute: typeof MeusAgendamentosRoute
+  SejaProfessorRoute: typeof SejaProfessorRoute
+  SobreRoute: typeof SobreRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
   CadastroAlunoRoute: typeof CadastroAlunoRoute
@@ -136,6 +201,27 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sobre': {
+      id: '/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seja-professor': {
+      id: '/seja-professor'
+      path: '/seja-professor'
+      fullPath: '/seja-professor'
+      preLoaderRoute: typeof SejaProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-agendamentos': {
+      id: '/meus-agendamentos'
+      path: '/meus-agendamentos'
+      fullPath: '/meus-agendamentos'
+      preLoaderRoute: typeof MeusAgendamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/feed': {
       id: '/feed'
       path: '/feed'
@@ -148,6 +234,20 @@ declare module '@tanstack/react-router' {
       path: '/escolher-perfil'
       fullPath: '/escolher-perfil'
       preLoaderRoute: typeof EscolherPerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -197,8 +297,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
   EscolherPerfilRoute: EscolherPerfilRoute,
   FeedRoute: FeedRoute,
+  MeusAgendamentosRoute: MeusAgendamentosRoute,
+  SejaProfessorRoute: SejaProfessorRoute,
+  SobreRoute: SobreRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
   CadastroAlunoRoute: CadastroAlunoRoute,
