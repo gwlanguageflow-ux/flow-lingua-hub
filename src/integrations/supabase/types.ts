@@ -14,16 +14,278 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          notes: string | null
+          payment_intent_id: string | null
+          platform_fee: number
+          scheduled_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          student_id: string
+          teacher_id: string
+          teacher_payout: number
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          payment_intent_id?: string | null
+          platform_fee: number
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          student_id: string
+          teacher_id: string
+          teacher_payout: number
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          payment_intent_id?: string | null
+          platform_fee?: number
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          student_id?: string
+          teacher_id?: string
+          teacher_payout?: number
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age: number | null
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          age?: number | null
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          age?: number | null
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          booking_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          student_id: string
+          teacher_id: string
+        }
+        Insert: {
+          booking_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          student_id: string
+          teacher_id: string
+        }
+        Update: {
+          booking_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          student_id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_profiles: {
+        Row: {
+          comprehension_level: Database["public"]["Enums"]["language_level"]
+          created_at: string
+          desired_language: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          comprehension_level?: Database["public"]["Enums"]["language_level"]
+          created_at?: string
+          desired_language: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          comprehension_level?: Database["public"]["Enums"]["language_level"]
+          created_at?: string
+          desired_language?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teacher_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          start_time: string
+          teacher_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          start_time: string
+          teacher_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_availability_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_profiles: {
+        Row: {
+          bio: string | null
+          countries_lived: string | null
+          created_at: string
+          experiences: string | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          languages_spoken: string[]
+          languages_taught: string[]
+          levels_taught: Database["public"]["Enums"]["language_level"][]
+          lived_abroad: boolean | null
+          monthly_rate: number | null
+          package_8_rate: number | null
+          stripe_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          countries_lived?: string | null
+          created_at?: string
+          experiences?: string | null
+          hourly_rate?: number | null
+          id: string
+          is_active?: boolean
+          languages_spoken?: string[]
+          languages_taught?: string[]
+          levels_taught?: Database["public"]["Enums"]["language_level"][]
+          lived_abroad?: boolean | null
+          monthly_rate?: number | null
+          package_8_rate?: number | null
+          stripe_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          countries_lived?: string | null
+          created_at?: string
+          experiences?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          languages_spoken?: string[]
+          languages_taught?: string[]
+          levels_taught?: Database["public"]["Enums"]["language_level"][]
+          lived_abroad?: boolean | null
+          monthly_rate?: number | null
+          package_8_rate?: number | null
+          stripe_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "dev" | "professor" | "aluno"
+      booking_status: "pendente" | "confirmado" | "concluido" | "cancelado"
+      language_level:
+        | "iniciante"
+        | "basico"
+        | "intermediario"
+        | "avancado"
+        | "fluente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +412,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["dev", "professor", "aluno"],
+      booking_status: ["pendente", "confirmado", "concluido", "cancelado"],
+      language_level: [
+        "iniciante",
+        "basico",
+        "intermediario",
+        "avancado",
+        "fluente",
+      ],
+    },
   },
 } as const
