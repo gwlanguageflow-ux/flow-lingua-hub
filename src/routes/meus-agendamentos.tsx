@@ -7,7 +7,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Star } from "lucide-react";
+import { Star, Video } from "lucide-react";
+import { MeetingLinkButton } from "@/components/MeetingLinkEditor";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -58,13 +59,19 @@ function Page() {
                   <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0">
                     {t?.avatar_url ? <img src={t.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : (t?.full_name?.charAt(0) || "P")}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
                     <p className="text-sm text-brown">{format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</p>
                     <p className="text-xs text-brown-soft mt-1">R$ {Number(b.total_amount).toFixed(2)} · {b.duration_minutes} min</p>
+                    {!past && !b.meeting_url && (
+                      <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
+                        <Video className="h-3 w-3" /> Aguardando link da videochamada do professor
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize">{b.status}</span>
+                  <div className="flex flex-col items-stretch md:items-end gap-2">
+                    <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">{b.status}</span>
+                    {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
                     {canReview && <ReviewDialog booking={b} onDone={load} />}
                   </div>
                 </div>

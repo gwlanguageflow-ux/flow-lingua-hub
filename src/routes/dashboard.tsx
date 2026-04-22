@@ -6,9 +6,11 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, FolderOpen, Calendar, Star } from "lucide-react";
+import { Users, BookOpen, FolderOpen, Calendar, Star, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AvailabilityManager } from "@/components/AvailabilityManager";
+import { MeetingLinkEditor, MeetingLinkButton } from "@/components/MeetingLinkEditor";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — GWLanguageFlow" }] }),
@@ -55,7 +57,7 @@ function DashboardPage() {
           <TabsList className="bg-cream w-full justify-start flex-wrap h-auto">
             <TabsTrigger value="agendamentos" className="data-[state=active]:bg-wine data-[state=active]:text-white"><Calendar className="h-4 w-4 mr-2" />Sala de Aula</TabsTrigger>
             <TabsTrigger value="alunos" className="data-[state=active]:bg-wine data-[state=active]:text-white"><Users className="h-4 w-4 mr-2" />Meus Alunos</TabsTrigger>
-            <TabsTrigger value="turmas" className="data-[state=active]:bg-wine data-[state=active]:text-white"><BookOpen className="h-4 w-4 mr-2" />Turmas</TabsTrigger>
+            <TabsTrigger value="disponibilidade" className="data-[state=active]:bg-wine data-[state=active]:text-white"><Clock className="h-4 w-4 mr-2" />Disponibilidade</TabsTrigger>
             <TabsTrigger value="material" className="data-[state=active]:bg-wine data-[state=active]:text-white"><FolderOpen className="h-4 w-4 mr-2" />Material</TabsTrigger>
           </TabsList>
 
@@ -67,15 +69,25 @@ function DashboardPage() {
                 {upcoming.map(b => {
                   const s = students.find(x => x.id === b.student_id);
                   return (
-                    <div key={b.id} className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-bronze">
-                      <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display">
+                    <div key={b.id} className="flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-xl border border-border hover:border-bronze">
+                      <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0">
                         {s?.avatar_url ? <img src={s.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : (s?.full_name?.charAt(0) || "A")}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-semibold text-wine">{s?.full_name || "Aluno"}</p>
                         <p className="text-sm text-brown">{format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</p>
+                        {b.meeting_url && (
+                          <p className="text-xs text-bronze truncate mt-1">🔗 {b.meeting_url}</p>
+                        )}
                       </div>
-                      <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize">{b.status}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize">{b.status}</span>
+                        <MeetingLinkEditor
+                          bookingId={b.id}
+                          initialUrl={b.meeting_url}
+                          onSaved={(url) => setBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, meeting_url: url } : x))}
+                        />
+                      </div>
                     </div>
                   );
                 })}
@@ -98,7 +110,9 @@ function DashboardPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="turmas" className="mt-6"><Empty msg="Crie turmas para agrupar seus alunos. Em breve." /></TabsContent>
+          <TabsContent value="disponibilidade" className="mt-6">
+            <AvailabilityManager />
+          </TabsContent>
           <TabsContent value="material" className="mt-6"><Empty msg="Faça upload de PDFs e materiais. Em breve." /></TabsContent>
         </Tabs>
 
