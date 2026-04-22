@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           duration_minutes: number
           id: string
+          meeting_url: string | null
           notes: string | null
           payment_intent_id: string | null
           platform_fee: number
@@ -34,6 +35,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           id?: string
+          meeting_url?: string | null
           notes?: string | null
           payment_intent_id?: string | null
           platform_fee: number
@@ -49,6 +51,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           id?: string
+          meeting_url?: string | null
           notes?: string | null
           payment_intent_id?: string | null
           platform_fee?: number
