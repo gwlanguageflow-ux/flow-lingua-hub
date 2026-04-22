@@ -9,38 +9,114 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
+import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
+import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
 
+const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
+  id: '/escolher-perfil',
+  path: '/escolher-perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CadastroProfessorRoute = CadastroProfessorRouteImport.update({
+  id: '/cadastro/professor',
+  path: '/cadastro/professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroAlunoRoute = CadastroAlunoRouteImport.update({
+  id: '/cadastro/aluno',
+  path: '/cadastro/aluno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/escolher-perfil': typeof EscolherPerfilRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/cadastro/aluno': typeof CadastroAlunoRoute
+  '/cadastro/professor': typeof CadastroProfessorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/escolher-perfil': typeof EscolherPerfilRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/cadastro/aluno': typeof CadastroAlunoRoute
+  '/cadastro/professor': typeof CadastroProfessorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/escolher-perfil': typeof EscolherPerfilRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/cadastro/aluno': typeof CadastroAlunoRoute
+  '/cadastro/professor': typeof CadastroProfessorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/escolher-perfil'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/cadastro/aluno'
+    | '/cadastro/professor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/escolher-perfil'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/cadastro/aluno'
+    | '/cadastro/professor'
+  id:
+    | '__root__'
+    | '/'
+    | '/escolher-perfil'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/cadastro/aluno'
+    | '/cadastro/professor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EscolherPerfilRoute: typeof EscolherPerfilRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthSignupRoute: typeof AuthSignupRoute
+  CadastroAlunoRoute: typeof CadastroAlunoRoute
+  CadastroProfessorRoute: typeof CadastroProfessorRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/escolher-perfil': {
+      id: '/escolher-perfil'
+      path: '/escolher-perfil'
+      fullPath: '/escolher-perfil'
+      preLoaderRoute: typeof EscolherPerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +124,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cadastro/professor': {
+      id: '/cadastro/professor'
+      path: '/cadastro/professor'
+      fullPath: '/cadastro/professor'
+      preLoaderRoute: typeof CadastroProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro/aluno': {
+      id: '/cadastro/aluno'
+      path: '/cadastro/aluno'
+      fullPath: '/cadastro/aluno'
+      preLoaderRoute: typeof CadastroAlunoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EscolherPerfilRoute: EscolherPerfilRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthSignupRoute: AuthSignupRoute,
+  CadastroAlunoRoute: CadastroAlunoRoute,
+  CadastroProfessorRoute: CadastroProfessorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
