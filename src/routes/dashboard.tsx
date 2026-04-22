@@ -6,9 +6,11 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, FolderOpen, Calendar, Star } from "lucide-react";
+import { Users, BookOpen, FolderOpen, Calendar, Star, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AvailabilityManager } from "@/components/AvailabilityManager";
+import { MeetingLinkEditor, MeetingLinkButton } from "@/components/MeetingLinkEditor";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — GWLanguageFlow" }] }),
