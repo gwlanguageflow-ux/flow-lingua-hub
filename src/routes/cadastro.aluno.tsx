@@ -27,7 +27,7 @@ const schema = z.object({
 });
 
 function Page() {
-  const { user, refreshRoles } = useAuth();
+  const { user, roles, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState<string>("");
@@ -36,6 +36,23 @@ function Page() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Se aluno já tem perfil completo, vai direto para o feed
+  useEffect(() => {
+    if (!user) return;
+    if (roles.includes("aluno")) {
+      supabase.from("student_profiles").select("id").eq("id", user.id).maybeSingle().then(({ data }) => {
+        if (data) {
+          navigate({ to: "/feed" });
+        } else {
+          setChecking(false);
+        }
+      });
+    } else {
+      setChecking(false);
+    }
+  }, [user, roles, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -79,12 +96,28 @@ function Page() {
     });
     if (sErr) { toast.error(sErr.message); setLoading(false); return; }
 
-    await supabase.from("user_roles").insert({ user_id: user.id, role: "aluno" }).then(() => {});
+    // Atribui role "aluno" — ignora erro de duplicidade (já existe)
+    if (!roles.includes("aluno")) {
+      const { error: rErr } = await supabase.from("user_roles").insert({ user_id: user.id, role: "aluno" });
+      if (rErr && !rErr.message.toLowerCase().includes("duplicate")) {
+        toast.error("Não foi possível salvar seu perfil. Tente novamente.");
+        setLoading(false);
+        return;
+      }
+    }
     await refreshRoles();
 
     toast.success("Perfil criado! Conheça nossos professores.");
     navigate({ to: "/feed" });
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-bronze border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream">
