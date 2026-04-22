@@ -9,38 +9,247 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
+import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
+import { Route as FeedRouteImport } from './routes/feed'
+import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfessorIdRouteImport } from './routes/professor.$id'
+import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
+import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
+import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
 
+const SobreRoute = SobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SejaProfessorRoute = SejaProfessorRouteImport.update({
+  id: '/seja-professor',
+  path: '/seja-professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
+  id: '/meus-agendamentos',
+  path: '/meus-agendamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
+  id: '/escolher-perfil',
+  path: '/escolher-perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfessorIdRoute = ProfessorIdRouteImport.update({
+  id: '/professor/$id',
+  path: '/professor/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroProfessorRoute = CadastroProfessorRouteImport.update({
+  id: '/cadastro/professor',
+  path: '/cadastro/professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroAlunoRoute = CadastroAlunoRouteImport.update({
+  id: '/cadastro/aluno',
+  path: '/cadastro/aluno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/escolher-perfil': typeof EscolherPerfilRoute
+  '/feed': typeof FeedRoute
+  '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/seja-professor': typeof SejaProfessorRoute
+  '/sobre': typeof SobreRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/cadastro/aluno': typeof CadastroAlunoRoute
+  '/cadastro/professor': typeof CadastroProfessorRoute
+  '/professor/$id': typeof ProfessorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/escolher-perfil': typeof EscolherPerfilRoute
+  '/feed': typeof FeedRoute
+  '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/seja-professor': typeof SejaProfessorRoute
+  '/sobre': typeof SobreRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/cadastro/aluno': typeof CadastroAlunoRoute
+  '/cadastro/professor': typeof CadastroProfessorRoute
+  '/professor/$id': typeof ProfessorIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/escolher-perfil': typeof EscolherPerfilRoute
+  '/feed': typeof FeedRoute
+  '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/seja-professor': typeof SejaProfessorRoute
+  '/sobre': typeof SobreRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/cadastro/aluno': typeof CadastroAlunoRoute
+  '/cadastro/professor': typeof CadastroProfessorRoute
+  '/professor/$id': typeof ProfessorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/escolher-perfil'
+    | '/feed'
+    | '/meus-agendamentos'
+    | '/seja-professor'
+    | '/sobre'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/cadastro/aluno'
+    | '/cadastro/professor'
+    | '/professor/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/escolher-perfil'
+    | '/feed'
+    | '/meus-agendamentos'
+    | '/seja-professor'
+    | '/sobre'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/cadastro/aluno'
+    | '/cadastro/professor'
+    | '/professor/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/escolher-perfil'
+    | '/feed'
+    | '/meus-agendamentos'
+    | '/seja-professor'
+    | '/sobre'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/cadastro/aluno'
+    | '/cadastro/professor'
+    | '/professor/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
+  EscolherPerfilRoute: typeof EscolherPerfilRoute
+  FeedRoute: typeof FeedRoute
+  MeusAgendamentosRoute: typeof MeusAgendamentosRoute
+  SejaProfessorRoute: typeof SejaProfessorRoute
+  SobreRoute: typeof SobreRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthSignupRoute: typeof AuthSignupRoute
+  CadastroAlunoRoute: typeof CadastroAlunoRoute
+  CadastroProfessorRoute: typeof CadastroProfessorRoute
+  ProfessorIdRoute: typeof ProfessorIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sobre': {
+      id: '/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seja-professor': {
+      id: '/seja-professor'
+      path: '/seja-professor'
+      fullPath: '/seja-professor'
+      preLoaderRoute: typeof SejaProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-agendamentos': {
+      id: '/meus-agendamentos'
+      path: '/meus-agendamentos'
+      fullPath: '/meus-agendamentos'
+      preLoaderRoute: typeof MeusAgendamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escolher-perfil': {
+      id: '/escolher-perfil'
+      path: '/escolher-perfil'
+      fullPath: '/escolher-perfil'
+      preLoaderRoute: typeof EscolherPerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +257,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/professor/$id': {
+      id: '/professor/$id'
+      path: '/professor/$id'
+      fullPath: '/professor/$id'
+      preLoaderRoute: typeof ProfessorIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro/professor': {
+      id: '/cadastro/professor'
+      path: '/cadastro/professor'
+      fullPath: '/cadastro/professor'
+      preLoaderRoute: typeof CadastroProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro/aluno': {
+      id: '/cadastro/aluno'
+      path: '/cadastro/aluno'
+      fullPath: '/cadastro/aluno'
+      preLoaderRoute: typeof CadastroAlunoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
+  EscolherPerfilRoute: EscolherPerfilRoute,
+  FeedRoute: FeedRoute,
+  MeusAgendamentosRoute: MeusAgendamentosRoute,
+  SejaProfessorRoute: SejaProfessorRoute,
+  SobreRoute: SobreRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthSignupRoute: AuthSignupRoute,
+  CadastroAlunoRoute: CadastroAlunoRoute,
+  CadastroProfessorRoute: CadastroProfessorRoute,
+  ProfessorIdRoute: ProfessorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
