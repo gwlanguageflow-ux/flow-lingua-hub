@@ -9,13 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as FeedRouteImport } from './routes/feed'
 import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfessorIdRouteImport } from './routes/professor.$id'
 import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
 import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
   id: '/escolher-perfil',
   path: '/escolher-perfil',
@@ -24,6 +31,11 @@ const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessorIdRoute = ProfessorIdRouteImport.update({
+  id: '/professor/$id',
+  path: '/professor/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CadastroProfessorRoute = CadastroProfessorRouteImport.update({
@@ -50,66 +62,87 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
+  '/feed': typeof FeedRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
+  '/professor/$id': typeof ProfessorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
+  '/feed': typeof FeedRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
+  '/professor/$id': typeof ProfessorIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
+  '/feed': typeof FeedRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
+  '/professor/$id': typeof ProfessorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/escolher-perfil'
+    | '/feed'
     | '/auth/login'
     | '/auth/signup'
     | '/cadastro/aluno'
     | '/cadastro/professor'
+    | '/professor/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/escolher-perfil'
+    | '/feed'
     | '/auth/login'
     | '/auth/signup'
     | '/cadastro/aluno'
     | '/cadastro/professor'
+    | '/professor/$id'
   id:
     | '__root__'
     | '/'
     | '/escolher-perfil'
+    | '/feed'
     | '/auth/login'
     | '/auth/signup'
     | '/cadastro/aluno'
     | '/cadastro/professor'
+    | '/professor/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EscolherPerfilRoute: typeof EscolherPerfilRoute
+  FeedRoute: typeof FeedRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
   CadastroAlunoRoute: typeof CadastroAlunoRoute
   CadastroProfessorRoute: typeof CadastroProfessorRoute
+  ProfessorIdRoute: typeof ProfessorIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/escolher-perfil': {
       id: '/escolher-perfil'
       path: '/escolher-perfil'
@@ -122,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professor/$id': {
+      id: '/professor/$id'
+      path: '/professor/$id'
+      fullPath: '/professor/$id'
+      preLoaderRoute: typeof ProfessorIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cadastro/professor': {
@@ -158,10 +198,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EscolherPerfilRoute: EscolherPerfilRoute,
+  FeedRoute: FeedRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
   CadastroAlunoRoute: CadastroAlunoRoute,
   CadastroProfessorRoute: CadastroProfessorRoute,
+  ProfessorIdRoute: ProfessorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
