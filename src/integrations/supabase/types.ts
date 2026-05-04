@@ -25,6 +25,7 @@ export type Database = {
           platform_fee: number
           scheduled_at: string
           status: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id: string | null
           student_id: string
           teacher_id: string
           teacher_payout: number
@@ -41,6 +42,7 @@ export type Database = {
           platform_fee: number
           scheduled_at: string
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id?: string | null
           student_id: string
           teacher_id: string
           teacher_payout: number
@@ -57,6 +59,7 @@ export type Database = {
           platform_fee?: number
           scheduled_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_session_id?: string | null
           student_id?: string
           teacher_id?: string
           teacher_payout?: number
@@ -208,6 +211,8 @@ export type Database = {
           monthly_rate: number | null
           package_8_rate: number | null
           stripe_account_id: string | null
+          stripe_charges_enabled: boolean
+          stripe_onboarding_complete: boolean
           updated_at: string
         }
         Insert: {
@@ -225,6 +230,8 @@ export type Database = {
           monthly_rate?: number | null
           package_8_rate?: number | null
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
+          stripe_onboarding_complete?: boolean
           updated_at?: string
         }
         Update: {
@@ -242,6 +249,8 @@ export type Database = {
           monthly_rate?: number | null
           package_8_rate?: number | null
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
+          stripe_onboarding_complete?: boolean
           updated_at?: string
         }
         Relationships: []
