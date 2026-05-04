@@ -22,6 +22,7 @@ import { Route as CadastroProfessorRouteImport } from './routes/cadastro.profess
 import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -88,6 +89,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe-webhook',
+  path: '/api/public/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
+    | '/api/public/stripe-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
+    | '/api/public/stripe-webhook'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
+    | '/api/public/stripe-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   CadastroAlunoRoute: typeof CadastroAlunoRoute
   CadastroProfessorRoute: typeof CadastroProfessorRoute
   ProfessorIdRoute: typeof ProfessorIdRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/stripe-webhook': {
+      id: '/api/public/stripe-webhook'
+      path: '/api/public/stripe-webhook'
+      fullPath: '/api/public/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,16 +329,8 @@ const rootRouteChildren: RootRouteChildren = {
   CadastroAlunoRoute: CadastroAlunoRoute,
   CadastroProfessorRoute: CadastroProfessorRoute,
   ProfessorIdRoute: ProfessorIdRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

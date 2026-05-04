@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AvailabilityManager } from "@/components/AvailabilityManager";
 import { MeetingLinkEditor, MeetingLinkButton } from "@/components/MeetingLinkEditor";
+import { StripeConnectCard } from "@/components/StripeConnectCard";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — GWLanguageFlow" }] }),
@@ -44,6 +45,10 @@ function DashboardPage() {
         <div className="mb-8">
           <p className="text-bronze text-xs uppercase tracking-widest font-medium">Dashboard</p>
           <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">Olá, professor</h1>
+        </div>
+
+        <div className="mb-6">
+          <StripeConnectCard />
         </div>
 
         <div className="grid gap-4 md:grid-cols-4 mb-8">
