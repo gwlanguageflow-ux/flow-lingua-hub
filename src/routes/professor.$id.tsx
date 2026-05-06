@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Languages, Sparkles, Calendar } from "lucide-react";
-import { LEVELS, PLATFORM_FEE_PCT, TEACHER_PAYOUT_PCT, WEEKDAYS } from "@/lib/constants";
+import { LEVELS, WEEKDAYS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -205,11 +205,6 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
   const [duration, setDuration] = useState("60");
   const [loading, setLoading] = useState(false);
 
-  const planType = "hour";
-  const total = teacher.hourly_rate * (Number(duration) / 60);
-  const fee = +(total * PLATFORM_FEE_PCT).toFixed(2);
-  const payout = +(total * TEACHER_PAYOUT_PCT).toFixed(2);
-
   const handleConfirm = async () => {
     if (!user) { navigate({ to: "/auth/login" }); return; }
     if (!roles.includes("aluno")) {
@@ -224,12 +219,19 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
       student_id: user.id, teacher_id: teacher.id,
       scheduled_at: scheduled.toISOString(),
       duration_minutes: Number(duration),
-      total_amount: total, platform_fee: fee, teacher_payout: payout,
       status: "pendente",
     });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Agendamento criado! Pagamento será processado em breve.");
+    if (error) {
+      if (error.message.toLowerCase().includes("row-level security")) {
+        toast.error("Você precisa de uma assinatura ativa para agendar aulas.");
+        navigate({ to: "/planos" });
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    toast.success("Aula agendada!");
     setOpen(false);
     navigate({ to: "/meus-agendamentos" });
   };
@@ -258,10 +260,8 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-xl bg-cream p-4 text-sm space-y-1">
-            <div className="flex justify-between text-brown"><span>Total</span><span className="font-semibold text-wine">R$ {total.toFixed(2)}</span></div>
-            <div className="flex justify-between text-xs text-brown-soft"><span>Plataforma (9%)</span><span>R$ {fee.toFixed(2)}</span></div>
-            <div className="flex justify-between text-xs text-brown-soft"><span>Para o professor (91%)</span><span>R$ {payout.toFixed(2)}</span></div>
+          <div className="rounded-xl bg-cream p-4 text-sm">
+            <p className="text-brown-soft text-xs">Aulas incluídas na sua assinatura ativa.</p>
           </div>
           <Button onClick={handleConfirm} disabled={loading} className="w-full bg-bronze text-white hover:bg-wine shadow-bronze">
             {loading ? "Processando..." : "Confirmar agendamento"}
