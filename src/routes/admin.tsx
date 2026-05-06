@@ -29,8 +29,6 @@ function AdminPage() {
     })();
   }, []);
 
-  const platformRevenue = bookings.reduce((s,b) => s + Number(b.platform_fee || 0), 0);
-
   return (
     <div className="min-h-screen bg-cream">
       <SiteHeader />
@@ -44,7 +42,7 @@ function AdminPage() {
           <Stat icon={Users} label="Usuários" value={profiles.length} />
           <Stat icon={GraduationCap} label="Professores" value={teachers.length} />
           <Stat icon={Users} label="Alunos" value={students.length} />
-          <Stat icon={DollarSign} label="Receita plataforma" value={`R$ ${platformRevenue.toFixed(2)}`} />
+          <Stat icon={DollarSign} label="Aulas agendadas" value={bookings.length} />
         </div>
 
         <Tabs defaultValue="users" className="bg-background rounded-3xl border border-border p-4 md:p-6 shadow-soft">
