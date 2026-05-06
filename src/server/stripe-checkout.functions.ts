@@ -1,93 +1,192 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { getStripe, PLATFORM_FEE_PCT } from "./stripe.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getStripe } from "./stripe.server";
 
 /**
- * Cria uma Checkout Session com split automático 9% / 91%.
- * O aluno paga; o valor cai direto na conta Connect do professor,
- * com a plataforma retendo 9% via application_fee_amount.
+ * Cria uma Checkout Session de assinatura ou pagamento único PIX.
+ * - Cartão: cria/usa um Stripe Price recorrente e abre subscription Checkout.
+ * - PIX: cria pagamento único do período (PIX no Stripe não suporta recorrência).
  *
- * Cria também um booking pendente que será confirmado pelo webhook
- * após o pagamento.
+ * Em ambos os casos, registra/atualiza student_subscriptions com status pendente.
+ * O webhook confirma a ativação após pagamento.
  */
-export const createBookingCheckout = createServerFn({ method: "POST" })
+export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      teacherId: string;
-      scheduledAt: string; // ISO
-      durationMinutes: number;
-      amount: number; // em reais (ex 80.00)
-      successUrl: string;
-      cancelUrl: string;
-      notes?: string;
-    }) => input
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        planSlug: z.string().min(1).max(60),
+        paymentMethod: z.enum(["card", "pix"]),
+        termsAccepted: z.literal(true),
+        successUrl: z.string().url(),
+        cancelUrl: z.string().url(),
+      })
+      .parse(input)
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const stripe = getStripe();
 
-    // Verifica conta Connect do professor
-    const { data: teacher, error: tErr } = await supabase
-      .from("teacher_profiles")
-      .select("stripe_account_id, stripe_charges_enabled")
-      .eq("id", data.teacherId)
-      .single();
-    if (tErr || !teacher?.stripe_account_id || !teacher.stripe_charges_enabled) {
-      throw new Error("O professor ainda não está habilitado a receber pagamentos.");
+    // 1. Carrega plano
+    const { data: plan, error: pErr } = await supabaseAdmin
+      .from("subscription_plans")
+      .select("*")
+      .eq("slug", data.planSlug)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (pErr || !plan) throw new Error("Plano não encontrado");
+
+    // 2. Carrega/cria customer Stripe
+    const { data: existingSub } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("stripe_customer_id")
+      .eq("student_id", userId)
+      .not("stripe_customer_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+
+    let customerId = existingSub?.stripe_customer_id ?? null;
+    if (!customerId) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", userId)
+        .maybeSingle();
+      const customer = await stripe.customers.create({
+        email: prof?.email ?? undefined,
+        name: prof?.full_name ?? undefined,
+        metadata: { user_id: userId },
+      });
+      customerId = customer.id;
     }
 
-    const totalCents = Math.round(data.amount * 100);
-    const platformFeeCents = Math.round(totalCents * PLATFORM_FEE_PCT);
-    const teacherPayoutCents = totalCents - platformFeeCents;
+    // 3. Calcula período
+    const now = new Date();
+    const periodEnd = new Date(now);
+    if (plan.interval === "mensal") periodEnd.setMonth(periodEnd.getMonth() + 1);
+    else if (plan.interval === "trimestral") periodEnd.setMonth(periodEnd.getMonth() + 3);
+    else periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 
-    // Cria booking pendente
-    const { data: booking, error: bErr } = await supabase
-      .from("bookings")
+    // 4. Insere subscription pendente
+    const { data: sub, error: sErr } = await supabaseAdmin
+      .from("student_subscriptions")
       .insert({
         student_id: userId,
-        teacher_id: data.teacherId,
-        scheduled_at: data.scheduledAt,
-        duration_minutes: data.durationMinutes,
-        total_amount: data.amount,
-        platform_fee: platformFeeCents / 100,
-        teacher_payout: teacherPayoutCents / 100,
+        plan_id: plan.id,
         status: "pendente",
-        notes: data.notes ?? null,
+        payment_method: data.paymentMethod,
+        stripe_customer_id: customerId,
+        terms_accepted_at: now.toISOString(),
+        terms_version: "v1",
       })
       .select("id")
       .single();
-    if (bErr || !booking) throw new Error("Falha ao criar agendamento");
+    if (sErr || !sub) throw new Error("Falha ao criar assinatura: " + sErr?.message);
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "brl",
-            unit_amount: totalCents,
-            product_data: {
-              name: `Aula de ${data.durationMinutes} min — GWLanguageFlow`,
+    const totalCents = Math.round(Number(plan.price) * 100);
+    const intervalMap = { mensal: "month", trimestral: "month", anual: "year" } as const;
+    const intervalCount = plan.interval === "trimestral" ? 3 : 1;
+
+    // 5. Cria Checkout Session
+    let session;
+    if (data.paymentMethod === "card") {
+      session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "brl",
+              unit_amount: totalCents,
+              recurring: {
+                interval: intervalMap[plan.interval as keyof typeof intervalMap],
+                interval_count: intervalCount,
+              },
+              product_data: {
+                name: `${plan.name} — GWLanguageFlow`,
+                description: plan.description ?? undefined,
+              },
             },
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        metadata: {
+          subscription_id: sub.id,
+          plan_slug: plan.slug,
+          user_id: userId,
         },
-      ],
-      payment_intent_data: {
-        application_fee_amount: platformFeeCents,
-        transfer_data: { destination: teacher.stripe_account_id },
-        metadata: { booking_id: booking.id },
-      },
-      metadata: { booking_id: booking.id },
-      success_url: data.successUrl,
-      cancel_url: data.cancelUrl,
-    });
+        subscription_data: {
+          metadata: {
+            subscription_id: sub.id,
+            plan_slug: plan.slug,
+            user_id: userId,
+          },
+        },
+        success_url: data.successUrl,
+        cancel_url: data.cancelUrl,
+      });
+    } else {
+      // PIX = pagamento único do período
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer: customerId,
+        payment_method_types: ["pix"],
+        line_items: [
+          {
+            price_data: {
+              currency: "brl",
+              unit_amount: totalCents,
+              product_data: {
+                name: `${plan.name} (${plan.interval}) — GWLanguageFlow`,
+                description: "Pagamento único do período. PIX não renova automaticamente.",
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          metadata: {
+            subscription_id: sub.id,
+            plan_slug: plan.slug,
+            user_id: userId,
+            period_end: periodEnd.toISOString(),
+          },
+        },
+        metadata: {
+          subscription_id: sub.id,
+          plan_slug: plan.slug,
+          user_id: userId,
+          period_end: periodEnd.toISOString(),
+        },
+        success_url: data.successUrl,
+        cancel_url: data.cancelUrl,
+      });
+    }
 
-    await supabase
-      .from("bookings")
-      .update({ stripe_session_id: session.id, payment_intent_id: session.payment_intent as string | null })
-      .eq("id", booking.id);
+    await supabaseAdmin
+      .from("student_subscriptions")
+      .update({ stripe_checkout_session_id: session.id })
+      .eq("id", sub.id);
 
-    return { url: session.url, bookingId: booking.id };
+    return { url: session.url, subscriptionId: sub.id };
+  });
+
+/**
+ * Retorna a assinatura atual do aluno.
+ */
+export const getMySubscription = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("student_subscriptions")
+      .select("*, subscription_plans(*)")
+      .eq("student_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return { subscription: data };
   });
