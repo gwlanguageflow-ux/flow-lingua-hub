@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AvailabilityManager } from "@/components/AvailabilityManager";
 import { MeetingLinkEditor, MeetingLinkButton } from "@/components/MeetingLinkEditor";
-import { StripeConnectCard } from "@/components/StripeConnectCard";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — GWLanguageFlow" }] }),
@@ -47,15 +47,10 @@ function DashboardPage() {
           <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">Olá, professor</h1>
         </div>
 
-        <div className="mb-6">
-          <StripeConnectCard />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Stat icon={Users} label="Alunos" value={students.length} />
           <Stat icon={Calendar} label="Próximas aulas" value={upcoming.length} />
           <Stat icon={BookOpen} label="Aulas dadas" value={bookings.filter(b=>b.status==="concluido").length} />
-          <Stat icon={Star} label="Total recebido" value={`R$ ${bookings.filter(b=>b.status==="concluido").reduce((s,b)=>s+Number(b.teacher_payout||0),0).toFixed(0)}`} />
         </div>
 
         <Tabs defaultValue="agendamentos" className="bg-background rounded-3xl border border-border p-4 md:p-6 shadow-soft">

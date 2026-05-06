@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
+import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
@@ -32,6 +33,11 @@ const SobreRoute = SobreRouteImport.update({
 const SejaProfessorRoute = SejaProfessorRouteImport.update({
   id: '/seja-professor',
   path: '/seja-professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
   '/auth/login': typeof AuthLoginRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
   '/auth/login': typeof AuthLoginRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
   '/auth/login': typeof AuthLoginRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/escolher-perfil'
     | '/feed'
     | '/meus-agendamentos'
+    | '/planos'
     | '/seja-professor'
     | '/sobre'
     | '/auth/login'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/escolher-perfil'
     | '/feed'
     | '/meus-agendamentos'
+    | '/planos'
     | '/seja-professor'
     | '/sobre'
     | '/auth/login'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/escolher-perfil'
     | '/feed'
     | '/meus-agendamentos'
+    | '/planos'
     | '/seja-professor'
     | '/sobre'
     | '/auth/login'
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   EscolherPerfilRoute: typeof EscolherPerfilRoute
   FeedRoute: typeof FeedRoute
   MeusAgendamentosRoute: typeof MeusAgendamentosRoute
+  PlanosRoute: typeof PlanosRoute
   SejaProfessorRoute: typeof SejaProfessorRoute
   SobreRoute: typeof SobreRoute
   AuthLoginRoute: typeof AuthLoginRoute
@@ -226,6 +239,13 @@ declare module '@tanstack/react-router' {
       path: '/seja-professor'
       fullPath: '/seja-professor'
       preLoaderRoute: typeof SejaProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meus-agendamentos': {
@@ -322,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   EscolherPerfilRoute: EscolherPerfilRoute,
   FeedRoute: FeedRoute,
   MeusAgendamentosRoute: MeusAgendamentosRoute,
+  PlanosRoute: PlanosRoute,
   SejaProfessorRoute: SejaProfessorRoute,
   SobreRoute: SobreRoute,
   AuthLoginRoute: AuthLoginRoute,

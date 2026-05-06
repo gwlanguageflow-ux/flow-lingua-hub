@@ -21,15 +21,10 @@ export type Database = {
           id: string
           meeting_url: string | null
           notes: string | null
-          payment_intent_id: string | null
-          platform_fee: number
           scheduled_at: string
           status: Database["public"]["Enums"]["booking_status"]
-          stripe_session_id: string | null
           student_id: string
           teacher_id: string
-          teacher_payout: number
-          total_amount: number
           updated_at: string
         }
         Insert: {
@@ -38,15 +33,10 @@ export type Database = {
           id?: string
           meeting_url?: string | null
           notes?: string | null
-          payment_intent_id?: string | null
-          platform_fee: number
           scheduled_at: string
           status?: Database["public"]["Enums"]["booking_status"]
-          stripe_session_id?: string | null
           student_id: string
           teacher_id: string
-          teacher_payout: number
-          total_amount: number
           updated_at?: string
         }
         Update: {
@@ -55,15 +45,10 @@ export type Database = {
           id?: string
           meeting_url?: string | null
           notes?: string | null
-          payment_intent_id?: string | null
-          platform_fee?: number
           scheduled_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
-          stripe_session_id?: string | null
           student_id?: string
           teacher_id?: string
-          teacher_payout?: number
-          total_amount?: number
           updated_at?: string
         }
         Relationships: []
@@ -160,6 +145,122 @@ export type Database = {
         }
         Relationships: []
       }
+      student_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          last_payment_at: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          plan_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          student_id: string
+          terms_accepted_at: string
+          terms_version: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          last_payment_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          plan_id: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          student_id: string
+          terms_accepted_at: string
+          terms_version?: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          last_payment_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          plan_id?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          student_id?: string
+          terms_accepted_at?: string
+          terms_version?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: string[]
+          hours_per_week: number | null
+          id: string
+          installments: number
+          interval: Database["public"]["Enums"]["plan_interval"]
+          is_active: boolean
+          name: string
+          price: number
+          slug: string
+          sort_order: number
+          stripe_price_id_card: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          hours_per_week?: number | null
+          id?: string
+          installments?: number
+          interval?: Database["public"]["Enums"]["plan_interval"]
+          is_active?: boolean
+          name: string
+          price: number
+          slug: string
+          sort_order?: number
+          stripe_price_id_card?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          hours_per_week?: number | null
+          id?: string
+          installments?: number
+          interval?: Database["public"]["Enums"]["plan_interval"]
+          is_active?: boolean
+          name?: string
+          price?: number
+          slug?: string
+          sort_order?: number
+          stripe_price_id_card?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       teacher_availability: {
         Row: {
           created_at: string
@@ -210,9 +311,6 @@ export type Database = {
           lived_abroad: boolean | null
           monthly_rate: number | null
           package_8_rate: number | null
-          stripe_account_id: string | null
-          stripe_charges_enabled: boolean
-          stripe_onboarding_complete: boolean
           updated_at: string
         }
         Insert: {
@@ -229,9 +327,6 @@ export type Database = {
           lived_abroad?: boolean | null
           monthly_rate?: number | null
           package_8_rate?: number | null
-          stripe_account_id?: string | null
-          stripe_charges_enabled?: boolean
-          stripe_onboarding_complete?: boolean
           updated_at?: string
         }
         Update: {
@@ -248,9 +343,6 @@ export type Database = {
           lived_abroad?: boolean | null
           monthly_rate?: number | null
           package_8_rate?: number | null
-          stripe_account_id?: string | null
-          stripe_charges_enabled?: boolean
-          stripe_onboarding_complete?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -288,6 +380,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      student_can_book: { Args: { _student_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "dev" | "professor" | "aluno"
@@ -298,6 +391,14 @@ export type Database = {
         | "intermediario"
         | "avancado"
         | "fluente"
+      payment_method: "card" | "pix"
+      plan_interval: "mensal" | "trimestral" | "anual"
+      subscription_status:
+        | "pendente"
+        | "ativa"
+        | "inadimplente"
+        | "cancelada"
+        | "expirada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -433,6 +534,15 @@ export const Constants = {
         "intermediario",
         "avancado",
         "fluente",
+      ],
+      payment_method: ["card", "pix"],
+      plan_interval: ["mensal", "trimestral", "anual"],
+      subscription_status: [
+        "pendente",
+        "ativa",
+        "inadimplente",
+        "cancelada",
+        "expirada",
       ],
     },
   },

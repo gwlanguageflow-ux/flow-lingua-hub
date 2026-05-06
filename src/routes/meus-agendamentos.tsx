@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Star, Video } from "lucide-react";
 import { MeetingLinkButton } from "@/components/MeetingLinkEditor";
+import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -43,7 +44,8 @@ function Page() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mb-8">Meus agendamentos</h1>
+        <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mb-6">Meus agendamentos</h1>
+        <SubscriptionStatusBanner />
         {items.length === 0 ? (
           <div className="text-center py-16 bg-background rounded-2xl border border-border">
             <p className="text-brown-soft">Você ainda não agendou aulas.</p>
@@ -62,7 +64,7 @@ function Page() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
                     <p className="text-sm text-brown">{format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</p>
-                    <p className="text-xs text-brown-soft mt-1">R$ {Number(b.total_amount).toFixed(2)} · {b.duration_minutes} min</p>
+                    <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
                     {!past && !b.meeting_url && (
                       <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
                         <Video className="h-3 w-3" /> Aguardando link da videochamada do professor

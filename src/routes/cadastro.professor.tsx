@@ -34,7 +34,6 @@ const schema = z.object({
   hourlyRate: z.coerce.number().min(0).max(10000),
   monthlyRate: z.coerce.number().min(0).max(100000),
   package8Rate: z.coerce.number().min(0).max(100000),
-  stripeAccountId: z.string().trim().max(120).optional().or(z.literal("")),
 });
 
 function Page() {
@@ -54,7 +53,6 @@ function Page() {
   const [hourlyRate, setHourlyRate] = useState("");
   const [monthlyRate, setMonthlyRate] = useState("");
   const [package8Rate, setPackage8Rate] = useState("");
-  const [stripeAccountId, setStripeAccountId] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
@@ -88,7 +86,7 @@ function Page() {
     const parsed = schema.safeParse({
       fullName, age, bio, experiences, livedAbroad, countriesLived,
       languagesSpoken, languagesTaught, levelsTaught,
-      hourlyRate, monthlyRate, package8Rate, stripeAccountId,
+      hourlyRate, monthlyRate, package8Rate,
     });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setLoading(true);
@@ -115,7 +113,6 @@ function Page() {
       hourly_rate: d.hourlyRate,
       monthly_rate: d.monthlyRate,
       package_8_rate: d.package8Rate,
-      stripe_account_id: d.stripeAccountId || null,
     });
     if (tErr) { toast.error(tErr.message); setLoading(false); return; }
 
@@ -210,13 +207,6 @@ function Page() {
             </div>
           </Section>
 
-          <Section title="Pagamento">
-            <div className="space-y-2">
-              <Label>Stripe Account ID (opcional agora)</Label>
-              <Input value={stripeAccountId} onChange={(e) => setStripeAccountId(e.target.value)} placeholder="acct_xxxxxxxxxxxx" />
-              <p className="text-xs text-brown-soft">Você poderá conectar depois. A plataforma retém 9% por aula.</p>
-            </div>
-          </Section>
 
           <Button type="submit" disabled={loading} className="w-full bg-bronze text-white hover:bg-wine shadow-bronze">
             {loading ? "Salvando..." : "Publicar meu perfil"}

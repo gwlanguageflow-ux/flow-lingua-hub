@@ -12,4 +12,4 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export const PLATFORM_FEE_PCT = 0.09; // 9% para a plataforma
+

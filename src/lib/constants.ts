@@ -20,8 +20,6 @@ export const LEVELS = [
   { value: "fluente", label: "Fluente" },
 ] as const;
 
-export const PLATFORM_FEE_PCT = 0.09;
-export const TEACHER_PAYOUT_PCT = 0.91;
 
 export const WEEKDAYS = [
   "Domingo",
