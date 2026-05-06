@@ -37,6 +37,9 @@ export function SiteHeader() {
           <Link to="/feed" className="text-brown hover:text-wine transition-colors">
             Professores
           </Link>
+          <Link to="/planos" className="text-brown hover:text-wine transition-colors">
+            Planos
+          </Link>
           <Link to="/sobre" className="text-brown hover:text-wine transition-colors">
             Sobre
           </Link>
@@ -98,6 +101,7 @@ export function SiteHeader() {
       {open && (
         <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3">
           <Link to="/feed" onClick={() => setOpen(false)} className="block py-2 text-brown">Professores</Link>
+          <Link to="/planos" onClick={() => setOpen(false)} className="block py-2 text-brown">Planos</Link>
           <Link to="/sobre" onClick={() => setOpen(false)} className="block py-2 text-brown">Sobre</Link>
           <Link to="/seja-professor" onClick={() => setOpen(false)} className="block py-2 text-brown">Seja professor</Link>
           {user ? (
