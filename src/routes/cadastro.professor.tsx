@@ -207,13 +207,6 @@ function Page() {
             </div>
           </Section>
 
-          <Section title="Pagamento">
-            <div className="space-y-2">
-              <Label>Stripe Account ID (opcional agora)</Label>
-              <Input value={stripeAccountId} onChange={(e) => setStripeAccountId(e.target.value)} placeholder="acct_xxxxxxxxxxxx" />
-              <p className="text-xs text-brown-soft">Você poderá conectar depois. A plataforma retém 9% por aula.</p>
-            </div>
-          </Section>
 
           <Button type="submit" disabled={loading} className="w-full bg-bronze text-white hover:bg-wine shadow-bronze">
             {loading ? "Salvando..." : "Publicar meu perfil"}
