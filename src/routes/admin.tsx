@@ -57,14 +57,13 @@ function AdminPage() {
             <Table headers={["Nome","E-mail","Idade","Criado"]} rows={profiles.map(p => [p.full_name, p.email, p.age || "—", new Date(p.created_at).toLocaleDateString("pt-BR")])} />
           </TabsContent>
           <TabsContent value="teachers" className="mt-6 overflow-x-auto">
-            <Table headers={["ID","Hora","Idiomas","Stripe"]} rows={teachers.map(t => [t.id.slice(0,8), `R$ ${t.hourly_rate}`, (t.languages_taught || []).join(", "), t.stripe_account_id || "—"])} />
+            <Table headers={["ID","Hora","Idiomas"]} rows={teachers.map(t => [t.id.slice(0,8), `R$ ${t.hourly_rate}`, (t.languages_taught || []).join(", ")])} />
           </TabsContent>
           <TabsContent value="bookings" className="mt-6 overflow-x-auto">
-            <Table headers={["Data","Aluno","Professor","Total","Plataforma","Status"]} rows={bookings.map(b => [
+            <Table headers={["Data","Aluno","Professor","Duração","Status"]} rows={bookings.map(b => [
               new Date(b.scheduled_at).toLocaleString("pt-BR"),
               b.student_id.slice(0,8), b.teacher_id.slice(0,8),
-              `R$ ${Number(b.total_amount).toFixed(2)}`,
-              `R$ ${Number(b.platform_fee).toFixed(2)}`,
+              `${b.duration_minutes} min`,
               b.status,
             ])} />
           </TabsContent>
