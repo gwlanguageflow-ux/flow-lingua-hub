@@ -61,9 +61,8 @@ function Page() {
   const [languagesSpoken, setLanguagesSpoken] = useState<string[]>([]);
   const [languagesTaught, setLanguagesTaught] = useState<string[]>([]);
   const [levelsTaught, setLevelsTaught] = useState<string[]>([]);
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [monthlyRate, setMonthlyRate] = useState("");
-  const [package8Rate, setPackage8Rate] = useState("");
+  const [useCustomPricing, setUseCustomPricing] = useState(false);
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
