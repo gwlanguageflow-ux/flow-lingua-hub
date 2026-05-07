@@ -177,11 +177,24 @@ function TeacherProfilePage() {
                     </div>
                   </div>
                 </Card>
-                <Card title="Valores">
+                <Card title={teacher.use_custom_pricing ? "Valores do professor" : "Valores (padrão da plataforma)"}>
                   <ul className="space-y-2 text-sm">
-                    <li className="flex justify-between"><span className="text-brown">1 hora</span><span className="font-semibold text-wine">R$ {teacher.hourly_rate.toFixed(2)}</span></li>
-                    <li className="flex justify-between"><span className="text-brown">Mensal</span><span className="font-semibold text-wine">R$ {teacher.monthly_rate.toFixed(2)}</span></li>
-                    <li className="flex justify-between"><span className="text-brown">Pacote 8 aulas</span><span className="font-semibold text-wine">R$ {teacher.package_8_rate.toFixed(2)}</span></li>
+                    {teacher.use_custom_pricing
+                      ? Object.entries(teacher.custom_prices).filter(([, v]) => Number(v) > 0).map(([k, v]) => (
+                          <li key={k} className="flex justify-between gap-3">
+                            <span className="text-brown">{PRICE_LABELS[k] ?? k}</span>
+                            <span className="font-semibold text-wine">R$ {Number(v).toFixed(2).replace(".", ",")}</span>
+                          </li>
+                        ))
+                      : PLATFORM_PRICES.map((p) => (
+                          <li key={p.key} className="flex justify-between gap-3">
+                            <span className="text-brown">{p.label}</span>
+                            <span className="font-semibold text-wine">R$ {p.value.toFixed(2).replace(".", ",")}</span>
+                          </li>
+                        ))}
+                    {teacher.use_custom_pricing && Object.values(teacher.custom_prices).every((v) => !Number(v)) && (
+                      <li className="text-xs text-brown-soft">Sem valores cadastrados.</li>
+                    )}
                   </ul>
                 </Card>
                 <Card title="Disponibilidade">
