@@ -93,10 +93,25 @@ function Page() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const numericPrices: Record<string, number> = {};
+    if (useCustomPricing) {
+      for (const f of PRICE_FIELDS) {
+        const raw = customPrices[f.key];
+        if (raw && raw.trim() !== "") {
+          const n = Number(raw);
+          if (Number.isNaN(n) || n < 0) { toast.error(`Valor inválido em "${f.label}"`); return; }
+          numericPrices[f.key] = n;
+        }
+      }
+      if (Object.keys(numericPrices).length === 0) {
+        toast.error("Defina ao menos um valor personalizado ou use os valores padrão da plataforma.");
+        return;
+      }
+    }
     const parsed = schema.safeParse({
       fullName, age, bio, experiences, livedAbroad, countriesLived,
       languagesSpoken, languagesTaught, levelsTaught,
-      hourlyRate, monthlyRate, package8Rate,
+      useCustomPricing, customPrices: numericPrices,
     });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setLoading(true);
@@ -120,9 +135,11 @@ function Page() {
       languages_spoken: d.languagesSpoken,
       languages_taught: d.languagesTaught,
       levels_taught: d.levelsTaught as never,
-      hourly_rate: d.hourlyRate,
-      monthly_rate: d.monthlyRate,
-      package_8_rate: d.package8Rate,
+      use_custom_pricing: d.useCustomPricing,
+      custom_prices: d.customPrices,
+      hourly_rate: d.customPrices.hourly ?? null,
+      monthly_rate: d.customPrices.monthly ?? null,
+      package_8_rate: d.customPrices.package_8 ?? null,
     });
     if (tErr) { toast.error(tErr.message); setLoading(false); return; }
 
