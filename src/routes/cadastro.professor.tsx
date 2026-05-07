@@ -226,12 +226,45 @@ function Page() {
               }} />
           </Section>
 
-          <Section title="Valores">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-2"><Label>Por hora (R$)</Label><Input type="number" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Mensal (R$)</Label><Input type="number" step="0.01" value={monthlyRate} onChange={(e) => setMonthlyRate(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Pacote 8 aulas (R$)</Label><Input type="number" step="0.01" value={package8Rate} onChange={(e) => setPackage8Rate(e.target.value)} required /></div>
-            </div>
+          <Section title="Valores e modalidades">
+            <RadioGroup
+              value={useCustomPricing ? "custom" : "default"}
+              onValueChange={(v) => setUseCustomPricing(v === "custom")}
+              className="grid md:grid-cols-2 gap-3"
+            >
+              <label className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${!useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}>
+                <RadioGroupItem value="default" id="pr-default" className="mt-1" />
+                <div>
+                  <div className="font-semibold text-wine">Padrão da plataforma</div>
+                  <p className="text-sm text-brown">Use os valores oficiais da GWLanguageFlow para todos os planos e modalidades.</p>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}>
+                <RadioGroupItem value="custom" id="pr-custom" className="mt-1" />
+                <div>
+                  <div className="font-semibold text-wine">Personalizado</div>
+                  <p className="text-sm text-brown">Defina seus próprios valores. Preencha apenas os campos que oferece.</p>
+                </div>
+              </label>
+            </RadioGroup>
+
+            {useCustomPricing && (
+              <div className="grid md:grid-cols-2 gap-4 pt-2">
+                {PRICE_FIELDS.map((f) => (
+                  <div key={f.key} className="space-y-2">
+                    <Label>{f.label} (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Deixe em branco se não oferece"
+                      value={customPrices[f.key] ?? ""}
+                      onChange={(e) => setCustomPrices({ ...customPrices, [f.key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
 
 
