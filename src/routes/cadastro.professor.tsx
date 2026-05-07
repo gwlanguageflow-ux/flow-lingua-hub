@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
 import { uploadAvatar } from "@/lib/upload";
 import { toast } from "sonner";
@@ -20,6 +21,17 @@ export const Route = createFileRoute("/cadastro/professor")({
   head: () => ({ meta: [{ title: "Cadastro de Professor — GWLanguageFlow" }] }),
   component: () => <RequireAuth><Page /></RequireAuth>,
 });
+
+const PRICE_FIELDS = [
+  { key: "hourly", label: "Aula avulsa (1 hora)" },
+  { key: "monthly", label: "Mensal" },
+  { key: "package_8", label: "Pacote 8 aulas" },
+  { key: "plan_essencial", label: "Plano Essencial (mensal)" },
+  { key: "plan_advanced", label: "Plano Advanced (mensal)" },
+  { key: "plan_conversation", label: "Plano Conversation (mensal)" },
+  { key: "plan_anual", label: "Plano Anual Advanced (12x)" },
+] as const;
+type PriceKey = typeof PRICE_FIELDS[number]["key"];
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
@@ -31,9 +43,8 @@ const schema = z.object({
   languagesSpoken: z.array(z.string()).min(1, "Selecione ao menos um idioma falado"),
   languagesTaught: z.array(z.string()).min(1, "Selecione ao menos um idioma ensinado"),
   levelsTaught: z.array(z.string()).min(1, "Selecione ao menos um nível"),
-  hourlyRate: z.coerce.number().min(0).max(10000),
-  monthlyRate: z.coerce.number().min(0).max(100000),
-  package8Rate: z.coerce.number().min(0).max(100000),
+  useCustomPricing: z.boolean(),
+  customPrices: z.record(z.string(), z.number().min(0).max(100000)),
 });
 
 function Page() {
@@ -50,9 +61,8 @@ function Page() {
   const [languagesSpoken, setLanguagesSpoken] = useState<string[]>([]);
   const [languagesTaught, setLanguagesTaught] = useState<string[]>([]);
   const [levelsTaught, setLevelsTaught] = useState<string[]>([]);
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [monthlyRate, setMonthlyRate] = useState("");
-  const [package8Rate, setPackage8Rate] = useState("");
+  const [useCustomPricing, setUseCustomPricing] = useState(false);
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
@@ -83,10 +93,25 @@ function Page() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const numericPrices: Record<string, number> = {};
+    if (useCustomPricing) {
+      for (const f of PRICE_FIELDS) {
+        const raw = customPrices[f.key];
+        if (raw && raw.trim() !== "") {
+          const n = Number(raw);
+          if (Number.isNaN(n) || n < 0) { toast.error(`Valor inválido em "${f.label}"`); return; }
+          numericPrices[f.key] = n;
+        }
+      }
+      if (Object.keys(numericPrices).length === 0) {
+        toast.error("Defina ao menos um valor personalizado ou use os valores padrão da plataforma.");
+        return;
+      }
+    }
     const parsed = schema.safeParse({
       fullName, age, bio, experiences, livedAbroad, countriesLived,
       languagesSpoken, languagesTaught, levelsTaught,
-      hourlyRate, monthlyRate, package8Rate,
+      useCustomPricing, customPrices: numericPrices,
     });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setLoading(true);
@@ -110,9 +135,11 @@ function Page() {
       languages_spoken: d.languagesSpoken,
       languages_taught: d.languagesTaught,
       levels_taught: d.levelsTaught as never,
-      hourly_rate: d.hourlyRate,
-      monthly_rate: d.monthlyRate,
-      package_8_rate: d.package8Rate,
+      use_custom_pricing: d.useCustomPricing,
+      custom_prices: d.customPrices,
+      hourly_rate: d.customPrices.hourly ?? null,
+      monthly_rate: d.customPrices.monthly ?? null,
+      package_8_rate: d.customPrices.package_8 ?? null,
     });
     if (tErr) { toast.error(tErr.message); setLoading(false); return; }
 
@@ -199,12 +226,45 @@ function Page() {
               }} />
           </Section>
 
-          <Section title="Valores">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-2"><Label>Por hora (R$)</Label><Input type="number" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Mensal (R$)</Label><Input type="number" step="0.01" value={monthlyRate} onChange={(e) => setMonthlyRate(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Pacote 8 aulas (R$)</Label><Input type="number" step="0.01" value={package8Rate} onChange={(e) => setPackage8Rate(e.target.value)} required /></div>
-            </div>
+          <Section title="Valores e modalidades">
+            <RadioGroup
+              value={useCustomPricing ? "custom" : "default"}
+              onValueChange={(v) => setUseCustomPricing(v === "custom")}
+              className="grid md:grid-cols-2 gap-3"
+            >
+              <label className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${!useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}>
+                <RadioGroupItem value="default" id="pr-default" className="mt-1" />
+                <div>
+                  <div className="font-semibold text-wine">Padrão da plataforma</div>
+                  <p className="text-sm text-brown">Use os valores oficiais da GWLanguageFlow para todos os planos e modalidades.</p>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}>
+                <RadioGroupItem value="custom" id="pr-custom" className="mt-1" />
+                <div>
+                  <div className="font-semibold text-wine">Personalizado</div>
+                  <p className="text-sm text-brown">Defina seus próprios valores. Preencha apenas os campos que oferece.</p>
+                </div>
+              </label>
+            </RadioGroup>
+
+            {useCustomPricing && (
+              <div className="grid md:grid-cols-2 gap-4 pt-2">
+                {PRICE_FIELDS.map((f) => (
+                  <div key={f.key} className="space-y-2">
+                    <Label>{f.label} (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Deixe em branco se não oferece"
+                      value={customPrices[f.key] ?? ""}
+                      onChange={(e) => setCustomPrices({ ...customPrices, [f.key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
 
 

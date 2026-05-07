@@ -301,6 +301,7 @@ export type Database = {
           bio: string | null
           countries_lived: string | null
           created_at: string
+          custom_prices: Json
           experiences: string | null
           hourly_rate: number | null
           id: string
@@ -312,11 +313,13 @@ export type Database = {
           monthly_rate: number | null
           package_8_rate: number | null
           updated_at: string
+          use_custom_pricing: boolean
         }
         Insert: {
           bio?: string | null
           countries_lived?: string | null
           created_at?: string
+          custom_prices?: Json
           experiences?: string | null
           hourly_rate?: number | null
           id: string
@@ -328,11 +331,13 @@ export type Database = {
           monthly_rate?: number | null
           package_8_rate?: number | null
           updated_at?: string
+          use_custom_pricing?: boolean
         }
         Update: {
           bio?: string | null
           countries_lived?: string | null
           created_at?: string
+          custom_prices?: Json
           experiences?: string | null
           hourly_rate?: number | null
           id?: string
@@ -344,6 +349,7 @@ export type Database = {
           monthly_rate?: number | null
           package_8_rate?: number | null
           updated_at?: string
+          use_custom_pricing?: boolean
         }
         Relationships: []
       }

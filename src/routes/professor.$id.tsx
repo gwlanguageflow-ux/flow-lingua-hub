@@ -34,7 +34,26 @@ interface TeacherFull {
   hourly_rate: number;
   monthly_rate: number;
   package_8_rate: number;
+  use_custom_pricing: boolean;
+  custom_prices: Record<string, number>;
 }
+
+const PLATFORM_PRICES: { key: string; label: string; value: number }[] = [
+  { key: "plan_essencial", label: "Plano Essencial (mensal)", value: 179.90 },
+  { key: "plan_advanced", label: "Plano Advanced (mensal)", value: 299.90 },
+  { key: "plan_conversation", label: "Plano Conversation (mensal)", value: 169.90 },
+  { key: "plan_anual", label: "Plano Anual Advanced (12x R$ 269,90)", value: 3238.80 },
+];
+
+const PRICE_LABELS: Record<string, string> = {
+  hourly: "Aula avulsa (1h)",
+  monthly: "Mensal",
+  package_8: "Pacote 8 aulas",
+  plan_essencial: "Plano Essencial",
+  plan_advanced: "Plano Advanced",
+  plan_conversation: "Plano Conversation",
+  plan_anual: "Plano Anual Advanced",
+};
 
 function TeacherProfilePage() {
   const { id } = useParams({ from: "/professor/$id" });
@@ -53,6 +72,8 @@ function TeacherProfilePage() {
         bio: tp.bio, experiences: tp.experiences, lived_abroad: !!tp.lived_abroad, countries_lived: tp.countries_lived,
         languages_spoken: tp.languages_spoken || [], languages_taught: tp.languages_taught || [], levels_taught: tp.levels_taught || [],
         hourly_rate: Number(tp.hourly_rate || 0), monthly_rate: Number(tp.monthly_rate || 0), package_8_rate: Number(tp.package_8_rate || 0),
+        use_custom_pricing: !!(tp as any).use_custom_pricing,
+        custom_prices: ((tp as any).custom_prices ?? {}) as Record<string, number>,
       });
 
       const { data: revs } = await supabase.from("reviews").select("rating, comment, created_at, student_id").eq("teacher_id", id).order("created_at", { ascending: false });
@@ -156,11 +177,24 @@ function TeacherProfilePage() {
                     </div>
                   </div>
                 </Card>
-                <Card title="Valores">
+                <Card title={teacher.use_custom_pricing ? "Valores do professor" : "Valores (padrão da plataforma)"}>
                   <ul className="space-y-2 text-sm">
-                    <li className="flex justify-between"><span className="text-brown">1 hora</span><span className="font-semibold text-wine">R$ {teacher.hourly_rate.toFixed(2)}</span></li>
-                    <li className="flex justify-between"><span className="text-brown">Mensal</span><span className="font-semibold text-wine">R$ {teacher.monthly_rate.toFixed(2)}</span></li>
-                    <li className="flex justify-between"><span className="text-brown">Pacote 8 aulas</span><span className="font-semibold text-wine">R$ {teacher.package_8_rate.toFixed(2)}</span></li>
+                    {teacher.use_custom_pricing
+                      ? Object.entries(teacher.custom_prices).filter(([, v]) => Number(v) > 0).map(([k, v]) => (
+                          <li key={k} className="flex justify-between gap-3">
+                            <span className="text-brown">{PRICE_LABELS[k] ?? k}</span>
+                            <span className="font-semibold text-wine">R$ {Number(v).toFixed(2).replace(".", ",")}</span>
+                          </li>
+                        ))
+                      : PLATFORM_PRICES.map((p) => (
+                          <li key={p.key} className="flex justify-between gap-3">
+                            <span className="text-brown">{p.label}</span>
+                            <span className="font-semibold text-wine">R$ {p.value.toFixed(2).replace(".", ",")}</span>
+                          </li>
+                        ))}
+                    {teacher.use_custom_pricing && Object.values(teacher.custom_prices).every((v) => !Number(v)) && (
+                      <li className="text-xs text-brown-soft">Sem valores cadastrados.</li>
+                    )}
                   </ul>
                 </Card>
                 <Card title="Disponibilidade">
