@@ -34,7 +34,29 @@ interface TeacherFull {
   hourly_rate: number;
   monthly_rate: number;
   package_8_rate: number;
+  use_custom_pricing: boolean;
+  custom_prices: Record<string, number>;
 }
+
+const PLATFORM_PRICES: { key: string; label: string; value: number }[] = [
+  { key: "plan_essencial", label: "Plano Essencial (mensal)", value: 179.90 },
+  { key: "plan_advanced", label: "Plano Advanced (mensal)", value: 299.90 },
+  { key: "plan_conversation", label: "Plano Conversation (mensal)", value: 169.90 },
+  { key: "plan_anual", label: "Plano Anual Advanced (12x R$ 269,90)", value: 3238.80 },
+];
+
+const PRICE_LABELS: Record<string, string> = {
+  hourly: "Aula avulsa (1h)",
+  monthly: "Mensal",
+  package_8: "Pacote 8 aulas",
+  plan_essencial: "Plano Essencial",
+  plan_advanced: "Plano Advanced",
+  plan_conversation: "Plano Conversation",
+  plan_anual: "Plano Anual Advanced",
+};
+
+interface _Stub {
+  _: never;
 
 function TeacherProfilePage() {
   const { id } = useParams({ from: "/professor/$id" });
