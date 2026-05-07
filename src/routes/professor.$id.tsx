@@ -238,6 +238,23 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
   const [time, setTime] = useState("19:00");
   const [duration, setDuration] = useState("60");
   const [loading, setLoading] = useState(false);
+  const [hasActiveSub, setHasActiveSub] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) { setHasActiveSub(false); return; }
+    supabase
+      .from("student_subscriptions")
+      .select("status, current_period_end")
+      .eq("student_id", user.id)
+      .eq("status", "ativa")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const ok = !!data && (!data.current_period_end || new Date(data.current_period_end) > new Date());
+        setHasActiveSub(ok);
+      });
+  }, [user]);
 
   const handleConfirm = async () => {
     if (!user) { navigate({ to: "/auth/login" }); return; }
@@ -269,6 +286,18 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
     setOpen(false);
     navigate({ to: "/meus-agendamentos" });
   };
+
+  // Aluno sem assinatura ativa: botão leva direto para /planos
+  if (user && roles.includes("aluno") && hasActiveSub === false) {
+    return (
+      <Button
+        onClick={() => { toast.info("Assine um plano para agendar aulas."); navigate({ to: "/planos" }); }}
+        className="bg-bronze text-white hover:bg-wine shadow-bronze gap-2"
+      >
+        <Calendar className="h-4 w-4" /> Assinar para agendar
+      </Button>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
 import { Route as PlanosRouteImport } from './routes/planos'
+import { Route as MinhaAssinaturaRouteImport } from './routes/minha-assinatura'
 import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
@@ -38,6 +39,11 @@ const SejaProfessorRoute = SejaProfessorRouteImport.update({
 const PlanosRoute = PlanosRouteImport.update({
   id: '/planos',
   path: '/planos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaAssinaturaRoute = MinhaAssinaturaRouteImport.update({
+  id: '/minha-assinatura',
+  path: '/minha-assinatura',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/minha-assinatura': typeof MinhaAssinaturaRoute
   '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/minha-assinatura': typeof MinhaAssinaturaRoute
   '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
+  '/minha-assinatura': typeof MinhaAssinaturaRoute
   '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/escolher-perfil'
     | '/feed'
     | '/meus-agendamentos'
+    | '/minha-assinatura'
     | '/planos'
     | '/seja-professor'
     | '/sobre'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/escolher-perfil'
     | '/feed'
     | '/meus-agendamentos'
+    | '/minha-assinatura'
     | '/planos'
     | '/seja-professor'
     | '/sobre'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/escolher-perfil'
     | '/feed'
     | '/meus-agendamentos'
+    | '/minha-assinatura'
     | '/planos'
     | '/seja-professor'
     | '/sobre'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   EscolherPerfilRoute: typeof EscolherPerfilRoute
   FeedRoute: typeof FeedRoute
   MeusAgendamentosRoute: typeof MeusAgendamentosRoute
+  MinhaAssinaturaRoute: typeof MinhaAssinaturaRoute
   PlanosRoute: typeof PlanosRoute
   SejaProfessorRoute: typeof SejaProfessorRoute
   SobreRoute: typeof SobreRoute
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/planos'
       fullPath: '/planos'
       preLoaderRoute: typeof PlanosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-assinatura': {
+      id: '/minha-assinatura'
+      path: '/minha-assinatura'
+      fullPath: '/minha-assinatura'
+      preLoaderRoute: typeof MinhaAssinaturaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meus-agendamentos': {
@@ -342,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   EscolherPerfilRoute: EscolherPerfilRoute,
   FeedRoute: FeedRoute,
   MeusAgendamentosRoute: MeusAgendamentosRoute,
+  MinhaAssinaturaRoute: MinhaAssinaturaRoute,
   PlanosRoute: PlanosRoute,
   SejaProfessorRoute: SejaProfessorRoute,
   SobreRoute: SobreRoute,
