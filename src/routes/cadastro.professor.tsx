@@ -22,6 +22,17 @@ export const Route = createFileRoute("/cadastro/professor")({
   component: () => <RequireAuth><Page /></RequireAuth>,
 });
 
+const PRICE_FIELDS = [
+  { key: "hourly", label: "Aula avulsa (1 hora)" },
+  { key: "monthly", label: "Mensal" },
+  { key: "package_8", label: "Pacote 8 aulas" },
+  { key: "plan_essencial", label: "Plano Essencial (mensal)" },
+  { key: "plan_advanced", label: "Plano Advanced (mensal)" },
+  { key: "plan_conversation", label: "Plano Conversation (mensal)" },
+  { key: "plan_anual", label: "Plano Anual Advanced (12x)" },
+] as const;
+type PriceKey = typeof PRICE_FIELDS[number]["key"];
+
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
   age: z.coerce.number().int().min(18).max(120),
@@ -32,9 +43,8 @@ const schema = z.object({
   languagesSpoken: z.array(z.string()).min(1, "Selecione ao menos um idioma falado"),
   languagesTaught: z.array(z.string()).min(1, "Selecione ao menos um idioma ensinado"),
   levelsTaught: z.array(z.string()).min(1, "Selecione ao menos um nível"),
-  hourlyRate: z.coerce.number().min(0).max(10000),
-  monthlyRate: z.coerce.number().min(0).max(100000),
-  package8Rate: z.coerce.number().min(0).max(100000),
+  useCustomPricing: z.boolean(),
+  customPrices: z.record(z.string(), z.number().min(0).max(100000)),
 });
 
 function Page() {
