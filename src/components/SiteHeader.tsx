@@ -63,9 +63,14 @@ export function SiteHeader() {
                   {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
                 </DropdownMenuItem>
                 {isStudent && (
-                  <DropdownMenuItem onClick={() => navigate({ to: "/meus-agendamentos" })}>
-                    Meus agendamentos
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => navigate({ to: "/meus-agendamentos" })}>
+                      Meus agendamentos
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate({ to: "/minha-assinatura" })}>
+                      Minha assinatura
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
