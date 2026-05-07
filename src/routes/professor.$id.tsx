@@ -55,9 +55,6 @@ const PRICE_LABELS: Record<string, string> = {
   plan_anual: "Plano Anual Advanced",
 };
 
-interface _Stub {
-  _: never;
-
 function TeacherProfilePage() {
   const { id } = useParams({ from: "/professor/$id" });
   const [teacher, setTeacher] = useState<TeacherFull | null>(null);
