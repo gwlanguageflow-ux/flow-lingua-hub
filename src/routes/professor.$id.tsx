@@ -72,6 +72,8 @@ function TeacherProfilePage() {
         bio: tp.bio, experiences: tp.experiences, lived_abroad: !!tp.lived_abroad, countries_lived: tp.countries_lived,
         languages_spoken: tp.languages_spoken || [], languages_taught: tp.languages_taught || [], levels_taught: tp.levels_taught || [],
         hourly_rate: Number(tp.hourly_rate || 0), monthly_rate: Number(tp.monthly_rate || 0), package_8_rate: Number(tp.package_8_rate || 0),
+        use_custom_pricing: !!(tp as any).use_custom_pricing,
+        custom_prices: ((tp as any).custom_prices ?? {}) as Record<string, number>,
       });
 
       const { data: revs } = await supabase.from("reviews").select("rating, comment, created_at, student_id").eq("teacher_id", id).order("created_at", { ascending: false });
