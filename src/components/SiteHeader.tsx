@@ -34,9 +34,6 @@ export function SiteHeader() {
         <Logo />
 
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-          <Link to="/feed" className="text-brown hover:text-wine transition-colors">
-            Professores
-          </Link>
           <Link to="/planos" className="text-brown hover:text-wine transition-colors">
             Planos
           </Link>

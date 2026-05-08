@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
-import { Sparkles, DollarSign, Calendar, Users } from "lucide-react";
+import { Sparkles, DollarSign, Calendar, Users, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/seja-professor")({
   head: () => ({ meta: [{ title: "Seja professor — GWLanguageFlow" }, { name: "description", content: "Ensine idiomas pela GWLanguageFlow e receba alunos do mundo todo." }] }),
@@ -31,6 +31,23 @@ export const Route = createFileRoute("/seja-professor")({
                 <p className="text-sm text-brown">{b.d}</p>
               </div>
             ))}
+          </div>
+          <div className="container mx-auto px-4 max-w-4xl mt-10">
+            <div className="rounded-3xl border-2 border-bronze/30 bg-cream p-8 md:p-10 flex gap-5 items-start shadow-soft">
+              <div className="rounded-2xl bg-bronze/10 p-3 flex-shrink-0">
+                <Wallet className="h-7 w-7 text-bronze" />
+              </div>
+              <div>
+                <h3 className="font-display text-2xl text-wine mb-2">Liberdade para precificar e agendar</h3>
+                <p className="text-brown leading-relaxed">
+                  Você tem total autonomia: pode adotar os <strong className="text-wine">valores oficiais dos planos da plataforma</strong> (Essencial, Advanced, Conversation e Anual) ou
+                  <strong className="text-wine"> personalizar os seus próprios preços</strong> e modalidades. Da mesma forma, você define seus próprios <strong className="text-wine">horários e dias disponíveis</strong> — é a sua agenda, do seu jeito.
+                </p>
+                <Link to="/auth/signup" className="inline-block mt-4">
+                  <Button className="bg-wine text-white hover:bg-bronze">Quero me cadastrar</Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </main>

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle2, CreditCard, QrCode, Loader2 } from "lucide-react";
+import { CheckCircle2, CreditCard, QrCode, Loader2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { createSubscriptionCheckout } from "@/server/stripe-checkout.functions";
 
@@ -92,13 +92,18 @@ function PlansPage() {
             <div
               key={p.id}
               className={`relative bg-background rounded-3xl border p-6 flex flex-col shadow-soft transition ${
-                p.slug === "advanced" ? "border-bronze ring-2 ring-bronze/30" : "border-border"
+                p.slug === "advanced" ? "border-bronze ring-2 ring-bronze/40 shadow-bronze md:scale-[1.03]" : "border-border"
               }`}
             >
               {p.slug === "advanced" && (
-                <span className="absolute -top-3 right-6 bg-bronze text-white text-xs px-3 py-1 rounded-full">Mais popular</span>
+                <span className="absolute -top-3 right-6 bg-bronze text-white text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-bronze">
+                  <Trophy className="h-3.5 w-3.5" /> Mais escolhido
+                </span>
               )}
-              <h3 className="font-display text-2xl text-wine font-bold">{p.name}</h3>
+              <div className="flex items-center gap-2">
+                {p.slug === "advanced" && <Trophy className="h-5 w-5 text-bronze" />}
+                <h3 className="font-display text-2xl text-wine font-bold">{p.name}</h3>
+              </div>
               <p className="text-sm text-brown-soft mt-1 min-h-[40px]">{p.description}</p>
               <div className="mt-4">
                 <span className="text-3xl font-display font-bold text-wine">
