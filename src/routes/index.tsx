@@ -57,12 +57,12 @@ function Hero() {
             Conecte-se a professores apaixonados, escolha o seu ritmo e comece a falar uma nova língua hoje mesmo.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Link to="/feed">
+            <Link to="/auth/signup">
               <Button size="lg" className="bg-bronze text-white hover:bg-wine shadow-bronze gap-2">
                 Encontrar professor <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/seja-professor">
+            <Link to="/auth/signup">
               <Button size="lg" variant="outline" className="border-wine text-wine hover:bg-wine hover:text-white">
                 Quero ensinar
               </Button>
