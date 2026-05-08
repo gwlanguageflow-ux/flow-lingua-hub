@@ -153,17 +153,36 @@ function PlansPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl bg-cream p-4 max-h-44 overflow-y-auto text-xs text-brown space-y-2">
-                <p className="font-semibold text-wine">Termo de Adesão e Contrato</p>
-                <p>Ao assinar, você adere ao plano <strong>{selected?.name}</strong> da GWLanguageFlow nas condições descritas (cobrança {selected?.interval}, valor R$ {selected?.price.toFixed(2).replace(".", ",")}).</p>
-                <p>Em caso de inadimplência, o acesso ao agendamento de aulas será suspenso até regularização. Você pode cancelar a qualquer momento; o acesso permanece até o fim do período pago.</p>
-                <p>Os pagamentos são processados pela plataforma. Os professores são remunerados pela GWLanguageFlow conforme contrato próprio.</p>
+              <div className="rounded-xl border border-bronze/30 bg-cream p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-wine text-sm">Resumo do contrato</p>
+                  <span className="text-[10px] uppercase tracking-wider bg-bronze/10 text-bronze px-2 py-0.5 rounded-full">v1</span>
+                </div>
+                <ul className="text-xs text-brown space-y-1.5">
+                  <li className="flex justify-between gap-3"><span className="text-brown-soft">Plano</span><strong className="text-wine text-right">{selected?.name}</strong></li>
+                  <li className="flex justify-between gap-3"><span className="text-brown-soft">Valor</span><strong className="text-wine">R$ {selected?.price.toFixed(2).replace(".", ",")}</strong></li>
+                  <li className="flex justify-between gap-3"><span className="text-brown-soft">Cobrança</span><strong className="text-wine capitalize">{selected?.interval}</strong></li>
+                  <li className="flex justify-between gap-3"><span className="text-brown-soft">Pagamento</span><strong className="text-wine">{method === "card" ? "Cartão recorrente" : "PIX (período único)"}</strong></li>
+                </ul>
+                <div className="border-t border-bronze/20 pt-2 text-[11px] text-brown-soft space-y-1.5 max-h-32 overflow-y-auto">
+                  <p>• Em caso de inadimplência, o acesso ao agendamento será suspenso até regularização.</p>
+                  <p>• Cancelamento permitido a qualquer momento; acesso mantido até o fim do período pago.</p>
+                  <p>• Pagamentos processados pela GWLanguageFlow; professores remunerados conforme contrato próprio.</p>
+                  <p>• A data e hora do seu aceite serão registradas para fins de auditoria contratual.</p>
+                </div>
               </div>
 
-              <label className="flex items-start gap-2 cursor-pointer">
+              <label className="flex items-start gap-2 cursor-pointer p-3 rounded-xl border border-border hover:border-bronze/40 transition">
                 <Checkbox checked={terms} onCheckedChange={(v) => setTerms(!!v)} className="mt-0.5" />
-                <span className="text-sm text-brown">Li e aceito o Termo de Adesão e Contrato.</span>
+                <span className="text-sm text-brown">
+                  Li e concordo com os <strong className="text-wine">Termos de Uso</strong> e o <strong className="text-wine">Contrato de Prestação de Serviços</strong> da GWLanguageFlow.
+                </span>
               </label>
+              {terms && (
+                <p className="text-[11px] text-bronze flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> Aceite será registrado em {new Date().toLocaleString("pt-BR")}
+                </p>
+              )}
             </div>
             <DialogFooter>
               <Button onClick={handleCheckout} disabled={loading || !terms} className="w-full bg-bronze text-white hover:bg-wine shadow-bronze">
