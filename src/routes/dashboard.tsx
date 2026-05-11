@@ -22,6 +22,7 @@ function DashboardPage() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [pricingMode, setPricingMode] = useState<"padrao" | "custom" | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -33,6 +34,8 @@ function DashboardPage() {
         const { data: profs } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", sids);
         setStudents(profs || []);
       }
+      const { data: tp } = await supabase.from("teacher_profiles").select("use_custom_pricing").eq("id", user.id).maybeSingle();
+      setPricingMode(tp?.use_custom_pricing ? "custom" : "padrao");
     })();
   }, [user]);
 
