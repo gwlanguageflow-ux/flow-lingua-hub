@@ -7,7 +7,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Video } from "lucide-react";
+import { Star, Video, FolderOpen, FileText, Headphones, BookOpen, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MeetingLinkButton } from "@/components/MeetingLinkEditor";
 import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
 import { format } from "date-fns";
@@ -43,45 +44,90 @@ function Page() {
   return (
     <div className="min-h-screen bg-cream">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mb-6">Meus agendamentos</h1>
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="mb-6">
+          <p className="text-bronze text-xs uppercase tracking-widest font-medium">Painel do Aluno</p>
+          <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">Minha jornada</h1>
+        </div>
         <SubscriptionStatusBanner />
-        {items.length === 0 ? (
-          <div className="text-center py-16 bg-background rounded-2xl border border-border">
-            <p className="text-brown-soft">Você ainda não agendou aulas.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {items.map(b => {
-              const t = teachers.get(b.teacher_id);
-              const past = new Date(b.scheduled_at) < new Date();
-              const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
-              return (
-                <div key={b.id} className="bg-background rounded-2xl border border-border p-5 flex flex-col md:flex-row md:items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0">
-                    {t?.avatar_url ? <img src={t.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : (t?.full_name?.charAt(0) || "P")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
-                    <p className="text-sm text-brown">{format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</p>
-                    <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
-                    {!past && !b.meeting_url && (
-                      <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
-                        <Video className="h-3 w-3" /> Aguardando link da videochamada do professor
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-stretch md:items-end gap-2">
-                    <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">{b.status}</span>
-                    {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
-                    {canReview && <ReviewDialog booking={b} onDone={load} />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+
+        <Tabs defaultValue="aulas" className="mt-6 bg-background rounded-3xl border border-border p-4 md:p-6 shadow-soft">
+          <TabsList className="bg-cream w-full justify-start flex-wrap h-auto">
+            <TabsTrigger value="aulas" className="data-[state=active]:bg-wine data-[state=active]:text-white"><Video className="h-4 w-4 mr-2" />Minhas Aulas</TabsTrigger>
+            <TabsTrigger value="materiais" className="data-[state=active]:bg-wine data-[state=active]:text-white"><FolderOpen className="h-4 w-4 mr-2" />Meus Materiais</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="aulas" className="mt-6">
+            {items.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-brown-soft">Você ainda não agendou aulas.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {items.map(b => {
+                  const t = teachers.get(b.teacher_id);
+                  const past = new Date(b.scheduled_at) < new Date();
+                  const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
+                  return (
+                    <div key={b.id} className="rounded-2xl border border-border p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-bronze/40 transition">
+                      <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0">
+                        {t?.avatar_url ? <img src={t.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : (t?.full_name?.charAt(0) || "P")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
+                        <p className="text-sm text-brown">{format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</p>
+                        <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
+                        {!past && !b.meeting_url && (
+                          <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
+                            <Video className="h-3 w-3" /> Aguardando link da videochamada do professor
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-stretch md:items-end gap-2">
+                        <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">{b.status}</span>
+                        {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
+                        {canReview && <ReviewDialog booking={b} onDone={load} />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="materiais" className="mt-6">
+            <MaterialsSection />
+          </TabsContent>
+        </Tabs>
       </main>
+    </div>
+  );
+}
+
+function MaterialsSection() {
+  const categories = [
+    { icon: FileText, title: "Revisões", desc: "Resumos consolidados de cada conteúdo trabalhado em aula.", color: "bg-wine/10 text-wine" },
+    { icon: Headphones, title: "Listening & Reading", desc: "Áudios e textos selecionados para fixação semanal.", color: "bg-bronze/15 text-bronze" },
+    { icon: BookOpen, title: "Homeworks", desc: "Atividades semanais com correção do professor.", color: "bg-cream text-wine border border-border" },
+    { icon: Sparkles, title: "Atividades Personalizadas", desc: "Materiais sob medida para o seu objetivo de aprendizado.", color: "bg-wine/10 text-wine" },
+  ];
+  return (
+    <div>
+      <p className="text-sm text-brown-soft mb-5">Aqui você encontra os materiais prometidos no seu plano. Seu professor envia novos arquivos a cada semana.</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        {categories.map((c) => (
+          <div key={c.title} className="rounded-2xl border border-border p-5 hover:border-bronze/40 transition flex gap-4">
+            <div className={`h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 ${c.color}`}>
+              <c.icon className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-wine">{c.title}</p>
+              <p className="text-xs text-brown-soft mt-1">{c.desc}</p>
+              <p className="text-[11px] text-bronze mt-3 italic">Em breve: download direto pelo painel.</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
