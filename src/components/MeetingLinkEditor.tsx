@@ -2,7 +2,13 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Video, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +38,10 @@ export function MeetingLinkEditor({
       .update({ meeting_url: trimmed || null })
       .eq("id", bookingId);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Link salvo");
     onSaved?.(trimmed);
     setOpen(false);
@@ -41,7 +50,11 @@ export function MeetingLinkEditor({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="border-bronze text-bronze hover:bg-bronze hover:text-white gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-bronze text-bronze hover:bg-bronze hover:text-white gap-2"
+        >
           <Video className="h-3.5 w-3.5" />
           {initialUrl ? "Editar link" : "Adicionar link"}
         </Button>
@@ -52,14 +65,19 @@ export function MeetingLinkEditor({
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-brown">
-            Cole o link da videochamada (Google Meet, Zoom, etc.). O aluno verá esse link na página dele.
+            Cole o link da videochamada (Google Meet, Zoom, etc.). O aluno verá esse link na página
+            dele.
           </p>
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://meet.google.com/abc-defg-hij"
           />
-          <Button onClick={save} disabled={saving} className="w-full bg-bronze text-white hover:bg-wine">
+          <Button
+            onClick={save}
+            disabled={saving}
+            className="w-full bg-bronze text-white hover:bg-wine"
+          >
             {saving ? "Salvando..." : "Salvar link"}
           </Button>
         </div>

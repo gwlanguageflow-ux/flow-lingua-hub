@@ -76,13 +76,16 @@ function Hero() {
             </h1>
 
             <p className="text-lg text-brown max-w-xl leading-relaxed">
-              Aulas estruturadas, materiais exclusivos e acompanhamento contínuo. Uma plataforma feita para
-              quem leva o aprendizado a sério.
+              Aulas estruturadas, materiais exclusivos e acompanhamento contínuo. Uma plataforma
+              feita para quem leva o aprendizado a sério.
             </p>
 
             <div className="flex flex-wrap gap-3">
               <Link to="/auth/signup">
-                <Button size="lg" className="bg-wine text-white hover:bg-wine-deep gap-2 h-12 px-6 text-base">
+                <Button
+                  size="lg"
+                  className="bg-wine text-white hover:bg-wine-deep gap-2 h-12 px-6 text-base"
+                >
                   Começar agora <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -126,12 +129,16 @@ function Hero() {
                     <span className="h-2.5 w-2.5 rounded-full bg-bronze/40" />
                     <span className="h-2.5 w-2.5 rounded-full bg-brown/30" />
                   </div>
-                  <span className="text-[11px] text-brown-soft ml-2 font-mono">app.gwlanguageflow</span>
+                  <span className="text-[11px] text-brown-soft ml-2 font-mono">
+                    app.gwlanguageflow
+                  </span>
                 </div>
 
                 <div className="p-5 space-y-4">
                   <div>
-                    <p className="text-[10px] uppercase tracking-widest text-bronze font-medium">Sua agenda</p>
+                    <p className="text-[10px] uppercase tracking-widest text-bronze font-medium">
+                      Sua agenda
+                    </p>
                     <h3 className="font-display text-xl text-wine font-bold">Próximas aulas</h3>
                   </div>
 
@@ -230,9 +237,12 @@ function Pillars() {
     <section className="py-20 bg-cream/40">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mb-12">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">Por que GWLanguageFlow</p>
+          <p className="text-bronze text-xs uppercase tracking-widest font-medium">
+            Por que GWLanguageFlow
+          </p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-wine mt-2">
-            Uma plataforma. Um método. <span className="italic text-bronze">Resultados consistentes.</span>
+            Uma plataforma. Um método.{" "}
+            <span className="italic text-bronze">Resultados consistentes.</span>
           </h2>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
@@ -262,8 +272,16 @@ function Pillars() {
 function Method() {
   const steps = [
     { n: "01", t: "Diagnóstico", d: "Você nos conta seu nível e objetivos." },
-    { n: "02", t: "Plano e professor", d: "Escolha o plano e seja matriculado com um especialista." },
-    { n: "03", t: "Aulas semanais", d: "Aulas online, materiais e atividades entregues no painel." },
+    {
+      n: "02",
+      t: "Plano e professor",
+      d: "Escolha o plano e seja matriculado com um especialista.",
+    },
+    {
+      n: "03",
+      t: "Aulas semanais",
+      d: "Aulas online, materiais e atividades entregues no painel.",
+    },
     { n: "04", t: "Acompanhamento", d: "Avaliações, revisões e ajustes contínuos no seu plano." },
   ];
   return (
@@ -271,12 +289,15 @@ function Method() {
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-4 lg:sticky lg:top-24">
-            <p className="text-bronze text-xs uppercase tracking-widest font-medium">Como funciona</p>
+            <p className="text-bronze text-xs uppercase tracking-widest font-medium">
+              Como funciona
+            </p>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-wine mt-2">
               Do diagnóstico à fluência, sem improviso.
             </h2>
             <p className="text-brown mt-4">
-              Cada aluno tem uma jornada acompanhada pela diretoria pedagógica da GW. Nada é deixado ao acaso.
+              Cada aluno tem uma jornada acompanhada pela diretoria pedagógica da GW. Nada é deixado
+              ao acaso.
             </p>
           </div>
           <div className="lg:col-span-8 space-y-3">
@@ -285,7 +306,9 @@ function Method() {
                 key={s.n}
                 className="flex gap-5 p-6 rounded-2xl border border-border bg-white hover:border-bronze/40 transition"
               >
-                <span className="font-display text-4xl font-bold text-bronze/70 leading-none">{s.n}</span>
+                <span className="font-display text-4xl font-bold text-bronze/70 leading-none">
+                  {s.n}
+                </span>
                 <div>
                   <h3 className="font-display text-lg font-bold text-wine">{s.t}</h3>
                   <p className="text-sm text-brown mt-1">{s.d}</p>
@@ -303,7 +326,12 @@ function Method() {
 function PlansTeaser() {
   const cards = [
     { name: "Essencial", price: "179,90", tag: "Para começar com consistência" },
-    { name: "Avançado", price: "299,90", tag: "Mais escolhido — evolução acelerada", featured: true },
+    {
+      name: "Avançado",
+      price: "299,90",
+      tag: "Mais escolhido — evolução acelerada",
+      featured: true,
+    },
     { name: "Conversation", price: "169,90", tag: "Destrave a fala" },
   ];
   return (
@@ -316,7 +344,10 @@ function PlansTeaser() {
               Escolha o ritmo da sua jornada.
             </h2>
           </div>
-          <Link to="/planos" className="text-sm font-semibold text-wine hover:text-bronze flex items-center gap-1">
+          <Link
+            to="/planos"
+            className="text-sm font-semibold text-wine hover:text-bronze flex items-center gap-1"
+          >
             Comparar todos os planos <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -346,7 +377,9 @@ function PlansTeaser() {
               <Link to="/planos" className="mt-6">
                 <Button
                   className={`w-full ${
-                    c.featured ? "bg-bronze hover:bg-wine text-white" : "bg-wine hover:bg-wine-deep text-white"
+                    c.featured
+                      ? "bg-bronze hover:bg-wine text-white"
+                      : "bg-wine hover:bg-wine-deep text-white"
                   }`}
                 >
                   Ver detalhes
@@ -386,7 +419,7 @@ function FinalCTA() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white/40 text-white hover:bg-white hover:text-wine"
+                    className="border-white bg-white text-wine shadow-[0_0_0_rgba(196,113,52,0)] transition-all duration-300 hover:border-bronze hover:bg-white hover:text-wine hover:shadow-[0_0_28px_rgba(196,113,52,0.85)] focus-visible:ring-2 focus-visible:ring-bronze focus-visible:ring-offset-2 focus-visible:ring-offset-wine active:scale-[0.98] active:shadow-[0_0_36px_rgba(196,113,52,0.95)]"
                   >
                     Ver planos
                   </Button>

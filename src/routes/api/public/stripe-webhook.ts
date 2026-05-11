@@ -1,6 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getStripe } from "@/server/stripe.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
+
+type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
+type CheckoutSessionPayload = {
+  metadata?: Record<string, string> | null;
+  mode?: string | null;
+  subscription?: string | { id: string } | null;
+};
+type InvoicePayload = {
+  subscription?: string | { id: string } | null;
+  period_start?: number | null;
+  period_end?: number | null;
+};
+type SubscriptionPayload = {
+  id: string;
+  status: string;
+  cancel_at_period_end?: boolean | null;
+  current_period_start?: number | null;
+  current_period_end?: number | null;
+};
+
+function stripeId(value: string | { id: string } | null | undefined) {
+  return typeof value === "string" ? value : (value?.id ?? null);
+}
 
 export const Route = createFileRoute("/api/public/stripe-webhook")({
   server: {
@@ -25,7 +49,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           switch (event.type) {
             // Cartão: assinatura recorrente concluída no checkout
             case "checkout.session.completed": {
-              const session = event.data.object as any;
+              const session = event.data.object as CheckoutSessionPayload;
               const subscriptionId = session.metadata?.subscription_id;
               if (!subscriptionId) break;
 
@@ -34,7 +58,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                   .from("student_subscriptions")
                   .update({
                     status: "ativa",
-                    stripe_subscription_id: session.subscription ?? null,
+                    stripe_subscription_id: stripeId(session.subscription),
                     last_payment_at: new Date().toISOString(),
                   })
                   .eq("id", subscriptionId);
@@ -56,7 +80,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
 
             case "checkout.session.expired":
             case "checkout.session.async_payment_failed": {
-              const session = event.data.object as any;
+              const session = event.data.object as CheckoutSessionPayload;
               const subscriptionId = session.metadata?.subscription_id;
               if (subscriptionId) {
                 await supabaseAdmin
@@ -69,8 +93,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
 
             // Renovação recorrente (Cartão)
             case "invoice.paid": {
-              const invoice = event.data.object as any;
-              const stripeSubId = invoice.subscription;
+              const invoice = event.data.object as InvoicePayload;
+              const stripeSubId = stripeId(invoice.subscription);
               if (stripeSubId) {
                 await supabaseAdmin
                   .from("student_subscriptions")
@@ -90,8 +114,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             }
 
             case "invoice.payment_failed": {
-              const invoice = event.data.object as any;
-              const stripeSubId = invoice.subscription;
+              const invoice = event.data.object as InvoicePayload;
+              const stripeSubId = stripeId(invoice.subscription);
               if (stripeSubId) {
                 await supabaseAdmin
                   .from("student_subscriptions")
@@ -102,8 +126,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             }
 
             case "customer.subscription.updated": {
-              const s = event.data.object as any;
-              const statusMap: Record<string, string> = {
+              const s = event.data.object as SubscriptionPayload;
+              const statusMap: Record<string, SubscriptionStatus> = {
                 active: "ativa",
                 trialing: "ativa",
                 past_due: "inadimplente",
@@ -115,7 +139,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               await supabaseAdmin
                 .from("student_subscriptions")
                 .update({
-                  status: (statusMap[s.status] ?? "pendente") as any,
+                  status: statusMap[s.status] ?? "pendente",
                   cancel_at_period_end: !!s.cancel_at_period_end,
                   current_period_start: s.current_period_start
                     ? new Date(s.current_period_start * 1000).toISOString()
@@ -129,7 +153,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             }
 
             case "customer.subscription.deleted": {
-              const s = event.data.object as any;
+              const s = event.data.object as SubscriptionPayload;
               await supabaseAdmin
                 .from("student_subscriptions")
                 .update({ status: "cancelada" })

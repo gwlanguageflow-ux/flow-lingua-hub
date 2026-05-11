@@ -19,7 +19,11 @@ import { Camera } from "lucide-react";
 
 export const Route = createFileRoute("/cadastro/professor")({
   head: () => ({ meta: [{ title: "Cadastro de Professor — GWLanguageFlow" }] }),
-  component: () => <RequireAuth><Page /></RequireAuth>,
+  component: () => (
+    <RequireAuth>
+      <Page />
+    </RequireAuth>
+  ),
 });
 
 const PRICE_FIELDS = [
@@ -31,7 +35,7 @@ const PRICE_FIELDS = [
   { key: "plan_conversation", label: "Plano Conversation (mensal)" },
   { key: "plan_anual", label: "Plano Anual Advanced (12x)" },
 ] as const;
-type PriceKey = typeof PRICE_FIELDS[number]["key"];
+type PriceKey = (typeof PRICE_FIELDS)[number]["key"];
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
@@ -70,10 +74,15 @@ function Page() {
   useEffect(() => {
     if (!user) return;
     if (roles.includes("professor")) {
-      supabase.from("teacher_profiles").select("id").eq("id", user.id).maybeSingle().then(({ data }) => {
-        if (data) navigate({ to: "/dashboard" });
-        else setChecking(false);
-      });
+      supabase
+        .from("teacher_profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) navigate({ to: "/dashboard" });
+          else setChecking(false);
+        });
     } else {
       setChecking(false);
     }
@@ -81,9 +90,18 @@ function Page() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("full_name, avatar_url, age").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (data) { setFullName(data.full_name || ""); if (data.avatar_url) setAvatarPreview(data.avatar_url); if (data.age) setAge(String(data.age)); }
-    });
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url, age")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setFullName(data.full_name || "");
+          if (data.avatar_url) setAvatarPreview(data.avatar_url);
+          if (data.age) setAge(String(data.age));
+        }
+      });
   }, [user]);
 
   const toggle = (arr: string[], setter: (v: string[]) => void, val: string) => {
@@ -99,21 +117,37 @@ function Page() {
         const raw = customPrices[f.key];
         if (raw && raw.trim() !== "") {
           const n = Number(raw);
-          if (Number.isNaN(n) || n < 0) { toast.error(`Valor inválido em "${f.label}"`); return; }
+          if (Number.isNaN(n) || n < 0) {
+            toast.error(`Valor inválido em "${f.label}"`);
+            return;
+          }
           numericPrices[f.key] = n;
         }
       }
       if (Object.keys(numericPrices).length === 0) {
-        toast.error("Defina ao menos um valor personalizado ou use os valores padrão da plataforma.");
+        toast.error(
+          "Defina ao menos um valor personalizado ou use os valores padrão da plataforma.",
+        );
         return;
       }
     }
     const parsed = schema.safeParse({
-      fullName, age, bio, experiences, livedAbroad, countriesLived,
-      languagesSpoken, languagesTaught, levelsTaught,
-      useCustomPricing, customPrices: numericPrices,
+      fullName,
+      age,
+      bio,
+      experiences,
+      livedAbroad,
+      countriesLived,
+      languagesSpoken,
+      languagesTaught,
+      levelsTaught,
+      useCustomPricing,
+      customPrices: numericPrices,
     });
-    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
     setLoading(true);
 
     let avatarUrl: string | null = null;
@@ -121,10 +155,17 @@ function Page() {
 
     const d = parsed.data;
     const { error: pErr } = await supabase.from("profiles").upsert({
-      id: user.id, full_name: d.fullName, age: d.age, email: user.email,
+      id: user.id,
+      full_name: d.fullName,
+      age: d.age,
+      email: user.email,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     });
-    if (pErr) { toast.error(pErr.message); setLoading(false); return; }
+    if (pErr) {
+      toast.error(pErr.message);
+      setLoading(false);
+      return;
+    }
 
     const { error: tErr } = await supabase.from("teacher_profiles").upsert({
       id: user.id,
@@ -141,10 +182,16 @@ function Page() {
       monthly_rate: d.customPrices.monthly ?? null,
       package_8_rate: d.customPrices.package_8 ?? null,
     });
-    if (tErr) { toast.error(tErr.message); setLoading(false); return; }
+    if (tErr) {
+      toast.error(tErr.message);
+      setLoading(false);
+      return;
+    }
 
     if (!roles.includes("professor")) {
-      const { error: rErr } = await supabase.from("user_roles").insert({ user_id: user.id, role: "professor" });
+      const { error: rErr } = await supabase
+        .from("user_roles")
+        .insert({ user_id: user.id, role: "professor" });
       if (rErr && !rErr.message.toLowerCase().includes("duplicate")) {
         toast.error("Não foi possível salvar seu perfil. Tente novamente.");
         setLoading(false);
@@ -170,60 +217,120 @@ function Page() {
       <SiteHeader />
       <main className="container mx-auto px-4 py-10 max-w-3xl">
         <div className="mb-8">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">Cadastro de professor</p>
-          <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">Crie seu perfil</h1>
+          <p className="text-bronze text-xs uppercase tracking-widest font-medium">
+            Cadastro de professor
+          </p>
+          <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">
+            Crie seu perfil
+          </h1>
           <p className="text-brown mt-2">Quanto mais completo, mais alunos você atrai.</p>
         </div>
-        <form onSubmit={handleSubmit} className="bg-background rounded-3xl border border-border p-6 md:p-10 space-y-7 shadow-soft">
-
+        <form
+          onSubmit={handleSubmit}
+          className="bg-background rounded-3xl border border-border p-6 md:p-10 space-y-7 shadow-soft"
+        >
           <Section title="Identidade">
             <div className="flex items-center gap-5">
               <div className="h-24 w-24 rounded-2xl bg-cream border border-border overflow-hidden flex items-center justify-center">
-                {avatarPreview ? <img src={avatarPreview} alt="avatar" className="h-full w-full object-cover" /> : <Camera className="h-7 w-7 text-brown-soft" />}
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera className="h-7 w-7 text-brown-soft" />
+                )}
               </div>
               <div className="flex-1">
                 <Label className="block mb-2">Foto de perfil</Label>
-                <Input type="file" accept="image/*" onChange={(e) => {
-                  const f = e.target.files?.[0]; if (!f) return;
-                  setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f));
-                }} />
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setAvatarFile(f);
+                    setAvatarPreview(URL.createObjectURL(f));
+                  }}
+                />
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Nome completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Idade</Label><Input type="number" min={18} max={120} value={age} onChange={(e) => setAge(e.target.value)} required /></div>
+              <div className="space-y-2">
+                <Label>Nome completo</Label>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Idade</Label>
+                <Input
+                  type="number"
+                  min={18}
+                  max={120}
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  required
+                />
+              </div>
             </div>
           </Section>
 
           <Section title="Sobre você">
             <div className="space-y-2">
               <Label>Bio</Label>
-              <Textarea rows={4} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Apresente-se aos alunos..." required />
+              <Textarea
+                rows={4}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Apresente-se aos alunos..."
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label>Experiências (opcional)</Label>
-              <Textarea rows={3} value={experiences} onChange={(e) => setExperiences(e.target.value)} placeholder="Ensino há 5 anos, certificação CELTA..." />
+              <Textarea
+                rows={3}
+                value={experiences}
+                onChange={(e) => setExperiences(e.target.value)}
+                placeholder="Ensino há 5 anos, certificação CELTA..."
+              />
             </div>
             <div className="flex items-center gap-3 py-2">
               <Switch checked={livedAbroad} onCheckedChange={setLivedAbroad} id="lived" />
-              <Label htmlFor="lived" className="cursor-pointer">Já morou fora do país?</Label>
+              <Label htmlFor="lived" className="cursor-pointer">
+                Já morou fora do país?
+              </Label>
             </div>
             {livedAbroad && (
               <div className="space-y-2">
                 <Label>Onde morou?</Label>
-                <Input value={countriesLived} onChange={(e) => setCountriesLived(e.target.value)} placeholder="Ex: Inglaterra, Espanha" />
+                <Input
+                  value={countriesLived}
+                  onChange={(e) => setCountriesLived(e.target.value)}
+                  placeholder="Ex: Inglaterra, Espanha"
+                />
               </div>
             )}
           </Section>
 
           <Section title="Idiomas">
-            <MultiCheck label="Idiomas que fala" options={LANGUAGES} selected={languagesSpoken} onToggle={(v) => toggle(languagesSpoken, setLanguagesSpoken, v)} />
-            <MultiCheck label="Idiomas que ensina" options={LANGUAGES} selected={languagesTaught} onToggle={(v) => toggle(languagesTaught, setLanguagesTaught, v)} />
-            <MultiCheck label="Níveis que atende" options={LEVELS.map(l => l.label)} selected={levelsTaught.map(v => LEVELS.find(l=>l.value===v)?.label || v)}
+            <MultiCheck
+              label="Idiomas que fala"
+              options={LANGUAGES}
+              selected={languagesSpoken}
+              onToggle={(v) => toggle(languagesSpoken, setLanguagesSpoken, v)}
+            />
+            <MultiCheck
+              label="Idiomas que ensina"
+              options={LANGUAGES}
+              selected={languagesTaught}
+              onToggle={(v) => toggle(languagesTaught, setLanguagesTaught, v)}
+            />
+            <MultiCheck
+              label="Níveis que atende"
+              options={LEVELS.map((l) => l.label)}
+              selected={levelsTaught.map((v) => LEVELS.find((l) => l.value === v)?.label || v)}
               onToggle={(label) => {
-                const v = LEVELS.find(l => l.label === label)?.value || label;
+                const v = LEVELS.find((l) => l.label === label)?.value || label;
                 toggle(levelsTaught, setLevelsTaught, v);
-              }} />
+              }}
+            />
           </Section>
 
           <Section title="Valores e modalidades">
@@ -232,18 +339,26 @@ function Page() {
               onValueChange={(v) => setUseCustomPricing(v === "custom")}
               className="grid md:grid-cols-2 gap-3"
             >
-              <label className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${!useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}>
+              <label
+                className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${!useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}
+              >
                 <RadioGroupItem value="default" id="pr-default" className="mt-1" />
                 <div>
                   <div className="font-semibold text-wine">Padrão da plataforma</div>
-                  <p className="text-sm text-brown">Use os valores oficiais da GWLanguageFlow para todos os planos e modalidades.</p>
+                  <p className="text-sm text-brown">
+                    Use os valores oficiais da GWLanguageFlow para todos os planos e modalidades.
+                  </p>
                 </div>
               </label>
-              <label className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}>
+              <label
+                className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${useCustomPricing ? "border-bronze bg-cream" : "border-border"}`}
+              >
                 <RadioGroupItem value="custom" id="pr-custom" className="mt-1" />
                 <div>
                   <div className="font-semibold text-wine">Personalizado</div>
-                  <p className="text-sm text-brown">Defina seus próprios valores. Preencha apenas os campos que oferece.</p>
+                  <p className="text-sm text-brown">
+                    Defina seus próprios valores. Preencha apenas os campos que oferece.
+                  </p>
                 </div>
               </label>
             </RadioGroup>
@@ -259,7 +374,9 @@ function Page() {
                       min="0"
                       placeholder="Deixe em branco se não oferece"
                       value={customPrices[f.key] ?? ""}
-                      onChange={(e) => setCustomPrices({ ...customPrices, [f.key]: e.target.value })}
+                      onChange={(e) =>
+                        setCustomPrices({ ...customPrices, [f.key]: e.target.value })
+                      }
                     />
                   </div>
                 ))}
@@ -267,8 +384,11 @@ function Page() {
             )}
           </Section>
 
-
-          <Button type="submit" disabled={loading} className="w-full bg-bronze text-white hover:bg-wine shadow-bronze">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
+          >
             {loading ? "Salvando..." : "Publicar meu perfil"}
           </Button>
         </form>
@@ -286,7 +406,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function MultiCheck({ label, options, selected, onToggle }: { label: string; options: string[]; selected: string[]; onToggle: (v: string) => void }) {
+function MultiCheck({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+}) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -299,7 +429,9 @@ function MultiCheck({ label, options, selected, onToggle }: { label: string; opt
               key={opt}
               onClick={() => onToggle(opt)}
               className={`px-3 py-1.5 rounded-full text-sm border transition ${
-                isOn ? "bg-wine text-white border-wine" : "bg-background text-brown border-border hover:border-bronze"
+                isOn
+                  ? "bg-wine text-white border-wine"
+                  : "bg-background text-brown border-border hover:border-bronze"
               }`}
             >
               {opt}

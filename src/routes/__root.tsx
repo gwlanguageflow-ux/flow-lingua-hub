@@ -34,14 +34,40 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "GWLanguageFlow — Aulas de idiomas com professores apaixonados" },
-      { name: "description", content: "Marketplace de aulas de idiomas. Encontre o professor ideal e aprenda no seu ritmo." },
-      { property: "og:title", content: "GWLanguageFlow — Aulas de idiomas com professores apaixonados" },
-      { property: "og:description", content: "Marketplace de aulas de idiomas. Encontre o professor ideal e aprenda no seu ritmo." },
+      {
+        name: "description",
+        content:
+          "Marketplace de aulas de idiomas. Encontre o professor ideal e aprenda no seu ritmo.",
+      },
+      {
+        property: "og:title",
+        content: "GWLanguageFlow — Aulas de idiomas com professores apaixonados",
+      },
+      {
+        property: "og:description",
+        content:
+          "Marketplace de aulas de idiomas. Encontre o professor ideal e aprenda no seu ritmo.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:title", content: "GWLanguageFlow — Aulas de idiomas com professores apaixonados" },
-      { name: "twitter:description", content: "Marketplace de aulas de idiomas. Encontre o professor ideal e aprenda no seu ritmo." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SNRPziOYWBOb4jH0ZOO6dZrnRFw1/social-images/social-1776899926779-LOGO_GWLanguage.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SNRPziOYWBOb4jH0ZOO6dZrnRFw1/social-images/social-1776899926779-LOGO_GWLanguage.webp" },
+      {
+        name: "twitter:title",
+        content: "GWLanguageFlow — Aulas de idiomas com professores apaixonados",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Marketplace de aulas de idiomas. Encontre o professor ideal e aprenda no seu ritmo.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/SNRPziOYWBOb4jH0ZOO6dZrnRFw1/social-images/social-1776899926779-LOGO_GWLanguage.webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/SNRPziOYWBOb4jH0ZOO6dZrnRFw1/social-images/social-1776899926779-LOGO_GWLanguage.webp",
+      },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [

@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    setRoles((data?.map((r) => r.role as AppRole)) ?? []);
+    setRoles(data?.map((r) => r.role as AppRole) ?? []);
   };
 
   useEffect(() => {
@@ -33,7 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
         // defer to avoid deadlock
-        setTimeout(() => { fetchRoles(newSession.user.id); }, 0);
+        setTimeout(() => {
+          fetchRoles(newSession.user.id);
+        }, 0);
       } else {
         setRoles([]);
       }

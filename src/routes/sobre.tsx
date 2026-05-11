@@ -26,9 +26,10 @@ function AboutPage() {
               Um método. Uma direção. <span className="italic text-bronze">Um propósito.</span>
             </h1>
             <p className="text-brown text-lg mt-5 leading-relaxed">
-              A GWLanguageFlow é uma plataforma profissional de ensino de idiomas, idealizada pela diretora
-              <strong className="text-wine"> Eloiza Gramacho</strong>. Aqui, cada aula tem método, cada aluno tem
-              acompanhamento e cada professor segue o nosso padrão de qualidade.
+              A GWLanguageFlow é uma plataforma profissional de ensino de idiomas, idealizada pela
+              diretora
+              <strong className="text-wine"> Eloiza Gramacho</strong>. Aqui, cada aula tem método,
+              cada aluno tem acompanhamento e cada professor segue o nosso padrão de qualidade.
             </p>
           </div>
         </section>
@@ -36,10 +37,26 @@ function AboutPage() {
         <section className="py-16">
           <div className="container mx-auto px-4 max-w-5xl grid gap-5 md:grid-cols-2">
             {[
-              { i: Target, t: "Foco em resultado", d: "Trilhas estruturadas por objetivo, com revisão constante." },
-              { i: Heart, t: "Ensino humano", d: "Professores próximos e atentos ao ritmo de cada aluno." },
-              { i: ShieldCheck, t: "Pagamento seguro", d: "Cobrança via plataforma, com cartão ou PIX." },
-              { i: Sparkles, t: "Materiais exclusivos", d: "Conteúdo autoral entregue toda semana no painel." },
+              {
+                i: Target,
+                t: "Foco em resultado",
+                d: "Trilhas estruturadas por objetivo, com revisão constante.",
+              },
+              {
+                i: Heart,
+                t: "Ensino humano",
+                d: "Professores próximos e atentos ao ritmo de cada aluno.",
+              },
+              {
+                i: ShieldCheck,
+                t: "Pagamento seguro",
+                d: "Cobrança via plataforma, com cartão ou PIX.",
+              },
+              {
+                i: Sparkles,
+                t: "Materiais exclusivos",
+                d: "Conteúdo autoral entregue toda semana no painel.",
+              },
             ].map((b) => (
               <div key={b.t} className="rounded-2xl border border-border bg-white p-7">
                 <b.i className="h-6 w-6 text-bronze mb-4" />

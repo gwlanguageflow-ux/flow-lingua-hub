@@ -20,13 +20,4 @@ export const LEVELS = [
   { value: "fluente", label: "Fluente" },
 ] as const;
 
-
-export const WEEKDAYS = [
-  "Domingo",
-  "Segunda",
-  "Terça",
-  "Quarta",
-  "Quinta",
-  "Sexta",
-  "Sábado",
-];
+export const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];

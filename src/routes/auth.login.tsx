@@ -31,7 +31,13 @@ function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      const dest = roles.includes("dev") ? "/admin" : roles.includes("professor") ? "/dashboard" : roles.includes("aluno") ? "/feed" : "/escolher-perfil";
+      const dest = roles.includes("dev")
+        ? "/admin"
+        : roles.includes("professor")
+          ? "/dashboard"
+          : roles.includes("aluno")
+            ? "/feed"
+            : "/escolher-perfil";
       navigate({ to: dest });
     }
   }, [user, roles, authLoading, navigate]);
@@ -47,7 +53,11 @@ function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {
-      toast.error(error.message === "Invalid login credentials" ? "E-mail ou senha incorretos." : error.message);
+      toast.error(
+        error.message === "Invalid login credentials"
+          ? "E-mail ou senha incorretos."
+          : error.message,
+      );
       return;
     }
     toast.success("Bem-vindo de volta!");
@@ -67,7 +77,13 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex bg-gradient-warm items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 30% 20%, white 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: "radial-gradient(circle at 30% 20%, white 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
         <div className="relative text-white max-w-md">
           <h2 className="font-display text-4xl font-bold leading-tight mb-4">
             Continue sua jornada com idiomas.
@@ -111,13 +127,31 @@ function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" disabled={loading} className="w-full bg-bronze text-white hover:bg-wine shadow-bronze">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
+            >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
@@ -129,7 +163,9 @@ function LoginPage() {
             </Link>
           </p>
           <p className="text-xs text-center text-brown-soft">
-            <Link to="/" className="hover:text-wine">← Voltar ao início</Link>
+            <Link to="/" className="hover:text-wine">
+              ← Voltar ao início
+            </Link>
           </p>
         </motion.div>
       </div>
@@ -139,6 +175,11 @@ function LoginPage() {
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 11v3.2h5.7c-.2 1.5-1.7 4.4-5.7 4.4-3.4 0-6.2-2.8-6.2-6.3S8.6 6 12 6c2 0 3.3.8 4 1.5l2.7-2.6C17 3.3 14.7 2.4 12 2.4 6.7 2.4 2.5 6.7 2.5 12s4.2 9.6 9.5 9.6c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1-.1-1.4H12z"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24">
+      <path
+        fill="#EA4335"
+        d="M12 11v3.2h5.7c-.2 1.5-1.7 4.4-5.7 4.4-3.4 0-6.2-2.8-6.2-6.3S8.6 6 12 6c2 0 3.3.8 4 1.5l2.7-2.6C17 3.3 14.7 2.4 12 2.4 6.7 2.4 2.5 6.7 2.5 12s4.2 9.6 9.5 9.6c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1-.1-1.4H12z"
+      />
+    </svg>
   );
 }

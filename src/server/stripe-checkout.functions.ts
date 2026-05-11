@@ -23,7 +23,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
       })
-      .parse(input)
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

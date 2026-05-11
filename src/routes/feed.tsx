@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
 import { Star, Search, Filter, Globe2 } from "lucide-react";
@@ -42,18 +48,25 @@ function FeedPage() {
         .select("id, bio, hourly_rate, languages_taught, levels_taught, is_active")
         .eq("is_active", true);
 
-      if (!teachersData?.length) { setTeachers([]); setLoading(false); return; }
+      if (!teachersData?.length) {
+        setTeachers([]);
+        setLoading(false);
+        return;
+      }
 
       const ids = teachersData.map((t) => t.id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url")
         .in("id", ids);
-      const profMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
+      const profMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
 
-      const { data: reviews } = await supabase.from("reviews").select("teacher_id, rating").in("teacher_id", ids);
+      const { data: reviews } = await supabase
+        .from("reviews")
+        .select("teacher_id, rating")
+        .in("teacher_id", ids);
       const ratingMap = new Map<string, number>();
-      reviews?.forEach(r => {
+      reviews?.forEach((r) => {
         const cur = ratingMap.get(r.teacher_id) || 0;
         const c = (ratingMap.get(`${r.teacher_id}__c`) as never as number) || 0;
         ratingMap.set(r.teacher_id, cur + r.rating);
@@ -83,7 +96,12 @@ function FeedPage() {
 
   const filtered = useMemo(() => {
     return teachers.filter((t) => {
-      if (search && !t.full_name.toLowerCase().includes(search.toLowerCase()) && !(t.bio || "").toLowerCase().includes(search.toLowerCase())) return false;
+      if (
+        search &&
+        !t.full_name.toLowerCase().includes(search.toLowerCase()) &&
+        !(t.bio || "").toLowerCase().includes(search.toLowerCase())
+      )
+        return false;
       if (language !== "all" && !t.languages_taught.includes(language)) return false;
       if (level !== "all" && !t.levels_taught.includes(level)) return false;
       if (maxPrice && t.hourly_rate > Number(maxPrice)) return false;
@@ -107,29 +125,56 @@ function FeedPage() {
           <div className="grid gap-3 md:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brown-soft" />
-              <Input className="pl-9" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input
+                className="pl-9"
+                placeholder="Buscar..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
             <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger><SelectValue placeholder="Idioma" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Idioma" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os idiomas</SelectItem>
-                {LANGUAGES.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                {LANGUAGES.map((l) => (
+                  <SelectItem key={l} value={l}>
+                    {l}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={level} onValueChange={setLevel}>
-              <SelectTrigger><SelectValue placeholder="Nível" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Nível" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os níveis</SelectItem>
-                {LEVELS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                {LEVELS.map((l) => (
+                  <SelectItem key={l.value} value={l.value}>
+                    {l.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            <Input placeholder="Preço máx (R$/h)" type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+            <Input
+              placeholder="Preço máx (R$/h)"
+              type="number"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+            />
           </div>
         </div>
 
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="h-80 rounded-2xl bg-background border border-border animate-pulse" />)}
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="h-80 rounded-2xl bg-background border border-border animate-pulse"
+              />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 bg-background rounded-2xl border border-border">
@@ -139,7 +184,9 @@ function FeedPage() {
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((t, i) => <TeacherCardEl key={t.id} teacher={t} index={i} />)}
+            {filtered.map((t, i) => (
+              <TeacherCardEl key={t.id} teacher={t} index={i} />
+            ))}
           </div>
         )}
       </main>
@@ -158,7 +205,12 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
     >
       <div className="relative h-48 bg-gradient-warm">
         {teacher.avatar_url ? (
-          <img src={teacher.avatar_url} alt={teacher.full_name} className="w-full h-full object-cover" loading="lazy" />
+          <img
+            src={teacher.avatar_url}
+            alt={teacher.full_name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white font-display text-5xl">
             {teacher.full_name.charAt(0)}
@@ -174,18 +226,26 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       <div className="p-5 space-y-3">
         <div>
           <h3 className="font-display text-lg font-bold text-wine truncate">{teacher.full_name}</h3>
-          <p className="text-xs text-brown-soft">{teacher.languages_taught.slice(0,3).join(" · ")}</p>
+          <p className="text-xs text-brown-soft">
+            {teacher.languages_taught.slice(0, 3).join(" · ")}
+          </p>
         </div>
-        <p className="text-sm text-brown line-clamp-2 min-h-[2.5rem]">{teacher.bio || "Professor apaixonado por idiomas."}</p>
+        <p className="text-sm text-brown line-clamp-2 min-h-[2.5rem]">
+          {teacher.bio || "Professor apaixonado por idiomas."}
+        </p>
         <div className="flex items-baseline justify-between pt-1">
           <div>
-            <span className="text-xl font-display font-bold text-bronze">R$ {teacher.hourly_rate.toFixed(0)}</span>
+            <span className="text-xl font-display font-bold text-bronze">
+              R$ {teacher.hourly_rate.toFixed(0)}
+            </span>
             <span className="text-xs text-brown-soft">/hora</span>
           </div>
         </div>
         <div className="flex gap-2 pt-2">
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
-            <Button variant="outline" className="w-full border-wine/30 text-wine hover:bg-cream">Ver perfil</Button>
+            <Button variant="outline" className="w-full border-wine/30 text-wine hover:bg-cream">
+              Ver perfil
+            </Button>
           </Link>
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
             <Button className="w-full bg-bronze text-white hover:bg-wine">Agendar</Button>

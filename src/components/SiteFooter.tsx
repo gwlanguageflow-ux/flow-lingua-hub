@@ -14,16 +14,36 @@ export function SiteFooter() {
         <div>
           <h4 className="text-white font-display text-base mb-3">Plataforma</h4>
           <ul className="space-y-2 text-sm text-white/70">
-            <li><Link to="/planos" className="hover:text-bronze">Planos</Link></li>
-            <li><Link to="/seja-professor" className="hover:text-bronze">Seja professor</Link></li>
-            <li><Link to="/sobre" className="hover:text-bronze">Sobre nós</Link></li>
+            <li>
+              <Link to="/planos" className="hover:text-bronze">
+                Planos
+              </Link>
+            </li>
+            <li>
+              <Link to="/seja-professor" className="hover:text-bronze">
+                Seja professor
+              </Link>
+            </li>
+            <li>
+              <Link to="/sobre" className="hover:text-bronze">
+                Sobre nós
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
           <h4 className="text-white font-display text-base mb-3">Conta</h4>
           <ul className="space-y-2 text-sm text-white/70">
-            <li><Link to="/auth/login" className="hover:text-bronze">Entrar</Link></li>
-            <li><Link to="/auth/signup" className="hover:text-bronze">Criar conta</Link></li>
+            <li>
+              <Link to="/auth/login" className="hover:text-bronze">
+                Entrar
+              </Link>
+            </li>
+            <li>
+              <Link to="/auth/signup" className="hover:text-bronze">
+                Criar conta
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

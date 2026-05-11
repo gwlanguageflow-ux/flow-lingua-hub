@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WEEKDAYS } from "@/lib/constants";
 import { toast } from "sonner";
 import { Plus, Trash2, Clock } from "lucide-react";
@@ -25,7 +31,7 @@ export function AvailabilityManager() {
   const [end, setEnd] = useState("18:00");
   const [adding, setAdding] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("teacher_availability")
@@ -35,13 +41,18 @@ export function AvailabilityManager() {
       .order("start_time", { ascending: true });
     setSlots(data || []);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const addSlot = async () => {
     if (!user) return;
-    if (start >= end) { toast.error("Horário final deve ser depois do inicial"); return; }
+    if (start >= end) {
+      toast.error("Horário final deve ser depois do inicial");
+      return;
+    }
     setAdding(true);
     const { error } = await supabase.from("teacher_availability").insert({
       teacher_id: user.id,
@@ -50,14 +61,20 @@ export function AvailabilityManager() {
       end_time: end,
     });
     setAdding(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Horário adicionado");
     load();
   };
 
   const removeSlot = async (id: string) => {
     const { error } = await supabase.from("teacher_availability").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Horário removido");
     setSlots((s) => s.filter((x) => x.id !== id));
   };
@@ -78,9 +95,15 @@ export function AvailabilityManager() {
           <div className="space-y-1.5">
             <Label className="text-xs">Dia da semana</Label>
             <Select value={day} onValueChange={setDay}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {WEEKDAYS.map((w, i) => <SelectItem key={i} value={String(i)}>{w}</SelectItem>)}
+                {WEEKDAYS.map((w, i) => (
+                  <SelectItem key={i} value={String(i)}>
+                    {w}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -93,7 +116,11 @@ export function AvailabilityManager() {
             <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
           </div>
           <div className="flex items-end">
-            <Button onClick={addSlot} disabled={adding} className="w-full bg-bronze text-white hover:bg-wine">
+            <Button
+              onClick={addSlot}
+              disabled={adding}
+              className="w-full bg-bronze text-white hover:bg-wine"
+            >
               {adding ? "Adicionando..." : "Adicionar"}
             </Button>
           </div>
@@ -106,31 +133,38 @@ export function AvailabilityManager() {
         <div className="text-center py-10 border border-dashed border-border rounded-2xl">
           <Clock className="h-8 w-8 text-bronze mx-auto mb-2" />
           <p className="text-sm text-brown-soft">Nenhum horário cadastrado ainda.</p>
-          <p className="text-xs text-brown-soft mt-1">Adicione faixas de horário para que alunos possam te encontrar.</p>
+          <p className="text-xs text-brown-soft mt-1">
+            Adicione faixas de horário para que alunos possam te encontrar.
+          </p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {grouped.filter(g => g.items.length > 0).map((g) => (
-            <div key={g.idx} className="rounded-2xl border border-border p-4">
-              <p className="font-display text-wine text-sm font-semibold mb-3">{g.name}</p>
-              <ul className="space-y-2">
-                {g.items.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-2 bg-cream/50 rounded-xl px-3 py-2">
-                    <span className="text-sm text-brown">
-                      {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
-                    </span>
-                    <button
-                      onClick={() => removeSlot(s.id)}
-                      className="text-brown-soft hover:text-wine transition-colors"
-                      aria-label="Remover horário"
+          {grouped
+            .filter((g) => g.items.length > 0)
+            .map((g) => (
+              <div key={g.idx} className="rounded-2xl border border-border p-4">
+                <p className="font-display text-wine text-sm font-semibold mb-3">{g.name}</p>
+                <ul className="space-y-2">
+                  {g.items.map((s) => (
+                    <li
+                      key={s.id}
+                      className="flex items-center justify-between gap-2 bg-cream/50 rounded-xl px-3 py-2"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                      <span className="text-sm text-brown">
+                        {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
+                      </span>
+                      <button
+                        onClick={() => removeSlot(s.id)}
+                        className="text-brown-soft hover:text-wine transition-colors"
+                        aria-label="Remover horário"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
         </div>
       )}
     </div>

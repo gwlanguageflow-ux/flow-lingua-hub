@@ -102,21 +102,38 @@ export function SiteHeader() {
 
       {open && (
         <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3">
-          
-          <Link to="/planos" onClick={() => setOpen(false)} className="block py-2 text-brown">Planos</Link>
-          <Link to="/sobre" onClick={() => setOpen(false)} className="block py-2 text-brown">Sobre</Link>
-          <Link to="/seja-professor" onClick={() => setOpen(false)} className="block py-2 text-brown">Seja professor</Link>
+          <Link to="/planos" onClick={() => setOpen(false)} className="block py-2 text-brown">
+            Planos
+          </Link>
+          <Link to="/sobre" onClick={() => setOpen(false)} className="block py-2 text-brown">
+            Sobre
+          </Link>
+          <Link
+            to="/seja-professor"
+            onClick={() => setOpen(false)}
+            className="block py-2 text-brown"
+          >
+            Seja professor
+          </Link>
           {user ? (
             <>
-              <Link to={dashboardLink} onClick={() => setOpen(false)} className="block py-2 text-wine font-semibold">
+              <Link
+                to={dashboardLink}
+                onClick={() => setOpen(false)}
+                className="block py-2 text-wine font-semibold"
+              >
                 {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
               </Link>
-              <button onClick={handleSignOut} className="block py-2 text-wine">Sair</button>
+              <button onClick={handleSignOut} className="block py-2 text-wine">
+                Sair
+              </button>
             </>
           ) : (
             <div className="flex gap-2 pt-2">
               <Link to="/auth/login" onClick={() => setOpen(false)} className="flex-1">
-                <Button variant="outline" className="w-full">Entrar</Button>
+                <Button variant="outline" className="w-full">
+                  Entrar
+                </Button>
               </Link>
               <Link to="/auth/signup" onClick={() => setOpen(false)} className="flex-1">
                 <Button className="w-full bg-bronze text-white hover:bg-wine">Criar conta</Button>

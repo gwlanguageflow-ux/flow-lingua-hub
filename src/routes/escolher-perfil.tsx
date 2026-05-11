@@ -31,8 +31,14 @@ function Inner() {
 
   return (
     <div className="min-h-screen bg-gradient-soft flex flex-col items-center justify-center px-4 py-12">
-      <div className="mb-10"><Logo /></div>
-      <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl md:text-5xl font-bold text-wine text-center max-w-2xl">
+      <div className="mb-10">
+        <Logo />
+      </div>
+      <motion.h1
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="font-display text-3xl md:text-5xl font-bold text-wine text-center max-w-2xl"
+      >
         Como você quer começar?
       </motion.h1>
       <p className="text-brown mt-4 text-center max-w-md">
@@ -59,20 +65,38 @@ function Inner() {
   );
 }
 
-function Card({ icon, title, desc, onClick, accent }: { icon: React.ReactNode; title: string; desc: string; onClick: () => void; accent: "bronze" | "wine" }) {
+function Card({
+  icon,
+  title,
+  desc,
+  onClick,
+  accent,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  onClick: () => void;
+  accent: "bronze" | "wine";
+}) {
   const isWine = accent === "wine";
   return (
     <motion.button
       whileHover={{ y: -6 }}
       onClick={onClick}
       className={`text-left rounded-3xl p-8 border-2 transition-all ${
-        isWine ? "bg-wine text-white border-wine hover:shadow-warm" : "bg-background border-border hover:border-bronze hover:shadow-bronze"
+        isWine
+          ? "bg-wine text-white border-wine hover:shadow-warm"
+          : "bg-background border-border hover:border-bronze hover:shadow-bronze"
       }`}
     >
-      <div className={`h-16 w-16 rounded-2xl flex items-center justify-center mb-5 ${isWine ? "bg-bronze" : "bg-bronze/10"}`}>
+      <div
+        className={`h-16 w-16 rounded-2xl flex items-center justify-center mb-5 ${isWine ? "bg-bronze" : "bg-bronze/10"}`}
+      >
         {icon}
       </div>
-      <h3 className={`font-display text-2xl font-bold mb-2 ${isWine ? "text-white" : "text-wine"}`}>{title}</h3>
+      <h3 className={`font-display text-2xl font-bold mb-2 ${isWine ? "text-white" : "text-wine"}`}>
+        {title}
+      </h3>
       <p className={`text-sm ${isWine ? "text-white/80" : "text-brown"}`}>{desc}</p>
     </motion.button>
   );
