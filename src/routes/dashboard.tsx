@@ -73,7 +73,7 @@ function DashboardPage() {
                   </div>
                 </>
               )}
-              <RouterLink to="/cadastro/professor" className="ml-2 text-xs underline opacity-80 hover:opacity-100">editar</RouterLink>
+              <Link to="/cadastro/professor" className="ml-2 text-xs underline opacity-80 hover:opacity-100">editar</Link>
             </div>
           )}
         </div>
