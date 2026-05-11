@@ -373,6 +373,33 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      complete_student_profile: {
+        Args: {
+          _age: number;
+          _avatar_url?: string | null;
+          _comprehension_level: Database["public"]["Enums"]["language_level"];
+          _desired_language: string;
+          _full_name: string;
+        };
+        Returns: void;
+      };
+      complete_teacher_profile: {
+        Args: {
+          _age: number;
+          _avatar_url?: string | null;
+          _bio: string;
+          _countries_lived?: string | null;
+          _custom_prices?: Json;
+          _experiences?: string | null;
+          _full_name: string;
+          _languages_spoken: string[];
+          _languages_taught: string[];
+          _levels_taught: Database["public"]["Enums"]["language_level"][];
+          _lived_abroad: boolean;
+          _use_custom_pricing: boolean;
+        };
+        Returns: void;
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];

@@ -154,49 +154,25 @@ function Page() {
     if (avatarFile) avatarUrl = await uploadAvatar(user.id, avatarFile);
 
     const d = parsed.data;
-    const { error: pErr } = await supabase.from("profiles").upsert({
-      id: user.id,
-      full_name: d.fullName,
-      age: d.age,
-      email: user.email,
-      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    const { error } = await supabase.rpc("complete_teacher_profile", {
+      _full_name: d.fullName,
+      _age: d.age,
+      _bio: d.bio,
+      _experiences: d.experiences || null,
+      _lived_abroad: d.livedAbroad,
+      _countries_lived: d.livedAbroad ? d.countriesLived || null : null,
+      _languages_spoken: d.languagesSpoken,
+      _languages_taught: d.languagesTaught,
+      _levels_taught: d.levelsTaught,
+      _use_custom_pricing: d.useCustomPricing,
+      _custom_prices: d.customPrices,
+      _avatar_url: avatarUrl,
     });
-    if (pErr) {
-      toast.error(pErr.message);
+
+    if (error) {
+      toast.error(error.message);
       setLoading(false);
       return;
-    }
-
-    const { error: tErr } = await supabase.from("teacher_profiles").upsert({
-      id: user.id,
-      bio: d.bio,
-      experiences: d.experiences || null,
-      lived_abroad: d.livedAbroad,
-      countries_lived: d.livedAbroad ? d.countriesLived || null : null,
-      languages_spoken: d.languagesSpoken,
-      languages_taught: d.languagesTaught,
-      levels_taught: d.levelsTaught as never,
-      use_custom_pricing: d.useCustomPricing,
-      custom_prices: d.customPrices,
-      hourly_rate: d.customPrices.hourly ?? null,
-      monthly_rate: d.customPrices.monthly ?? null,
-      package_8_rate: d.customPrices.package_8 ?? null,
-    });
-    if (tErr) {
-      toast.error(tErr.message);
-      setLoading(false);
-      return;
-    }
-
-    if (!roles.includes("professor")) {
-      const { error: rErr } = await supabase
-        .from("user_roles")
-        .insert({ user_id: user.id, role: "professor" });
-      if (rErr && !rErr.message.toLowerCase().includes("duplicate")) {
-        toast.error("Não foi possível salvar seu perfil. Tente novamente.");
-        setLoading(false);
-        return;
-      }
     }
     await refreshRoles();
 

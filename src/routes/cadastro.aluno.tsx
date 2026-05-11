@@ -103,40 +103,18 @@ function Page() {
     let avatarUrl: string | null = null;
     if (avatarFile) avatarUrl = await uploadAvatar(user.id, avatarFile);
 
-    const { error: pErr } = await supabase.from("profiles").upsert({
-      id: user.id,
-      full_name: parsed.data.fullName,
-      age: parsed.data.age,
-      email: user.email,
-      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    const { error } = await supabase.rpc("complete_student_profile", {
+      _full_name: parsed.data.fullName,
+      _age: parsed.data.age,
+      _desired_language: parsed.data.desiredLanguage,
+      _comprehension_level: parsed.data.level,
+      _avatar_url: avatarUrl,
     });
-    if (pErr) {
-      toast.error(pErr.message);
+
+    if (error) {
+      toast.error(error.message);
       setLoading(false);
       return;
-    }
-
-    const { error: sErr } = await supabase.from("student_profiles").upsert({
-      id: user.id,
-      desired_language: parsed.data.desiredLanguage,
-      comprehension_level: parsed.data.level as never,
-    });
-    if (sErr) {
-      toast.error(sErr.message);
-      setLoading(false);
-      return;
-    }
-
-    // Atribui role "aluno" — ignora erro de duplicidade (já existe)
-    if (!roles.includes("aluno")) {
-      const { error: rErr } = await supabase
-        .from("user_roles")
-        .insert({ user_id: user.id, role: "aluno" });
-      if (rErr && !rErr.message.toLowerCase().includes("duplicate")) {
-        toast.error("Não foi possível salvar seu perfil. Tente novamente.");
-        setLoading(false);
-        return;
-      }
     }
     await refreshRoles();
 

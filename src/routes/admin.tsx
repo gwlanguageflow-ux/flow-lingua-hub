@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/components/RequireAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getAdminDashboard } from "@/server/admin.functions";
 import { Users, GraduationCap, Calendar, DollarSign } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -28,19 +28,19 @@ function AdminPage() {
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ data: p }, { data: t }, { data: s }, { data: b }] = await Promise.all([
-        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-        supabase.from("teacher_profiles").select("*"),
-        supabase.from("student_profiles").select("*"),
-        supabase.from("bookings").select("*").order("scheduled_at", { ascending: false }),
-      ]);
-      setProfiles(p || []);
-      setTeachers(t || []);
-      setStudents(s || []);
-      setBookings(b || []);
+      try {
+        const data = await getAdminDashboard();
+        setProfiles(data.profiles);
+        setTeachers(data.teachers);
+        setStudents(data.students);
+        setBookings(data.bookings);
+      } catch {
+        setError("Nao foi possivel carregar o painel administrativo.");
+      }
     })();
   }, []);
 
@@ -59,6 +59,12 @@ function AdminPage() {
           <Stat icon={Users} label="Alunos" value={students.length} />
           <Stat icon={DollarSign} label="Aulas agendadas" value={bookings.length} />
         </div>
+
+        {error && (
+          <div className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
+          </div>
+        )}
 
         <Tabs
           defaultValue="users"

@@ -26,7 +26,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
     const stripe = getStripe();
 
     // 1. Carrega plano
@@ -49,7 +49,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 
     let customerId = existingSub?.stripe_customer_id ?? null;
     if (!customerId) {
-      const { data: prof } = await supabase
+      const { data: prof } = await supabaseAdmin
         .from("profiles")
         .select("email, full_name")
         .eq("id", userId)
@@ -180,10 +180,12 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 export const getMySubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data } = await supabase
+    const { userId } = context;
+    const { data } = await supabaseAdmin
       .from("student_subscriptions")
-      .select("*, subscription_plans(*)")
+      .select(
+        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, subscription_plans(*)",
+      )
       .eq("student_id", userId)
       .order("created_at", { ascending: false })
       .limit(1)
