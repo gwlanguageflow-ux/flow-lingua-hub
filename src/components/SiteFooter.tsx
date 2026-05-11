@@ -8,13 +8,13 @@ export function SiteFooter() {
         <div className="space-y-3">
           <Logo variant="light" />
           <p className="text-sm text-white/70 max-w-xs">
-            O marketplace de aulas de idiomas que conecta alunos a professores apaixonados ao redor do mundo.
+            Plataforma profissional de ensino de idiomas com método, propósito e acompanhamento.
           </p>
         </div>
         <div>
           <h4 className="text-white font-display text-base mb-3">Plataforma</h4>
           <ul className="space-y-2 text-sm text-white/70">
-            <li><Link to="/feed" className="hover:text-bronze">Encontrar professor</Link></li>
+            <li><Link to="/planos" className="hover:text-bronze">Planos</Link></li>
             <li><Link to="/seja-professor" className="hover:text-bronze">Seja professor</Link></li>
             <li><Link to="/sobre" className="hover:text-bronze">Sobre nós</Link></li>
           </ul>
