@@ -26,7 +26,9 @@ function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const navigate = useNavigate();
   const { user, roles, loading: authLoading } = useAuth();
 
@@ -47,7 +49,8 @@ function SignupPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    setConfirmationEmail("");
+    const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
@@ -62,7 +65,37 @@ function SignupPage() {
       );
       return;
     }
+
+    if (!data.session) {
+      setLoading(false);
+      setConfirmationEmail(parsed.data.email);
+      toast.success("Conta criada. Confirme seu e-mail para escolher seu perfil.");
+      return;
+    }
+
+    setLoading(false);
     toast.success("Conta criada! Vamos configurar seu perfil.");
+    navigate({ to: "/escolher-perfil" });
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!confirmationEmail) return;
+    setResending(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: confirmationEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/escolher-perfil`,
+      },
+    });
+    setResending(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("E-mail de confirmação reenviado.");
   };
 
   const handleGoogle = async () => {
@@ -112,6 +145,25 @@ function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {confirmationEmail && (
+              <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
+                <p className="font-semibold text-wine">Confirme seu e-mail para continuar</p>
+                <p className="mt-1">
+                  Enviamos um link para <strong>{confirmationEmail}</strong>. Depois de confirmar,
+                  voce volta para escolher se quer aprender ou ensinar.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={resending}
+                  onClick={handleResendConfirmation}
+                  className="mt-3 border-bronze text-wine hover:bg-bronze/10"
+                >
+                  {resending ? "Reenviando..." : "Reenviar e-mail"}
+                </Button>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="name">Nome completo</Label>
               <Input

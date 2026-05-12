@@ -1,16 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getStripe } from "./stripe.server";
 
 /**
- * Cria uma Checkout Session de assinatura ou pagamento único PIX.
- * - Cartão: cria/usa um Stripe Price recorrente e abre subscription Checkout.
- * - PIX: cria pagamento único do período (PIX no Stripe não suporta recorrência).
+ * Cria uma Checkout Session de assinatura ou pagamento Ãºnico PIX.
+ * - CartÃ£o: cria/usa um Stripe Price recorrente e abre subscription Checkout.
+ * - PIX: cria pagamento Ãºnico do perÃ­odo (PIX no Stripe nÃ£o suporta recorrÃªncia).
  *
  * Em ambos os casos, registra/atualiza student_subscriptions com status pendente.
- * O webhook confirma a ativação após pagamento.
+ * O webhook confirma a ativaÃ§Ã£o apÃ³s pagamento.
  */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -26,6 +24,10 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
+    const [{ supabaseAdmin }, { getStripe }] = await Promise.all([
+      import("@/integrations/supabase/client.server"),
+      import("@/server/stripe.server"),
+    ]);
     const { userId } = context;
     const stripe = getStripe();
 
@@ -36,7 +38,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .eq("slug", data.planSlug)
       .eq("is_active", true)
       .maybeSingle();
-    if (pErr || !plan) throw new Error("Plano não encontrado");
+    if (pErr || !plan) throw new Error("Plano nÃ£o encontrado");
 
     // 2. Carrega/cria customer Stripe
     const { data: existingSub } = await supabaseAdmin
@@ -62,7 +64,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       customerId = customer.id;
     }
 
-    // 3. Calcula período
+    // 3. Calcula perÃ­odo
     const now = new Date();
     const periodEnd = new Date(now);
     if (plan.interval === "mensal") periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -106,7 +108,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
                 interval_count: intervalCount,
               },
               product_data: {
-                name: `${plan.name} — GWLanguageFlow`,
+                name: `${plan.name} â€” GWLanguageFlow`,
                 description: plan.description ?? undefined,
               },
             },
@@ -129,7 +131,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         cancel_url: data.cancelUrl,
       });
     } else {
-      // PIX = pagamento único do período
+      // PIX = pagamento Ãºnico do perÃ­odo
       session = await stripe.checkout.sessions.create({
         mode: "payment",
         customer: customerId,
@@ -140,8 +142,8 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
               currency: "brl",
               unit_amount: totalCents,
               product_data: {
-                name: `${plan.name} (${plan.interval}) — GWLanguageFlow`,
-                description: "Pagamento único do período. PIX não renova automaticamente.",
+                name: `${plan.name} (${plan.interval}) â€” GWLanguageFlow`,
+                description: "Pagamento Ãºnico do perÃ­odo. PIX nÃ£o renova automaticamente.",
               },
             },
             quantity: 1,
@@ -180,6 +182,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 export const getMySubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
     const { data } = await supabaseAdmin
       .from("student_subscriptions")

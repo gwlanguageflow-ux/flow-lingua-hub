@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, CreditCard, QrCode, Loader2, Trophy } from "lucide-react";
 import { toast } from "sonner";
-import { createSubscriptionCheckout } from "@/server/stripe-checkout.functions";
+import { createSubscriptionCheckout } from "@/functions/stripe-checkout.functions";
 
 export const Route = createFileRoute("/planos")({
   head: () => ({

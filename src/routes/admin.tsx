@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAdminDashboard } from "@/server/admin.functions";
+import { getAdminDashboard } from "@/functions/admin.functions";
 import { Users, GraduationCap, Calendar, DollarSign } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
