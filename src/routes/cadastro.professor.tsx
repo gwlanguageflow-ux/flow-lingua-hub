@@ -170,9 +170,35 @@ function Page() {
     });
 
     if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
+      const missingRpc = error.code === "PGRST202" || error.message.includes("Could not find");
+      if (!missingRpc) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
+      const { error: fallbackError } = await completeTeacherProfileDirectly({
+        userId: user.id,
+        email: user.email ?? null,
+        fullName: d.fullName,
+        age: d.age,
+        bio: d.bio,
+        experiences: d.experiences || null,
+        livedAbroad: d.livedAbroad,
+        countriesLived: d.livedAbroad ? d.countriesLived || null : null,
+        languagesSpoken: d.languagesSpoken,
+        languagesTaught: d.languagesTaught,
+        levelsTaught: d.levelsTaught,
+        useCustomPricing: d.useCustomPricing,
+        customPrices: d.customPrices,
+        avatarUrl,
+      });
+
+      if (fallbackError) {
+        toast.error(fallbackError);
+        setLoading(false);
+        return;
+      }
     }
     await refreshRoles();
 
@@ -371,6 +397,73 @@ function Page() {
       </main>
     </div>
   );
+}
+
+async function completeTeacherProfileDirectly({
+  userId,
+  email,
+  fullName,
+  age,
+  bio,
+  experiences,
+  livedAbroad,
+  countriesLived,
+  languagesSpoken,
+  languagesTaught,
+  levelsTaught,
+  useCustomPricing,
+  customPrices,
+  avatarUrl,
+}: {
+  userId: string;
+  email: string | null;
+  fullName: string;
+  age: number;
+  bio: string;
+  experiences: string | null;
+  livedAbroad: boolean;
+  countriesLived: string | null;
+  languagesSpoken: string[];
+  languagesTaught: string[];
+  levelsTaught: string[];
+  useCustomPricing: boolean;
+  customPrices: Record<string, number>;
+  avatarUrl: string | null;
+}) {
+  const { error: profileError } = await supabase.from("profiles").upsert({
+    id: userId,
+    full_name: fullName,
+    age,
+    email,
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+  });
+  if (profileError) return { error: profileError.message };
+
+  const { error: teacherError } = await supabase.from("teacher_profiles").upsert({
+    id: userId,
+    bio,
+    experiences,
+    lived_abroad: livedAbroad,
+    countries_lived: countriesLived,
+    languages_spoken: languagesSpoken,
+    languages_taught: languagesTaught,
+    levels_taught: levelsTaught as never,
+    use_custom_pricing: useCustomPricing,
+    custom_prices: customPrices,
+    hourly_rate: customPrices.hourly ?? null,
+    monthly_rate: customPrices.monthly ?? null,
+    package_8_rate: customPrices.package_8 ?? null,
+  });
+  if (teacherError) return { error: teacherError.message };
+
+  const { error: roleError } = await supabase
+    .from("user_roles")
+    .insert({ user_id: userId, role: "professor" });
+  if (roleError && !roleError.message.toLowerCase().includes("duplicate")) {
+    return { error: "Não foi possível salvar seu perfil. Tente novamente." };
+  }
+
+  return { error: null };
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
