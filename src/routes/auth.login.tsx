@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { isGoogleAuthEnabled } from "@/lib/auth-providers";
 
 export const Route = createFileRoute("/auth/login")({
   head: () => ({ meta: [{ title: "Entrar — GWLanguageFlow" }] }),
@@ -25,8 +26,19 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const navigate = useNavigate();
   const { user, roles, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    let mounted = true;
+    isGoogleAuthEnabled().then((enabled) => {
+      if (mounted) setGoogleEnabled(enabled);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -63,6 +75,11 @@ function LoginPage() {
   };
 
   const handleGoogle = async () => {
+    if (!googleEnabled) {
+      toast.error("Login com Google ainda nao esta configurado neste ambiente.");
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -107,27 +124,35 @@ function LoginPage() {
           <div className="space-y-3">
             <Logo />
             <h1 className="font-display text-3xl text-wine font-bold">Bem-vindo de volta</h1>
-            <p className="text-brown text-sm">Entre com seu e-mail ou continue com Google.</p>
+            <p className="text-brown text-sm">
+              {googleEnabled
+                ? "Entre com seu e-mail ou continue com Google."
+                : "Entre com seu e-mail."}
+            </p>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleGoogle}
-            disabled={loading}
-            className="w-full border-brown/30 hover:bg-cream gap-2"
-          >
-            <GoogleIcon /> Continuar com Google
-          </Button>
+          {googleEnabled && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogle}
+                disabled={loading}
+                className="w-full border-brown/30 hover:bg-cream gap-2"
+              >
+                <GoogleIcon /> Continuar com Google
+              </Button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-3 text-brown-soft">ou</span>
-            </div>
-          </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-background px-3 text-brown-soft">ou</span>
+                </div>
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
