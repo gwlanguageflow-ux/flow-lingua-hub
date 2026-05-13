@@ -23,7 +23,9 @@ import { Route as ProfessorIdRouteImport } from './routes/professor.$id'
 import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
 import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 
 const SobreRoute = SobreRouteImport.update({
@@ -96,9 +98,19 @@ const AuthSignupRoute = AuthSignupRouteImport.update({
   path: '/auth/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
@@ -118,7 +130,9 @@ export interface FileRoutesByFullPath {
   '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
@@ -136,7 +150,9 @@ export interface FileRoutesByTo {
   '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
@@ -155,7 +171,9 @@ export interface FileRoutesById {
   '/planos': typeof PlanosRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/signup': typeof AuthSignupRoute
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
@@ -175,7 +193,9 @@ export interface FileRouteTypes {
     | '/planos'
     | '/seja-professor'
     | '/sobre'
+    | '/auth/forgot-password'
     | '/auth/login'
+    | '/auth/reset-password'
     | '/auth/signup'
     | '/cadastro/aluno'
     | '/cadastro/professor'
@@ -193,7 +213,9 @@ export interface FileRouteTypes {
     | '/planos'
     | '/seja-professor'
     | '/sobre'
+    | '/auth/forgot-password'
     | '/auth/login'
+    | '/auth/reset-password'
     | '/auth/signup'
     | '/cadastro/aluno'
     | '/cadastro/professor'
@@ -211,7 +233,9 @@ export interface FileRouteTypes {
     | '/planos'
     | '/seja-professor'
     | '/sobre'
+    | '/auth/forgot-password'
     | '/auth/login'
+    | '/auth/reset-password'
     | '/auth/signup'
     | '/cadastro/aluno'
     | '/cadastro/professor'
@@ -230,7 +254,9 @@ export interface RootRouteChildren {
   PlanosRoute: typeof PlanosRoute
   SejaProfessorRoute: typeof SejaProfessorRoute
   SobreRoute: typeof SobreRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSignupRoute: typeof AuthSignupRoute
   CadastroAlunoRoute: typeof CadastroAlunoRoute
   CadastroProfessorRoute: typeof CadastroProfessorRoute
@@ -338,11 +364,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/stripe-webhook': {
@@ -366,7 +406,9 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosRoute: PlanosRoute,
   SejaProfessorRoute: SejaProfessorRoute,
   SobreRoute: SobreRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSignupRoute: AuthSignupRoute,
   CadastroAlunoRoute: CadastroAlunoRoute,
   CadastroProfessorRoute: CadastroProfessorRoute,

@@ -10,6 +10,7 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { isGoogleAuthEnabled } from "@/lib/auth-providers";
+import { getAuthRedirectUrl } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/auth/signup")({
   head: () => ({ meta: [{ title: "Criar conta — GWLanguageFlow" }] }),
@@ -29,7 +30,7 @@ function SignupPage() {
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { user, roles, loading: authLoading } = useAuth();
 
@@ -65,7 +66,7 @@ function SignupPage() {
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/escolher-perfil`,
+        emailRedirectTo: getAuthRedirectUrl("/escolher-perfil"),
         data: { full_name: parsed.data.fullName },
       },
     });
@@ -96,7 +97,7 @@ function SignupPage() {
       type: "signup",
       email: confirmationEmail,
       options: {
-        emailRedirectTo: `${window.location.origin}/escolher-perfil`,
+        emailRedirectTo: getAuthRedirectUrl("/escolher-perfil"),
       },
     });
     setResending(false);
@@ -111,7 +112,7 @@ function SignupPage() {
 
   const handleGoogle = async () => {
     if (!googleEnabled) {
-      toast.error("Cadastro com Google ainda nao esta configurado neste ambiente.");
+      toast.error("Cadastro com Google precisa ser ativado no painel Supabase da GWLanguage.");
       return;
     }
 
@@ -119,7 +120,7 @@ function SignupPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/escolher-perfil`,
+        redirectTo: getAuthRedirectUrl("/escolher-perfil"),
         queryParams: {
           prompt: "select_account",
         },
@@ -143,34 +144,28 @@ function SignupPage() {
             <Logo />
             <h1 className="font-display text-3xl text-wine font-bold">Criar sua conta</h1>
             <p className="text-brown text-sm">
-              {googleEnabled
-                ? "Crie com e-mail ou continue com Google. Em seguida voce escolhe seu perfil."
-                : "Crie sua conta com e-mail. Em seguida voce escolhe seu perfil."}
+              Crie com e-mail ou continue com Google. Em seguida voce escolhe seu perfil.
             </p>
           </div>
 
-          {googleEnabled && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogle}
-                disabled={loading}
-                className="w-full border-brown/30 hover:bg-cream gap-2"
-              >
-                <GoogleIcon /> Continuar com Google
-              </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogle}
+            disabled={loading}
+            className="w-full border-brown/30 hover:bg-cream gap-2"
+          >
+            <GoogleIcon /> Continuar com Google
+          </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-3 text-brown-soft">ou</span>
-                </div>
-              </div>
-            </>
-          )}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background px-3 text-brown-soft">ou</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {confirmationEmail && (
@@ -216,6 +211,7 @@ function SignupPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

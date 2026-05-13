@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +10,7 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { isGoogleAuthEnabled } from "@/lib/auth-providers";
+import { getAuthRedirectUrl } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/auth/login")({
   head: () => ({ meta: [{ title: "Entrar — GWLanguageFlow" }] }),
@@ -26,7 +26,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { user, roles, loading: authLoading } = useAuth();
 
@@ -76,7 +76,7 @@ function LoginPage() {
 
   const handleGoogle = async () => {
     if (!googleEnabled) {
-      toast.error("Login com Google ainda nao esta configurado neste ambiente.");
+      toast.error("Login com Google precisa ser ativado no painel Supabase da GWLanguage.");
       return;
     }
 
@@ -84,7 +84,7 @@ function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/escolher-perfil`,
+        redirectTo: getAuthRedirectUrl("/escolher-perfil"),
         queryParams: {
           prompt: "select_account",
         },
@@ -124,35 +124,27 @@ function LoginPage() {
           <div className="space-y-3">
             <Logo />
             <h1 className="font-display text-3xl text-wine font-bold">Bem-vindo de volta</h1>
-            <p className="text-brown text-sm">
-              {googleEnabled
-                ? "Entre com seu e-mail ou continue com Google."
-                : "Entre com seu e-mail."}
-            </p>
+            <p className="text-brown text-sm">Entre com seu e-mail ou continue com Google.</p>
           </div>
 
-          {googleEnabled && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogle}
-                disabled={loading}
-                className="w-full border-brown/30 hover:bg-cream gap-2"
-              >
-                <GoogleIcon /> Continuar com Google
-              </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogle}
+            disabled={loading}
+            className="w-full border-brown/30 hover:bg-cream gap-2"
+          >
+            <GoogleIcon /> Continuar com Google
+          </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-3 text-brown-soft">ou</span>
-                </div>
-              </div>
-            </>
-          )}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background px-3 text-brown-soft">ou</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -167,7 +159,15 @@ function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password">Senha</Label>
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-xs font-semibold text-bronze hover:text-wine"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

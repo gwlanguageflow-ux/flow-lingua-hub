@@ -12,6 +12,11 @@ export function isGoogleAuthEnabled() {
     const supabaseKey =
       import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
+    if (!supabaseUrl || !supabaseKey) {
+      googleAuthEnabled = Promise.resolve(false);
+      return googleAuthEnabled;
+    }
+
     googleAuthEnabled = fetch(`${supabaseUrl}/auth/v1/settings`, {
       headers: {
         apikey: supabaseKey,
