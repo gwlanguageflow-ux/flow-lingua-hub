@@ -112,28 +112,9 @@ function Page() {
     });
 
     if (error) {
-      const missingRpc = error.code === "PGRST202" || error.message.includes("Could not find");
-      if (!missingRpc) {
-        toast.error(error.message);
-        setLoading(false);
-        return;
-      }
-
-      const { error: fallbackError } = await completeStudentProfileDirectly({
-        userId: user.id,
-        email: user.email ?? null,
-        fullName: parsed.data.fullName,
-        age: parsed.data.age,
-        desiredLanguage: parsed.data.desiredLanguage,
-        level: parsed.data.level,
-        avatarUrl,
-      });
-
-      if (fallbackError) {
-        toast.error(fallbackError);
-        setLoading(false);
-        return;
-      }
+      toast.error(error.message);
+      setLoading(false);
+      return;
     }
     await refreshRoles();
 
@@ -247,47 +228,4 @@ function Page() {
       </main>
     </div>
   );
-}
-
-async function completeStudentProfileDirectly({
-  userId,
-  email,
-  fullName,
-  age,
-  desiredLanguage,
-  level,
-  avatarUrl,
-}: {
-  userId: string;
-  email: string | null;
-  fullName: string;
-  age: number;
-  desiredLanguage: string;
-  level: z.infer<typeof schema>["level"];
-  avatarUrl: string | null;
-}) {
-  const { error: profileError } = await supabase.from("profiles").upsert({
-    id: userId,
-    full_name: fullName,
-    age,
-    email,
-    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
-  });
-  if (profileError) return { error: profileError.message };
-
-  const { error: studentError } = await supabase.from("student_profiles").upsert({
-    id: userId,
-    desired_language: desiredLanguage,
-    comprehension_level: level,
-  });
-  if (studentError) return { error: studentError.message };
-
-  const { error: roleError } = await supabase
-    .from("user_roles")
-    .insert({ user_id: userId, role: "aluno" });
-  if (roleError && !roleError.message.toLowerCase().includes("duplicate")) {
-    return { error: "Não foi possível salvar seu perfil. Tente novamente." };
-  }
-
-  return { error: null };
 }
