@@ -75,11 +75,6 @@ function LoginPage() {
   };
 
   const handleGoogle = async () => {
-    if (!googleEnabled) {
-      toast.error("Login com Google precisa ser ativado no painel Supabase da GWLanguage.");
-      return;
-    }
-
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -131,11 +126,16 @@ function LoginPage() {
             type="button"
             variant="outline"
             onClick={handleGoogle}
-            disabled={loading}
+            disabled={loading || googleEnabled !== true}
             className="w-full border-brown/30 hover:bg-cream gap-2"
           >
             <GoogleIcon /> Continuar com Google
           </Button>
+          {googleEnabled === false && (
+            <p className="text-xs text-center text-brown-soft">
+              Google aguardando ativacao no painel da GWLanguage.
+            </p>
+          )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

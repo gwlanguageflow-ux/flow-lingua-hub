@@ -1,1 +1,19 @@
 project_id = "lvderlqrkhodaelknydl"
+
+[auth]
+site_url = "https://flow-lingua-hub.lovable.app"
+additional_redirect_urls = [
+  "https://flow-lingua-hub.lovable.app/**",
+  "https://preview--flow-lingua-hub.lovable.app/**",
+  "http://localhost:3000/**",
+  "http://localhost:4177/**",
+  "http://127.0.0.1:4177/**"
+]
+
+[auth.email]
+max_frequency = "1m"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
