@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
+import { formatCpf, isValidCpf, normalizeCpf } from "@/lib/cpf";
 import { uploadAvatar } from "@/lib/upload";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
@@ -39,6 +40,7 @@ type PriceKey = (typeof PRICE_FIELDS)[number]["key"];
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
+  cpf: z.string().refine(isValidCpf, "Informe um CPF valido"),
   age: z.coerce.number().int().min(18).max(120),
   bio: z.string().trim().min(20, "Conte um pouco mais (mín. 20 caracteres)").max(800),
   experiences: z.string().trim().max(1000).optional().or(z.literal("")),
@@ -57,6 +59,7 @@ function Page() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [fullName, setFullName] = useState("");
+  const [cpf, setCpf] = useState("");
   const [age, setAge] = useState("");
   const [bio, setBio] = useState("");
   const [experiences, setExperiences] = useState("");
@@ -91,13 +94,12 @@ function Page() {
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("profiles")
-      .select("full_name, avatar_url, age")
-      .eq("id", user.id)
+      .rpc("get_own_onboarding_profile")
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setFullName(data.full_name || "");
+          if (data.cpf) setCpf(formatCpf(data.cpf));
           if (data.avatar_url) setAvatarPreview(data.avatar_url);
           if (data.age) setAge(String(data.age));
         }
@@ -133,6 +135,7 @@ function Page() {
     }
     const parsed = schema.safeParse({
       fullName,
+      cpf,
       age,
       bio,
       experiences,
@@ -156,6 +159,7 @@ function Page() {
     const d = parsed.data;
     const { error } = await supabase.rpc("complete_teacher_profile", {
       _full_name: d.fullName,
+      _cpf: normalizeCpf(d.cpf),
       _age: d.age,
       _bio: d.bio,
       _experiences: d.experiences || null,
@@ -233,6 +237,18 @@ function Page() {
                 <Label>Nome completo</Label>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
               </div>
+              <div className="space-y-2">
+                <Label>CPF</Label>
+                <Input
+                  inputMode="numeric"
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  maxLength={14}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Idade</Label>
                 <Input

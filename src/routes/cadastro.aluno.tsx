@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
+import { formatCpf, isValidCpf, normalizeCpf } from "@/lib/cpf";
 import { uploadAvatar } from "@/lib/upload";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/cadastro/aluno")({
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
+  cpf: z.string().refine(isValidCpf, "Informe um CPF valido"),
   age: z.coerce.number().int().min(5).max(120),
   desiredLanguage: z.string().min(1, "Escolha um idioma"),
   level: z.enum(["iniciante", "basico", "intermediario", "avancado", "fluente"]),
@@ -40,6 +42,7 @@ function Page() {
   const { user, roles, refreshRoles } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
+  const [cpf, setCpf] = useState("");
   const [age, setAge] = useState<string>("");
   const [desiredLanguage, setDesiredLanguage] = useState("");
   const [level, setLevel] = useState<string>("iniciante");
@@ -72,13 +75,12 @@ function Page() {
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("profiles")
-      .select("full_name, avatar_url, age")
-      .eq("id", user.id)
+      .rpc("get_own_onboarding_profile")
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setFullName(data.full_name || "");
+          if (data.cpf) setCpf(formatCpf(data.cpf));
           if (data.avatar_url) setAvatarPreview(data.avatar_url);
           if (data.age) setAge(String(data.age));
         }
@@ -93,7 +95,7 @@ function Page() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const parsed = schema.safeParse({ fullName, age, desiredLanguage, level });
+    const parsed = schema.safeParse({ fullName, cpf, age, desiredLanguage, level });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -105,6 +107,7 @@ function Page() {
 
     const { error } = await supabase.rpc("complete_student_profile", {
       _full_name: parsed.data.fullName,
+      _cpf: normalizeCpf(parsed.data.cpf),
       _age: parsed.data.age,
       _desired_language: parsed.data.desiredLanguage,
       _comprehension_level: parsed.data.level,
@@ -172,6 +175,19 @@ function Page() {
               <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div className="space-y-2">
+              <Label>CPF</Label>
+              <Input
+                inputMode="numeric"
+                value={cpf}
+                onChange={(e) => setCpf(formatCpf(e.target.value))}
+                maxLength={14}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Idade</Label>
               <Input
                 type="number"
@@ -182,9 +198,6 @@ function Page() {
                 max={120}
               />
             </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Idioma que deseja aprender</Label>
               <Select value={desiredLanguage} onValueChange={setDesiredLanguage}>

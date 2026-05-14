@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           age: number | null;
           avatar_url: string | null;
+          cpf: string | null;
           created_at: string;
           email: string | null;
           full_name: string;
@@ -60,6 +61,7 @@ export type Database = {
         Insert: {
           age?: number | null;
           avatar_url?: string | null;
+          cpf?: string | null;
           created_at?: string;
           email?: string | null;
           full_name: string;
@@ -69,6 +71,7 @@ export type Database = {
         Update: {
           age?: number | null;
           avatar_url?: string | null;
+          cpf?: string | null;
           created_at?: string;
           email?: string | null;
           full_name?: string;
@@ -378,6 +381,7 @@ export type Database = {
           _age: number;
           _avatar_url?: string | null;
           _comprehension_level: Database["public"]["Enums"]["language_level"];
+          _cpf: string;
           _desired_language: string;
           _full_name: string;
         };
@@ -389,6 +393,7 @@ export type Database = {
           _avatar_url?: string | null;
           _bio: string;
           _countries_lived?: string | null;
+          _cpf: string;
           _custom_prices?: Json;
           _experiences?: string | null;
           _full_name: string;
@@ -399,6 +404,15 @@ export type Database = {
           _use_custom_pricing: boolean;
         };
         Returns: void;
+      };
+      get_own_onboarding_profile: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          age: number | null;
+          avatar_url: string | null;
+          cpf: string | null;
+          full_name: string | null;
+        }[];
       };
       has_role: {
         Args: {

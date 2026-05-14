@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -6,45 +6,129 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
-import { getAuthRedirectUrl } from "@/lib/auth-redirect";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { formatCpf, isValidCpf, normalizeCpf } from "@/lib/cpf";
+import {
+  resetPasswordWithCpf,
+  verifyPasswordResetIdentity,
+} from "@/functions/password-reset.functions";
 
 export const Route = createFileRoute("/auth/forgot-password")({
   head: () => ({ meta: [{ title: "Recuperar senha - GWLanguageFlow" }] }),
   component: ForgotPasswordPage,
 });
 
-const schema = z.object({
+const identitySchema = z.object({
   email: z.string().trim().email("E-mail invalido").max(255),
+  cpf: z.string().refine(isValidCpf, "Informe um CPF valido"),
 });
 
-function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sentTo, setSentTo] = useState("");
+const passwordSchema = z
+  .object({
+    password: z.string().min(6, "Senha precisa ter ao menos 6 caracteres").max(128),
+    confirmPassword: z.string().min(6, "Confirme sua nova senha").max(128),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas precisam ser iguais",
+    path: ["confirmPassword"],
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+function ForgotPasswordPage() {
+  const [step, setStep] = useState<"identity" | "password">("identity");
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const navigateAfterLogin = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      navigate({ to: "/auth/login" });
+      return;
+    }
+
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const roleList = roles?.map((item) => item.role) ?? [];
+
+    if (roleList.includes("dev")) navigate({ to: "/admin" });
+    else if (roleList.includes("professor")) navigate({ to: "/dashboard" });
+    else if (roleList.includes("aluno")) navigate({ to: "/feed" });
+    else navigate({ to: "/escolher-perfil" });
+  };
+
+  const handleIdentitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ email });
+    const parsed = identitySchema.safeParse({ email, cpf });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo: getAuthRedirectUrl("/auth/reset-password"),
-    });
-    setLoading(false);
+    try {
+      await verifyPasswordResetIdentity({
+        data: {
+          email: parsed.data.email,
+          cpf: normalizeCpf(parsed.data.cpf),
+        },
+      });
+      setStep("password");
+      toast.success("Dados confirmados. Crie sua nova senha.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "E-mail e CPF nao conferem.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (error) {
-      toast.error(error.message);
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const identity = identitySchema.safeParse({ email, cpf });
+    const parsed = passwordSchema.safeParse({ password, confirmPassword });
+    if (!identity.success) {
+      setStep("identity");
+      toast.error(identity.error.issues[0].message);
+      return;
+    }
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
       return;
     }
 
-    setSentTo(parsed.data.email);
-    toast.success("Enviamos o link para criar uma nova senha.");
+    setLoading(true);
+    try {
+      const result = await resetPasswordWithCpf({
+        data: {
+          email: identity.data.email,
+          cpf: normalizeCpf(identity.data.cpf),
+          password: parsed.data.password,
+        },
+      });
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: result.email,
+        password: parsed.data.password,
+      });
+
+      if (error) {
+        toast.success("Senha atualizada. Entre com sua nova senha.");
+        navigate({ to: "/auth/login" });
+        return;
+      }
+
+      toast.success("Senha atualizada. Bem-vindo de volta!");
+      await navigateAfterLogin();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar a senha.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,10 +143,10 @@ function ForgotPasswordPage() {
         />
         <div className="relative text-white max-w-md">
           <h2 className="font-display text-4xl font-bold leading-tight mb-4">
-            Sua conta continua protegida.
+            Recuperacao direta e segura.
           </h2>
           <p className="text-white/85">
-            O link de recuperacao leva direto para a criacao de uma nova senha.
+            Confirme seus dados e defina uma nova senha sem depender de link por e-mail.
           </p>
         </div>
       </div>
@@ -77,40 +161,111 @@ function ForgotPasswordPage() {
             <Logo />
             <h1 className="font-display text-3xl text-wine font-bold">Recuperar senha</h1>
             <p className="text-brown text-sm">
-              Informe seu e-mail para receber o link de criacao de uma nova senha.
+              {step === "identity"
+                ? "Confirme o e-mail e o CPF cadastrados na sua conta."
+                : "Agora crie sua nova senha para acessar a plataforma."}
             </p>
           </div>
 
-          {sentTo && (
-            <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
-              <p className="font-semibold text-wine">Verifique seu e-mail</p>
-              <p className="mt-1">
-                Enviamos o link para <strong>{sentTo}</strong>. Abra o e-mail da GWLanguage e siga
-                para definir sua nova senha.
-              </p>
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-2">
+            <div
+              className={`h-1.5 rounded-full ${step === "identity" ? "bg-bronze" : "bg-bronze/40"}`}
+            />
+            <div
+              className={`h-1.5 rounded-full ${step === "password" ? "bg-bronze" : "bg-border"}`}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
+          {step === "identity" ? (
+            <form onSubmit={handleIdentitySubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cpf">CPF</Label>
+                <Input
+                  id="cpf"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  maxLength={14}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
+              >
+                {loading ? "Confirmando..." : "Confirmar dados"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <input
+                type="text"
+                autoComplete="username"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+                readOnly
               />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
-            >
-              {loading ? "Enviando..." : "Enviar link"}
-            </Button>
-          </form>
+              <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
+                <p className="font-semibold text-wine">Dados confirmados</p>
+                <p className="mt-1">{email}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Nova senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-[auto_1fr] gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep("identity")}
+                  disabled={loading}
+                  className="border-bronze text-wine hover:bg-bronze/10"
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-bronze text-white hover:bg-wine shadow-bronze"
+                >
+                  {loading ? "Salvando..." : "Salvar e entrar"}
+                </Button>
+              </div>
+            </form>
+          )}
 
           <p className="text-sm text-center text-brown">
             Lembrou sua senha?{" "}
