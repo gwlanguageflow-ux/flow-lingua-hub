@@ -293,6 +293,105 @@ export type Database = {
           },
         ];
       };
+      teacher_wallet_transactions: {
+        Row: {
+          amount: number;
+          booking_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          gross_amount: number | null;
+          id: string;
+          platform_fee: number | null;
+          platform_fee_rate: number;
+          teacher_id: string;
+          transaction_type: Database["public"]["Enums"]["teacher_wallet_transaction_type"];
+          withdrawal_request_id: string | null;
+        };
+        Insert: {
+          amount: number;
+          booking_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description: string;
+          gross_amount?: number | null;
+          id?: string;
+          platform_fee?: number | null;
+          platform_fee_rate?: number;
+          teacher_id: string;
+          transaction_type: Database["public"]["Enums"]["teacher_wallet_transaction_type"];
+          withdrawal_request_id?: string | null;
+        };
+        Update: {
+          amount?: number;
+          booking_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          gross_amount?: number | null;
+          id?: string;
+          platform_fee?: number | null;
+          platform_fee_rate?: number;
+          teacher_id?: string;
+          transaction_type?: Database["public"]["Enums"]["teacher_wallet_transaction_type"];
+          withdrawal_request_id?: string | null;
+        };
+        Relationships: [];
+      };
+      teacher_withdrawal_requests: {
+        Row: {
+          account_holder_document: string | null;
+          account_holder_name: string;
+          admin_notes: string | null;
+          amount: number;
+          created_at: string;
+          id: string;
+          paid_at: string | null;
+          pix_key: string;
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          processed_at: string | null;
+          requested_at: string;
+          status: Database["public"]["Enums"]["teacher_withdrawal_status"];
+          teacher_id: string;
+          teacher_notes: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          account_holder_document?: string | null;
+          account_holder_name: string;
+          admin_notes?: string | null;
+          amount: number;
+          created_at?: string;
+          id?: string;
+          paid_at?: string | null;
+          pix_key: string;
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          processed_at?: string | null;
+          requested_at?: string;
+          status?: Database["public"]["Enums"]["teacher_withdrawal_status"];
+          teacher_id: string;
+          teacher_notes?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          account_holder_document?: string | null;
+          account_holder_name?: string;
+          admin_notes?: string | null;
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          paid_at?: string | null;
+          pix_key?: string;
+          pix_key_type?: Database["public"]["Enums"]["pix_key_type"];
+          processed_at?: string | null;
+          requested_at?: string;
+          status?: Database["public"]["Enums"]["teacher_withdrawal_status"];
+          teacher_id?: string;
+          teacher_notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       teacher_profiles: {
         Row: {
           bio: string | null;
@@ -405,6 +504,24 @@ export type Database = {
         };
         Returns: void;
       };
+      credit_teacher_for_completed_booking: {
+        Args: { _booking_id: string };
+        Returns: {
+          gross_amount: number;
+          platform_amount: number;
+          teacher_amount: number;
+          transaction_id: string;
+        }[];
+      };
+      get_teacher_wallet_summary: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          available_balance: number;
+          pending_withdrawals: number;
+          total_received: number;
+          total_withdrawn: number;
+        }[];
+      };
       get_own_onboarding_profile: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -421,15 +538,37 @@ export type Database = {
         };
         Returns: boolean;
       };
+      request_teacher_withdrawal: {
+        Args: {
+          _account_holder_document?: string | null;
+          _account_holder_name: string;
+          _amount: number;
+          _pix_key: string;
+          _pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          _teacher_notes?: string | null;
+        };
+        Returns: string;
+      };
       student_can_book: { Args: { _student_id: string }; Returns: boolean };
+      teacher_wallet_available_balance: {
+        Args: { _teacher_id: string };
+        Returns: number;
+      };
     };
     Enums: {
       app_role: "dev" | "professor" | "aluno";
       booking_status: "pendente" | "confirmado" | "concluido" | "cancelado";
       language_level: "iniciante" | "basico" | "intermediario" | "avancado" | "fluente";
       payment_method: "card" | "pix";
+      pix_key_type: "cpf" | "email" | "telefone" | "aleatoria";
       plan_interval: "mensal" | "trimestral" | "anual";
       subscription_status: "pendente" | "ativa" | "inadimplente" | "cancelada" | "expirada";
+      teacher_wallet_transaction_type:
+        | "lesson_credit"
+        | "withdrawal_hold"
+        | "withdrawal_reversal"
+        | "manual_adjustment";
+      teacher_withdrawal_status: "pendente" | "em_processamento" | "pago" | "falhou" | "cancelado";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -559,8 +698,16 @@ export const Constants = {
       booking_status: ["pendente", "confirmado", "concluido", "cancelado"],
       language_level: ["iniciante", "basico", "intermediario", "avancado", "fluente"],
       payment_method: ["card", "pix"],
+      pix_key_type: ["cpf", "email", "telefone", "aleatoria"],
       plan_interval: ["mensal", "trimestral", "anual"],
       subscription_status: ["pendente", "ativa", "inadimplente", "cancelada", "expirada"],
+      teacher_wallet_transaction_type: [
+        "lesson_credit",
+        "withdrawal_hold",
+        "withdrawal_reversal",
+        "manual_adjustment",
+      ],
+      teacher_withdrawal_status: ["pendente", "em_processamento", "pago", "falhou", "cancelado"],
     },
   },
 } as const;
