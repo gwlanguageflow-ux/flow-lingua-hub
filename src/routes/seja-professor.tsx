@@ -1,8 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SiteHeader } from "@/components/SiteHeader";
+import {
+  ArrowRight,
+  Banknote,
+  CalendarCheck,
+  CheckCircle2,
+  FileText,
+  GraduationCap,
+  MessagesSquare,
+  ShieldCheck,
+  UploadCloud,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
-import { Sparkles, DollarSign, Calendar, Users, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/seja-professor")({
   head: () => ({
@@ -10,73 +22,215 @@ export const Route = createFileRoute("/seja-professor")({
       { title: "Seja professor — GWLanguageFlow" },
       {
         name: "description",
-        content: "Ensine idiomas pela GWLanguageFlow e receba alunos do mundo todo.",
+        content:
+          "Crie seu perfil profissional na GWLanguageFlow, organize turmas, materiais, atividades e recebimentos.",
       },
     ],
   }),
-  component: () => (
-    <div className="min-h-screen flex flex-col">
+  component: TeacherPage,
+});
+
+const teacherTools = [
+  {
+    icon: CalendarCheck,
+    title: "Agenda e turmas",
+    text: "Organize aulas por idioma, turma, dia, horário e link da sala online.",
+  },
+  {
+    icon: FileText,
+    title: "Materiais",
+    text: "Use materiais padrão da plataforma ou envie seus próprios arquivos para cada turma.",
+  },
+  {
+    icon: MessagesSquare,
+    title: "Comunicação",
+    text: "Converse com alunos e secretaria pedagógica no ambiente da plataforma.",
+  },
+  {
+    icon: Wallet,
+    title: "Carteira",
+    text: "Acompanhe saldo, histórico e solicitações de saque via Pix.",
+  },
+];
+
+function TeacherPage() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader />
       <main className="flex-1">
-        <section className="py-16 bg-gradient-soft">
-          <div className="container mx-auto px-4 max-w-3xl text-center">
-            <h1 className="font-display text-4xl md:text-5xl text-wine font-bold mb-4">
-              Ensine. Inspire. <span className="text-bronze italic">Floresça.</span>
-            </h1>
-            <p className="text-brown text-lg mb-8">
-              Crie seu perfil em minutos e comece a receber alunos do mundo todo.
-            </p>
-            <Link to="/auth/signup">
-              <Button size="lg" className="bg-bronze text-white hover:bg-wine shadow-bronze">
-                Começar agora
-              </Button>
-            </Link>
+        <section className="gw-paper border-b border-border py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+              <div>
+                <p className="text-sm font-bold uppercase text-bronze">Professor GWLanguageFlow</p>
+                <h1 className="mt-3 max-w-3xl font-display text-5xl font-bold leading-tight text-wine md:text-6xl">
+                  Ensine com autonomia, sem perder estrutura.
+                </h1>
+                <p className="mt-5 max-w-2xl text-lg leading-8 text-brown">
+                  A GWLanguageFlow combina perfil público, agenda, turmas, materiais, atividades,
+                  secretaria pedagógica e carteira do professor em uma experiência profissional.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link to="/auth/signup">
+                    <Button className="h-12 rounded-full bg-wine px-6 text-white shadow-bronze hover:bg-wine-deep">
+                      Começar cadastro <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to="/sobre">
+                    <Button
+                      variant="outline"
+                      className="h-12 rounded-full border-wine/20 bg-white px-6 text-wine hover:bg-cream"
+                    >
+                      Conhecer o método
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[2rem] bg-ink text-white shadow-warm">
+                <div className="border-b border-white/10 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold uppercase text-bronze">Painel do professor</p>
+                      <h2 className="mt-1 font-display text-3xl font-bold text-white">
+                        Operação da semana
+                      </h2>
+                    </div>
+                    <GraduationCap className="h-8 w-8 text-bronze" />
+                  </div>
+                </div>
+                <div className="grid gap-px bg-white/10 md:grid-cols-2">
+                  {[
+                    ["2", "aulas hoje"],
+                    ["18", "alunos ativos"],
+                    ["R$ 1.248", "saldo disponível"],
+                    ["4", "atividades abertas"],
+                  ].map(([value, label]) => (
+                    <div key={label} className="bg-ink p-6">
+                      <p className="font-display text-4xl font-bold text-bronze">{value}</p>
+                      <p className="mt-1 text-sm text-white/65">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-6">
+                  <div className="rounded-2xl border border-white/10 bg-white/7 p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <ShieldCheck className="h-4 w-4 text-bronze" />
+                      Modelo financeiro
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-white/70">
+                      A operação está preparada para remunerar 90% ao professor e 10% à plataforma,
+                      com registro de recebimentos e solicitação de saque.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
-        <section className="py-16">
-          <div className="container mx-auto px-4 max-w-5xl grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: DollarSign,
-                t: "Você no controle",
-                d: "Defina seus valores e receba pelas aulas.",
-              },
-              { icon: Calendar, t: "Sua agenda", d: "Você decide os dias e horários disponíveis." },
-              { icon: Users, t: "Alunos ativos", d: "Comunidade crescente buscando aulas." },
-              {
-                icon: Sparkles,
-                t: "Pagamento seguro",
-                d: "Recebimentos processados com segurança.",
-              },
-            ].map((b, i) => (
-              <div key={i} className="rounded-2xl border border-border p-6">
-                <b.icon className="h-7 w-7 text-bronze mb-3" />
-                <h3 className="font-display text-lg text-wine mb-2">{b.t}</h3>
-                <p className="text-sm text-brown">{b.d}</p>
-              </div>
-            ))}
+
+        <section className="bg-white py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-sm font-bold uppercase text-bronze">Ferramentas de trabalho</p>
+              <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+                Um painel feito para professor operar, não só aparecer.
+              </h2>
+            </div>
+
+            <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {teacherTools.map((tool) => (
+                <div key={tool.title} className="gw-panel gw-lift rounded-[1.5rem] p-6">
+                  <tool.icon className="h-7 w-7 text-bronze" />
+                  <h3 className="mt-5 font-display text-xl font-bold text-wine">{tool.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-brown-soft">{tool.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="container mx-auto px-4 max-w-4xl mt-10">
-            <div className="rounded-3xl border-2 border-bronze/30 bg-cream p-8 md:p-10 flex gap-5 items-start shadow-soft">
-              <div className="rounded-2xl bg-bronze/10 p-3 flex-shrink-0">
-                <Wallet className="h-7 w-7 text-bronze" />
-              </div>
+        </section>
+
+        <section className="gw-paper border-y border-border py-16">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
               <div>
-                <h3 className="font-display text-2xl text-wine mb-2">
-                  Liberdade para precificar e agendar
-                </h3>
-                <p className="text-brown leading-relaxed">
-                  Você tem total autonomia: pode adotar os{" "}
-                  <strong className="text-wine">valores oficiais dos planos da plataforma</strong>{" "}
-                  (Essencial, Advanced, Conversation e Anual) ou
-                  <strong className="text-wine"> personalizar os seus próprios preços</strong> e
-                  modalidades. Da mesma forma, você define seus próprios{" "}
-                  <strong className="text-wine">horários e dias disponíveis</strong> — é a sua
-                  agenda, do seu jeito.
+                <p className="text-sm font-bold uppercase text-bronze">Como você trabalha</p>
+                <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-wine">
+                  Estrutura para aula, relacionamento e receita.
+                </h2>
+                <p className="mt-4 leading-7 text-brown-soft">
+                  O professor mantém autonomia, mas a experiência acontece dentro de um padrão de
+                  qualidade que protege aluno, professor e plataforma.
                 </p>
-                <Link to="/auth/signup" className="inline-block mt-4">
-                  <Button className="bg-wine text-white hover:bg-bronze">Quero me cadastrar</Button>
-                </Link>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.7rem] border border-border bg-white shadow-soft">
+                {[
+                  {
+                    icon: Users,
+                    title: "Turmas e alunos agrupados",
+                    text: "Perfis separados por turma para mensagem, nota, atividade e acompanhamento.",
+                  },
+                  {
+                    icon: UploadCloud,
+                    title: "Upload de materiais e atividades",
+                    text: "Envie PDF, Word ou link com título, prazo e turma de destino.",
+                  },
+                  {
+                    icon: Banknote,
+                    title: "Recebimentos transparentes",
+                    text: "Saldo disponível, total recebido e histórico de transferências via Pix.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className="grid gap-4 border-b border-border p-6 last:border-b-0 md:grid-cols-[56px_1fr]"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream">
+                      <item.icon className="h-6 w-6 text-bronze" />
+                    </div>
+                    <div>
+                      <h3 className="font-display text-2xl font-bold text-wine">{item.title}</h3>
+                      <p className="mt-2 leading-7 text-brown-soft">{item.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-16">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-4xl overflow-hidden rounded-[2rem] bg-wine text-white shadow-warm">
+              <div className="grid gap-px bg-white/10 md:grid-cols-[1fr_0.85fr]">
+                <div className="bg-wine p-8 md:p-10">
+                  <p className="text-sm font-bold uppercase text-bronze">Credenciamento</p>
+                  <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-white">
+                    Crie seu perfil e prepare sua vitrine profissional.
+                  </h2>
+                  <p className="mt-4 leading-7 text-white/76">
+                    O perfil público já fica preparado para futuras publicações, imagem, legenda e
+                    presença no feed de professores.
+                  </p>
+                  <Link to="/auth/signup" className="mt-7 inline-block">
+                    <Button className="h-12 rounded-full bg-bronze px-6 text-white hover:bg-white hover:text-wine">
+                      Quero me cadastrar
+                    </Button>
+                  </Link>
+                </div>
+                <div className="space-y-4 bg-wine-deep/35 p-8 md:p-10">
+                  {[
+                    "Perfil público editável",
+                    "Agenda por idioma e disponibilidade",
+                    "Carteira com saque via Pix",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-bronze" />
+                      <span className="text-sm text-white/82">{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -84,5 +238,5 @@ export const Route = createFileRoute("/seja-professor")({
       </main>
       <SiteFooter />
     </div>
-  ),
-});
+  );
+}

@@ -1,24 +1,33 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { SiteHeader } from "@/components/SiteHeader";
+import { toast } from "sonner";
+import {
+  BadgeCheck,
+  CheckCircle2,
+  CreditCard,
+  Loader2,
+  QrCode,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  WalletCards,
+} from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { CheckCircle2, CreditCard, QrCode, Loader2, Trophy } from "lucide-react";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useAuth } from "@/contexts/AuthContext";
 import { createSubscriptionCheckout } from "@/functions/stripe-checkout.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/planos")({
   head: () => ({
@@ -26,7 +35,8 @@ export const Route = createFileRoute("/planos")({
       { title: "Planos de Assinatura — GWLanguageFlow" },
       {
         name: "description",
-        content: "Escolha o plano ideal: Essencial, Advanced, Conversation ou Anual.",
+        content:
+          "Escolha seu plano na GWLanguageFlow: aulas, materiais, atividades e acompanhamento pedagógico.",
       },
     ],
   }),
@@ -44,6 +54,13 @@ interface Plan {
   installments: number;
   sort_order: number;
 }
+
+const comparisonRows = [
+  ["Aulas online", "Sim, com professor especialista"],
+  ["Materiais semanais", "PDFs, links e atividades no painel"],
+  ["Acompanhamento", "Direção pedagógica e histórico do aluno"],
+  ["Pagamento", "Cartão recorrente ou PIX do período"],
+];
 
 function PlansPage() {
   const { user } = useAuth();
@@ -73,6 +90,7 @@ function PlansPage() {
       toast.error("Você precisa aceitar o Termo de Adesão e Contrato.");
       return;
     }
+
     setLoading(true);
     try {
       const origin = window.location.origin;
@@ -96,190 +114,310 @@ function PlansPage() {
   return (
     <div className="min-h-screen bg-cream">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-12 max-w-6xl">
-        <div className="text-center mb-10">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">Planos</p>
-          <h1 className="font-display text-4xl md:text-5xl text-wine font-bold mt-2">
-            Escolha seu plano
-          </h1>
-          <p className="text-brown-soft mt-3 max-w-xl mx-auto">
-            Acesso completo às aulas e materiais. Cancele quando quiser.
-          </p>
-        </div>
+      <main>
+        <section className="gw-paper border-b border-border py-14 md:py-20">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-4xl text-center">
+              <p className="text-sm font-bold uppercase text-bronze">Planos GWLanguageFlow</p>
+              <h1 className="mt-3 font-display text-5xl font-bold leading-tight text-wine md:text-6xl">
+                Escolha a intensidade da sua evolução.
+              </h1>
+              <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-brown-soft">
+                Cada assinatura combina aula, material, atividade e acompanhamento. Você escolhe o
+                ritmo, a plataforma organiza o percurso.
+              </p>
+            </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {plans.map((p) => (
-            <div
-              key={p.id}
-              className={`relative bg-background rounded-3xl border p-6 flex flex-col shadow-soft transition ${
-                p.slug === "advanced"
-                  ? "border-bronze ring-2 ring-bronze/40 shadow-bronze md:scale-[1.03]"
-                  : "border-border"
-              }`}
-            >
-              {p.slug === "advanced" && (
-                <span className="absolute -top-3 right-6 bg-bronze text-white text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-bronze">
-                  <Trophy className="h-3.5 w-3.5" /> Mais escolhido
-                </span>
-              )}
-              <div className="flex items-center gap-2">
-                {p.slug === "advanced" && <Trophy className="h-5 w-5 text-bronze" />}
-                <h3 className="font-display text-2xl text-wine font-bold">{p.name}</h3>
+            <div className="mx-auto mt-8 grid max-w-4xl gap-3 md:grid-cols-3">
+              <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" />
+              <PlanSignal icon={WalletCards} label="Cartão ou PIX" />
+              <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" />
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-14 md:py-20">
+          <div className="container mx-auto px-4">
+            {plans.length === 0 ? (
+              <div className="gw-panel mx-auto max-w-2xl rounded-[1.6rem] p-8 text-center">
+                <Sparkles className="mx-auto h-8 w-8 text-bronze" />
+                <h2 className="mt-4 font-display text-2xl font-bold text-wine">
+                  Planos em preparação
+                </h2>
+                <p className="mt-2 text-brown-soft">
+                  Os planos ativos serão exibidos aqui assim que estiverem disponíveis.
+                </p>
               </div>
-              <p className="text-sm text-brown-soft mt-1 min-h-[40px]">{p.description}</p>
-              <div className="mt-4">
-                <span className="text-3xl font-display font-bold text-wine">
-                  {p.installments > 1 ? `${p.installments}x ` : ""}R${" "}
-                  {(p.installments > 1 ? p.price / p.installments : p.price)
-                    .toFixed(2)
-                    .replace(".", ",")}
-                </span>
-                <span className="text-xs text-brown-soft block mt-1">
-                  {p.interval === "anual"
-                    ? `Total R$ ${p.price.toFixed(2).replace(".", ",")} / ano`
-                    : `Cobrança ${p.interval}`}
-                </span>
-              </div>
-              <ul className="mt-5 space-y-2 flex-1">
-                {p.features.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-brown">
-                    <CheckCircle2 className="h-4 w-4 text-bronze flex-shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </li>
+            ) : (
+              <div className="grid gap-5 lg:grid-cols-4">
+                {plans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    onSelect={() => {
+                      setSelected(plan);
+                      setTerms(false);
+                    }}
+                  />
                 ))}
-              </ul>
-              <Button
-                onClick={() => {
-                  setSelected(p);
-                  setTerms(false);
-                }}
-                className="mt-6 bg-wine hover:bg-wine/90 text-white"
-              >
-                Assinar
-              </Button>
-            </div>
-          ))}
-        </div>
+              </div>
+            )}
+          </div>
+        </section>
 
-        <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-wine font-display">
-                Finalizar assinatura — {selected?.name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-5 pt-2">
+        <section className="gw-paper border-y border-border py-16">
+          <div className="container mx-auto px-4">
+            <div className="grid gap-10 lg:grid-cols-[0.7fr_1fr] lg:items-start">
               <div>
-                <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
-                <RadioGroup
-                  value={method}
-                  onValueChange={(v) => setMethod(v as "card" | "pix")}
-                  className="mt-2 grid grid-cols-2 gap-2"
-                >
-                  <label
-                    className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer ${method === "card" ? "border-bronze bg-cream" : "border-border"}`}
-                  >
-                    <RadioGroupItem value="card" />
-                    <CreditCard className="h-4 w-4 text-bronze" />
-                    <span className="text-sm">Cartão</span>
-                  </label>
-                  <label
-                    className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer ${method === "pix" ? "border-bronze bg-cream" : "border-border"}`}
-                  >
-                    <RadioGroupItem value="pix" />
-                    <QrCode className="h-4 w-4 text-bronze" />
-                    <span className="text-sm">PIX</span>
-                  </label>
-                </RadioGroup>
-                <p className="text-[11px] text-brown-soft mt-2">
-                  {method === "card"
-                    ? "Cobrança recorrente automática no seu cartão."
-                    : "PIX é pagamento único do período. Você precisará renovar manualmente ao final."}
+                <p className="text-sm font-bold uppercase text-bronze">O que acompanha</p>
+                <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-wine">
+                  A assinatura não compra só horas de aula.
+                </h2>
+                <p className="mt-4 leading-7 text-brown">
+                  Ela ativa uma rotina de estudo com entregáveis claros, histórico e suporte para o
+                  aluno não ficar perdido entre uma aula e outra.
                 </p>
               </div>
-
-              <div className="rounded-xl border border-bronze/30 bg-cream p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-wine text-sm">Resumo do contrato</p>
-                  <span className="text-[10px] uppercase tracking-wider bg-bronze/10 text-bronze px-2 py-0.5 rounded-full">
-                    v1
-                  </span>
-                </div>
-                <ul className="text-xs text-brown space-y-1.5">
-                  <li className="flex justify-between gap-3">
-                    <span className="text-brown-soft">Plano</span>
-                    <strong className="text-wine text-right">{selected?.name}</strong>
-                  </li>
-                  <li className="flex justify-between gap-3">
-                    <span className="text-brown-soft">Valor</span>
-                    <strong className="text-wine">
-                      R$ {selected?.price.toFixed(2).replace(".", ",")}
-                    </strong>
-                  </li>
-                  <li className="flex justify-between gap-3">
-                    <span className="text-brown-soft">Cobrança</span>
-                    <strong className="text-wine capitalize">{selected?.interval}</strong>
-                  </li>
-                  <li className="flex justify-between gap-3">
-                    <span className="text-brown-soft">Pagamento</span>
-                    <strong className="text-wine">
-                      {method === "card" ? "Cartão recorrente" : "PIX (período único)"}
-                    </strong>
-                  </li>
-                </ul>
-                <div className="border-t border-bronze/20 pt-2 text-[11px] text-brown-soft space-y-1.5 max-h-32 overflow-y-auto">
-                  <p>
-                    • Em caso de inadimplência, o acesso ao agendamento será suspenso até
-                    regularização.
-                  </p>
-                  <p>
-                    • Cancelamento permitido a qualquer momento; acesso mantido até o fim do período
-                    pago.
-                  </p>
-                  <p>
-                    • Pagamentos processados pela GWLanguageFlow; professores remunerados conforme
-                    contrato próprio.
-                  </p>
-                  <p>
-                    • A data e hora do seu aceite serão registradas para fins de auditoria
-                    contratual.
-                  </p>
-                </div>
+              <div className="overflow-hidden rounded-[1.6rem] border border-border bg-white shadow-soft">
+                {comparisonRows.map(([title, text]) => (
+                  <div
+                    key={title}
+                    className="grid gap-3 border-b border-border p-5 last:border-b-0 md:grid-cols-[180px_1fr]"
+                  >
+                    <div className="flex items-center gap-2 font-semibold text-wine">
+                      <CheckCircle2 className="h-4 w-4 text-bronze" />
+                      {title}
+                    </div>
+                    <p className="text-brown-soft">{text}</p>
+                  </div>
+                ))}
               </div>
-
-              <label className="flex items-start gap-2 cursor-pointer p-3 rounded-xl border border-border hover:border-bronze/40 transition">
-                <Checkbox
-                  checked={terms}
-                  onCheckedChange={(v) => setTerms(!!v)}
-                  className="mt-0.5"
-                />
-                <span className="text-sm text-brown">
-                  Li e concordo com os <strong className="text-wine">Termos de Uso</strong> e o{" "}
-                  <strong className="text-wine">Contrato de Prestação de Serviços</strong> da
-                  GWLanguageFlow.
-                </span>
-              </label>
-              {terms && (
-                <p className="text-[11px] text-bronze flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3 w-3" /> Aceite será registrado em{" "}
-                  {new Date().toLocaleString("pt-BR")}
-                </p>
-              )}
             </div>
-            <DialogFooter>
-              <Button
-                onClick={handleCheckout}
-                disabled={loading || !terms}
-                className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Pagar e ativar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </section>
+
+        <CheckoutDialog
+          selected={selected}
+          method={method}
+          setMethod={setMethod}
+          terms={terms}
+          setTerms={setTerms}
+          loading={loading}
+          onClose={() => setSelected(null)}
+          onCheckout={handleCheckout}
+        />
       </main>
       <SiteFooter />
     </div>
   );
+}
+
+function PlanSignal({ icon: Icon, label }: { icon: typeof ShieldCheck; label: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 rounded-full border border-border bg-white/78 px-4 py-3 text-sm font-semibold text-brown shadow-soft">
+      <Icon className="h-4 w-4 text-bronze" />
+      {label}
+    </div>
+  );
+}
+
+function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
+  const featured = plan.slug === "advanced";
+  const priceLabel =
+    plan.installments > 1
+      ? `${plan.installments}x ${formatMoney(plan.price / plan.installments)}`
+      : formatMoney(plan.price);
+
+  return (
+    <article
+      className={`gw-panel gw-lift relative flex min-h-[560px] flex-col rounded-[1.7rem] p-6 ${
+        featured ? "border-bronze shadow-bronze" : ""
+      }`}
+    >
+      {featured && (
+        <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full bg-bronze px-3 py-1 text-xs font-bold uppercase text-white shadow-bronze">
+          <Trophy className="h-3.5 w-3.5" />
+          Mais escolhido
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-display text-2xl font-bold text-wine">{plan.name}</h3>
+          <p className="mt-2 min-h-[48px] text-sm leading-6 text-brown-soft">{plan.description}</p>
+        </div>
+        {featured ? (
+          <Trophy className="mt-1 h-6 w-6 flex-shrink-0 text-bronze" />
+        ) : (
+          <Sparkles className="mt-1 h-6 w-6 flex-shrink-0 text-bronze" />
+        )}
+      </div>
+
+      <div className="my-6 h-px w-full bg-border" />
+
+      <div>
+        <p className="font-display text-4xl font-bold text-wine">{priceLabel}</p>
+        <p className="mt-1 text-sm text-brown-soft">
+          {plan.interval === "anual"
+            ? `Total ${formatMoney(plan.price)} por ano`
+            : `Cobrança ${plan.interval}`}
+        </p>
+      </div>
+
+      <ul className="mt-6 flex-1 space-y-3">
+        {plan.features.map((feature) => (
+          <li key={feature} className="flex gap-2 text-sm leading-6 text-brown">
+            <CheckCircle2 className="mt-1 h-4 w-4 flex-shrink-0 text-bronze" />
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Button
+        onClick={onSelect}
+        className={`mt-7 h-11 rounded-full text-white ${
+          featured ? "bg-bronze hover:bg-wine" : "bg-wine hover:bg-wine-deep"
+        }`}
+      >
+        Assinar plano
+      </Button>
+    </article>
+  );
+}
+
+function CheckoutDialog({
+  selected,
+  method,
+  setMethod,
+  terms,
+  setTerms,
+  loading,
+  onClose,
+  onCheckout,
+}: {
+  selected: Plan | null;
+  method: "card" | "pix";
+  setMethod: (method: "card" | "pix") => void;
+  terms: boolean;
+  setTerms: (terms: boolean) => void;
+  loading: boolean;
+  onClose: () => void;
+  onCheckout: () => void;
+}) {
+  return (
+    <Dialog open={!!selected} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg rounded-[1.6rem]">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl text-wine">
+            Finalizar assinatura — {selected?.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5 pt-2">
+          <div>
+            <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
+            <RadioGroup
+              value={method}
+              onValueChange={(value) => setMethod(value as "card" | "pix")}
+              className="mt-3 grid grid-cols-2 gap-3"
+            >
+              <label
+                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
+                  method === "card" ? "border-bronze bg-cream" : "border-border bg-white"
+                }`}
+              >
+                <RadioGroupItem value="card" />
+                <CreditCard className="h-4 w-4 text-bronze" />
+                <span className="text-sm font-semibold">Cartão</span>
+              </label>
+              <label
+                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
+                  method === "pix" ? "border-bronze bg-cream" : "border-border bg-white"
+                }`}
+              >
+                <RadioGroupItem value="pix" />
+                <QrCode className="h-4 w-4 text-bronze" />
+                <span className="text-sm font-semibold">PIX</span>
+              </label>
+            </RadioGroup>
+            <p className="mt-2 text-xs leading-5 text-brown-soft">
+              {method === "card"
+                ? "Cobrança recorrente automática no cartão."
+                : "PIX ativa o período contratado e precisa ser renovado ao final."}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-bronze/30 bg-cream p-4">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-wine">Resumo do contrato</p>
+              <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-bronze">
+                v1
+              </span>
+            </div>
+            <dl className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-brown-soft">Plano</dt>
+                <dd className="text-right font-semibold text-wine">{selected?.name}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-brown-soft">Valor</dt>
+                <dd className="font-semibold text-wine">
+                  {selected ? formatMoney(selected.price) : ""}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-brown-soft">Cobrança</dt>
+                <dd className="font-semibold capitalize text-wine">{selected?.interval}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-brown-soft">Pagamento</dt>
+                <dd className="font-semibold text-wine">
+                  {method === "card" ? "Cartão recorrente" : "PIX"}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-4 max-h-28 space-y-2 overflow-y-auto border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">
+              <p>O acesso ao agendamento depende da assinatura ativa.</p>
+              <p>Cancelamento permitido; acesso mantido até o fim do período pago.</p>
+              <p>Pagamentos são processados pela GWLanguageFlow em ambiente seguro.</p>
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border p-4 transition hover:border-bronze/50">
+            <Checkbox checked={terms} onCheckedChange={(value) => setTerms(!!value)} />
+            <span className="text-sm leading-6 text-brown">
+              Li e concordo com os <strong className="text-wine">Termos de Uso</strong> e o{" "}
+              <strong className="text-wine">Contrato de Prestação de Serviços</strong> da
+              GWLanguageFlow.
+            </span>
+          </label>
+
+          {terms && (
+            <p className="flex items-center gap-2 text-xs font-semibold text-bronze">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Aceite será registrado em {new Date().toLocaleString("pt-BR")}
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            onClick={onCheckout}
+            disabled={loading || !terms}
+            className="h-11 w-full rounded-full bg-bronze text-white shadow-bronze hover:bg-wine"
+          >
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Pagar e ativar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }

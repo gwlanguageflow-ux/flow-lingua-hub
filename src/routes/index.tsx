@@ -1,47 +1,85 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
-  CheckCircle2,
-  ShieldCheck,
+  BookOpenCheck,
   CalendarCheck,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  FileText,
   GraduationCap,
   Headphones,
-  BookOpenCheck,
-  Trophy,
-  Users,
-  BarChart3,
+  MessagesSquare,
+  ShieldCheck,
   Sparkles,
+  Trophy,
 } from "lucide-react";
+import heroStudent from "@/assets/hero-student.jpg";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "GWLanguageFlow — Plataforma de aulas de idiomas" },
+      { title: "GWLanguageFlow — Plataforma profissional de idiomas" },
       {
         name: "description",
         content:
-          "Plataforma profissional para aprender idiomas com método estruturado, professores especializados e acompanhamento contínuo.",
+          "GWLanguageFlow é uma plataforma profissional para aprender idiomas com método estruturado, professores especialistas, materiais semanais e acompanhamento pedagógico.",
       },
       { property: "og:title", content: "GWLanguageFlow" },
-      { property: "og:description", content: "Plataforma profissional de aulas de idiomas." },
+      {
+        property: "og:description",
+        content:
+          "Uma plataforma de idiomas com método, direção pedagógica e rotina real de estudo.",
+      },
     ],
   }),
   component: HomePage,
 });
 
+const schedule = [
+  {
+    day: "Hoje",
+    time: "19:00",
+    title: "Inglês — Conversation Lab",
+    teacher: "Prof. Helena",
+    status: "Sala liberada",
+  },
+  {
+    day: "Quinta",
+    time: "20:30",
+    title: "Revisão B2 + escrita",
+    teacher: "Prof. Matheus",
+    status: "Material entregue",
+  },
+  {
+    day: "Sábado",
+    time: "10:00",
+    title: "Listening intensivo",
+    teacher: "Prof. Clara",
+    status: "Atividade aberta",
+  },
+];
+
+const qualityMetrics = [
+  { value: "+1.200", label: "alunos ativos" },
+  { value: "98%", label: "renovação" },
+  { value: "11", label: "idiomas" },
+  { value: "4.9", label: "avaliação média" },
+];
+
 function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader />
       <main className="flex-1">
         <Hero />
-        <TrustBar />
-        <Pillars />
-        <Method />
+        <QualityRail />
+        <MethodArchitecture />
+        <FlowExperience />
         <PlansTeaser />
         <FinalCTA />
       </main>
@@ -50,127 +88,82 @@ function HomePage() {
   );
 }
 
-/* ---------- HERO ---------- */
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border/60">
-      <div className="absolute inset-0 bg-gradient-soft" />
-      <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-bronze/10 blur-3xl pointer-events-none" />
+    <section className="relative overflow-hidden border-b border-border/70 bg-cream">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${heroStudent})` }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(255,251,244,0.98) 0%, rgba(255,251,244,0.92) 42%, rgba(255,251,244,0.58) 68%, rgba(255,251,244,0.12) 100%)",
+        }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 gw-grid opacity-55" aria-hidden="true" />
 
-      <div className="container relative mx-auto px-4 pt-16 pb-20 md:pt-24 md:pb-28">
-        <div className="grid gap-12 lg:grid-cols-12 items-center">
+      <div className="container relative mx-auto px-4 py-14 md:py-20">
+        <div className="grid min-h-[620px] items-center gap-10 lg:grid-cols-[1fr_520px]">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="lg:col-span-7 space-y-7"
+            transition={{ duration: 0.55 }}
+            className="max-w-3xl"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-bronze/30 bg-white px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-widest text-wine">
-              <span className="h-1.5 w-1.5 rounded-full bg-bronze" />
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-bronze/35 bg-white/82 px-4 py-2 text-xs font-bold uppercase text-wine shadow-soft">
+              <span className="h-2 w-2 rounded-full bg-bronze" />
               Plataforma GWLanguageFlow
-            </span>
+            </div>
 
-            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.02] text-wine">
-              Domine um idioma <br />
-              <span className="text-bronze italic">com método e propósito.</span>
+            <h1 className="text-balance font-display text-5xl font-bold leading-[1.02] text-wine md:text-7xl">
+              GWLanguageFlow
             </h1>
-
-            <p className="text-lg text-brown max-w-xl leading-relaxed">
-              Aulas estruturadas, materiais exclusivos e acompanhamento contínuo. Uma plataforma
-              feita para quem leva o aprendizado a sério.
+            <p className="mt-5 max-w-2xl text-balance text-2xl font-semibold leading-snug text-brown md:text-3xl">
+              Método, direção pedagógica e uma rotina digital para aprender idiomas com seriedade.
+            </p>
+            <p className="mt-5 max-w-xl text-base leading-8 text-brown-soft md:text-lg">
+              A plataforma organiza aula, material, atividade, professor e acompanhamento no mesmo
+              fluxo. Menos improviso. Mais clareza para evoluir.
             </p>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/auth/signup">
                 <Button
                   size="lg"
-                  className="bg-wine text-white hover:bg-wine-deep gap-2 h-12 px-6 text-base"
+                  className="h-12 rounded-full bg-wine px-6 text-base text-white shadow-bronze hover:bg-wine-deep"
                 >
-                  Começar agora <ArrowRight className="h-4 w-4" />
+                  Começar agora <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/planos">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-wine/20 text-wine hover:bg-cream h-12 px-6 text-base"
+                  className="h-12 rounded-full border-wine/20 bg-white px-6 text-base text-wine shadow-soft transition-all duration-300 hover:border-bronze hover:bg-white hover:shadow-[0_0_28px_rgba(196,113,52,0.55)] active:scale-[0.98]"
                 >
                   Ver planos
                 </Button>
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-7 gap-y-3 pt-2 text-sm text-brown-soft">
-              <span className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-bronze" /> Pagamento seguro
-              </span>
-              <span className="flex items-center gap-2">
-                <CalendarCheck className="h-4 w-4 text-bronze" /> Cancele quando quiser
-              </span>
-              <span className="flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-bronze" /> Método validado
-              </span>
+            <div className="mt-8 grid max-w-2xl gap-3 text-sm text-brown md:grid-cols-3">
+              <Proof icon={ShieldCheck} text="Pagamento seguro" />
+              <Proof icon={CalendarCheck} text="Agenda guiada" />
+              <Proof icon={Trophy} text="Padrão pedagógico GW" />
             </div>
           </motion.div>
 
-          {/* Painel mock — sensação de produto */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="lg:col-span-5"
+            className="hidden lg:block"
           >
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-warm opacity-20 rounded-3xl blur-2xl" />
-              <div className="relative rounded-2xl border border-border bg-white shadow-warm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-cream/60">
-                  <div className="flex gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-wine/40" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-bronze/40" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-brown/30" />
-                  </div>
-                  <span className="text-[11px] text-brown-soft ml-2 font-mono">
-                    app.gwlanguageflow
-                  </span>
-                </div>
-
-                <div className="p-5 space-y-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest text-bronze font-medium">
-                      Sua agenda
-                    </p>
-                    <h3 className="font-display text-xl text-wine font-bold">Próximas aulas</h3>
-                  </div>
-
-                  {[
-                    { d: "Hoje", h: "19:00", t: "Inglês — Conversation", c: "bronze" },
-                    { d: "Quinta", h: "20:30", t: "Inglês — Revisão B2", c: "wine" },
-                    { d: "Sábado", h: "10:00", t: "Listening + Reading", c: "brown" },
-                  ].map((a, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-bronze/40 transition"
-                    >
-                      <div className="text-center min-w-[52px]">
-                        <p className="text-[10px] uppercase text-brown-soft">{a.d}</p>
-                        <p className="font-display text-base text-wine font-bold">{a.h}</p>
-                      </div>
-                      <div className="flex-1 border-l border-border pl-3">
-                        <p className="text-sm font-semibold text-wine">{a.t}</p>
-                        <p className="text-[11px] text-brown-soft">Aula online · 60min</p>
-                      </div>
-                      <CheckCircle2 className="h-4 w-4 text-bronze" />
-                    </div>
-                  ))}
-
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
-                    <Stat label="Aulas/mês" value="8" />
-                    <Stat label="Streak" value="12d" />
-                    <Stat label="Nível" value="B2" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProductCockpit />
           </motion.div>
         </div>
       </div>
@@ -178,34 +171,122 @@ function Hero() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Proof({ icon: Icon, text }: { icon: typeof ShieldCheck; text: string }) {
   return (
-    <div className="text-center">
-      <p className="font-display text-xl font-bold text-wine">{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-brown-soft">{label}</p>
+    <div className="flex items-center gap-2 rounded-full border border-border bg-white/74 px-3 py-2 shadow-soft">
+      <Icon className="h-4 w-4 text-bronze" />
+      <span>{text}</span>
     </div>
   );
 }
 
-/* ---------- TRUST BAR ---------- */
-function TrustBar() {
-  const items = [
-    { v: "+1.200", l: "Alunos ativos", i: Users },
-    { v: "98%", l: "Renovam o plano", i: BarChart3 },
-    { v: "11", l: "Idiomas", i: GraduationCap },
-    { v: "4.9", l: "Avaliação média", i: Sparkles },
-  ];
+function ProductCockpit() {
   return (
-    <section className="border-b border-border/60 bg-white">
-      <div className="container mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6">
-        {items.map((it) => (
-          <div key={it.l} className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-cream flex items-center justify-center">
-              <it.i className="h-5 w-5 text-bronze" />
+    <div className="relative">
+      <div className="absolute -left-10 top-12 w-52 rounded-2xl border border-white/75 bg-white/88 p-4 shadow-warm backdrop-blur">
+        <p className="text-xs font-bold uppercase text-bronze">Progresso</p>
+        <div className="mt-4 space-y-3">
+          {[
+            ["Listening", "78%"],
+            ["Speaking", "64%"],
+            ["Writing", "71%"],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <div className="mb-1 flex justify-between text-xs text-brown">
+                <span>{label}</span>
+                <strong className="text-wine">{value}</strong>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-cream">
+                <div className="h-full rounded-full bg-bronze" style={{ width: value }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="gw-panel overflow-hidden rounded-[2rem] backdrop-blur">
+        <div className="flex items-center justify-between border-b border-border bg-white/75 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-wine/45" />
+            <span className="h-2.5 w-2.5 rounded-full bg-bronze/60" />
+            <span className="h-2.5 w-2.5 rounded-full bg-olive/45" />
+          </div>
+          <span className="font-mono text-xs text-brown-soft">painel.gwlanguageflow</span>
+        </div>
+
+        <div className="bg-white/94 p-6">
+          <div className="flex items-start justify-between gap-5">
+            <div>
+              <p className="text-xs font-bold uppercase text-bronze">Sua agenda</p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-wine">Próximas aulas</h2>
+            </div>
+            <div className="rounded-full bg-wine px-3 py-1 text-xs font-semibold text-white">
+              B2 em evolução
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {schedule.map((item) => (
+              <div
+                key={item.title}
+                className="grid grid-cols-[72px_1fr_auto] items-center gap-4 rounded-2xl border border-border bg-cream/45 p-4"
+              >
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase text-brown-soft">{item.day}</p>
+                  <p className="font-display text-xl font-bold text-wine">{item.time}</p>
+                </div>
+                <div className="border-l border-border pl-4">
+                  <p className="font-semibold text-wine">{item.title}</p>
+                  <p className="text-xs text-brown-soft">{item.teacher} · Aula online · 60min</p>
+                  <p className="mt-1 text-xs font-semibold text-bronze">{item.status}</p>
+                </div>
+                <CheckCircle2 className="h-5 w-5 text-bronze" />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-5">
+            {[
+              ["8", "aulas/mês"],
+              ["12d", "sequência"],
+              ["4", "materiais"],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-2xl bg-white p-3 text-center shadow-soft">
+                <p className="font-display text-2xl font-bold text-wine">{value}</p>
+                <p className="text-xs uppercase text-brown-soft">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute -bottom-8 right-8 w-60 rounded-2xl border border-white/75 bg-ink p-4 text-white shadow-warm">
+        <div className="flex items-center gap-2">
+          <MessagesSquare className="h-4 w-4 text-bronze" />
+          <p className="text-sm font-semibold">Diretoria pedagógica</p>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-white/70">
+          Revisão da semana liberada. Ajuste de speaking recomendado antes da próxima aula.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function QualityRail() {
+  return (
+    <section className="border-b border-border bg-white">
+      <div className="container mx-auto grid gap-4 px-4 py-7 md:grid-cols-4">
+        {qualityMetrics.map((metric) => (
+          <div key={metric.label} className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream">
+              <Sparkles className="h-5 w-5 text-bronze" />
             </div>
             <div>
-              <p className="font-display text-2xl font-bold text-wine leading-none">{it.v}</p>
-              <p className="text-xs text-brown-soft mt-1">{it.l}</p>
+              <p className="font-display text-3xl font-bold leading-none text-wine">
+                {metric.value}
+              </p>
+              <p className="mt-1 text-sm text-brown-soft">{metric.label}</p>
             </div>
           </div>
         ))}
@@ -214,106 +295,66 @@ function TrustBar() {
   );
 }
 
-/* ---------- PILLARS ---------- */
-function Pillars() {
-  const items = [
+function MethodArchitecture() {
+  const pillars = [
     {
       icon: BookOpenCheck,
-      title: "Método estruturado",
-      desc: "Trilhas pensadas por nível, com revisão, listening, reading e atividades práticas — entregues toda semana.",
+      title: "Trilha semanal",
+      description:
+        "Aula, revisão, listening, reading e atividade aparecem em sequência, sem depender de mensagens soltas.",
     },
     {
       icon: Headphones,
-      title: "Conversação real",
-      desc: "Espaços dedicados para destravar a fala, quebrar bloqueios e ganhar autoconfiança em situações reais.",
+      title: "Fala acompanhada",
+      description:
+        "Conversação com objetivos claros, feedback e registro de pontos fortes e pontos de atenção.",
     },
     {
       icon: GraduationCap,
-      title: "Professores especialistas",
-      desc: "Profissionais selecionados, com acompanhamento da diretoria pedagógica e padrão de qualidade GW.",
+      title: "Professor orientado",
+      description:
+        "O professor trabalha com padrão pedagógico e, quando necessário, suporte direto da direção.",
     },
   ];
-  return (
-    <section className="py-20 bg-cream/40">
-      <div className="container mx-auto px-4">
-        <div className="max-w-2xl mb-12">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">
-            Por que GWLanguageFlow
-          </p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-wine mt-2">
-            Uma plataforma. Um método.{" "}
-            <span className="italic text-bronze">Resultados consistentes.</span>
-          </h2>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {items.map((it, i) => (
-            <motion.div
-              key={it.title}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
-              className="rounded-2xl bg-white p-7 border border-border hover:border-bronze/40 hover:shadow-soft transition"
-            >
-              <div className="h-11 w-11 rounded-xl bg-bronze/10 flex items-center justify-center mb-5">
-                <it.icon className="h-5 w-5 text-bronze" />
-              </div>
-              <h3 className="font-display text-xl font-bold text-wine mb-2">{it.title}</h3>
-              <p className="text-brown text-sm leading-relaxed">{it.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
-/* ---------- METHOD ---------- */
-function Method() {
-  const steps = [
-    { n: "01", t: "Diagnóstico", d: "Você nos conta seu nível e objetivos." },
-    {
-      n: "02",
-      t: "Plano e professor",
-      d: "Escolha o plano e seja matriculado com um especialista.",
-    },
-    {
-      n: "03",
-      t: "Aulas semanais",
-      d: "Aulas online, materiais e atividades entregues no painel.",
-    },
-    { n: "04", t: "Acompanhamento", d: "Avaliações, revisões e ajustes contínuos no seu plano." },
-  ];
   return (
-    <section className="py-20 border-t border-border/60">
+    <section className="gw-paper py-20">
       <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-12 gap-10 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-24">
-            <p className="text-bronze text-xs uppercase tracking-widest font-medium">
-              Como funciona
-            </p>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-wine mt-2">
-              Do diagnóstico à fluência, sem improviso.
+        <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <div className="lg:sticky lg:top-28">
+            <p className="text-sm font-bold uppercase text-bronze">Método GW</p>
+            <h2 className="mt-3 max-w-xl font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+              Uma plataforma para estudar com ritmo, evidência e direção.
             </h2>
-            <p className="text-brown mt-4">
-              Cada aluno tem uma jornada acompanhada pela diretoria pedagógica da GW. Nada é deixado
-              ao acaso.
+            <p className="mt-5 max-w-lg text-lg leading-8 text-brown">
+              O aluno sabe o que precisa fazer. O professor sabe o que precisa acompanhar. A direção
+              pedagógica enxerga o percurso.
             </p>
           </div>
-          <div className="lg:col-span-8 space-y-3">
-            {steps.map((s) => (
-              <div
-                key={s.n}
-                className="flex gap-5 p-6 rounded-2xl border border-border bg-white hover:border-bronze/40 transition"
+
+          <div className="space-y-5">
+            {pillars.map((pillar, index) => (
+              <motion.div
+                key={pillar.title}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="gw-panel gw-lift grid gap-5 rounded-[1.75rem] p-6 md:grid-cols-[72px_1fr]"
               >
-                <span className="font-display text-4xl font-bold text-bronze/70 leading-none">
-                  {s.n}
-                </span>
-                <div>
-                  <h3 className="font-display text-lg font-bold text-wine">{s.t}</h3>
-                  <p className="text-sm text-brown mt-1">{s.d}</p>
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-wine text-white">
+                  <pillar.icon className="h-7 w-7 text-bronze" />
                 </div>
-              </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-display text-3xl font-bold text-bronze">
+                      0{index + 1}
+                    </span>
+                    <h3 className="font-display text-2xl font-bold text-wine">{pillar.title}</h3>
+                  </div>
+                  <p className="mt-2 leading-7 text-brown">{pillar.description}</p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -322,64 +363,136 @@ function Method() {
   );
 }
 
-/* ---------- PLANS TEASER ---------- */
+function FlowExperience() {
+  const tools = [
+    {
+      icon: CalendarCheck,
+      label: "Agenda",
+      text: "Aulas, horário, link e status de presença no mesmo espaço.",
+    },
+    {
+      icon: FileText,
+      label: "Materiais",
+      text: "PDFs, links, Word e conteúdos padrão da plataforma por turma.",
+    },
+    {
+      icon: ClipboardCheck,
+      label: "Atividades",
+      text: "Entrega com prazo, correção, nota e histórico do aluno.",
+    },
+    {
+      icon: MessagesSquare,
+      label: "Chat",
+      text: "Contato direto entre aluno, professor e secretaria pedagógica.",
+    },
+  ];
+
+  return (
+    <section className="border-y border-border bg-white py-20">
+      <div className="container mx-auto px-4">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-bold uppercase text-bronze">Não é só aula online</p>
+          <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+            A GWLanguageFlow funciona como uma central de aprendizagem.
+          </h2>
+          <p className="mt-4 text-lg leading-8 text-brown-soft">
+            A experiência foi pensada para reduzir ruído: cada parte do estudo tem lugar, dono e
+            próximo passo.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-4">
+          {tools.map((tool) => (
+            <div key={tool.label} className="gw-panel gw-lift rounded-[1.5rem] p-5">
+              <tool.icon className="h-7 w-7 text-bronze" />
+              <h3 className="mt-5 font-display text-xl font-bold text-wine">{tool.label}</h3>
+              <p className="mt-2 text-sm leading-6 text-brown">{tool.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 overflow-hidden rounded-[2rem] bg-ink text-white shadow-warm">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
+              <p className="text-sm font-bold uppercase text-bronze">Visão de qualidade</p>
+              <h3 className="mt-3 font-display text-3xl font-bold leading-tight text-white">
+                Acompanhamento que aparece antes do problema virar atraso.
+              </h3>
+              <p className="mt-4 text-sm leading-7 text-white/68">
+                A plataforma foi preparada para registrar aulas, materiais, atividades e mensagens.
+                Isso cria uma linha de acompanhamento para aluno, professor e direção.
+              </p>
+            </div>
+            <div className="grid gap-px bg-white/10 md:grid-cols-3">
+              {[
+                ["Aula", "Presença, link e foco do encontro"],
+                ["Material", "Conteúdo entregue por plano e turma"],
+                ["Evolução", "Notas, feedbacks e histórico"],
+              ].map(([title, text]) => (
+                <div key={title} className="bg-ink p-7">
+                  <p className="font-display text-2xl font-bold text-bronze">{title}</p>
+                  <p className="mt-3 text-sm leading-6 text-white/68">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PlansTeaser() {
   const cards = [
-    { name: "Essencial", price: "179,90", tag: "Para começar com consistência" },
-    {
-      name: "Avançado",
-      price: "299,90",
-      tag: "Mais escolhido — evolução acelerada",
-      featured: true,
-    },
-    { name: "Conversation", price: "169,90", tag: "Destrave a fala" },
+    { name: "Essencial", price: "R$ 179,90", detail: "Consistência semanal" },
+    { name: "Avançado", price: "R$ 299,90", detail: "Evolução acelerada", featured: true },
+    { name: "Conversation", price: "R$ 169,90", detail: "Fala e confiança" },
   ];
+
   return (
-    <section className="py-20 bg-cream/40 border-t border-border/60">
+    <section className="gw-paper py-20">
       <div className="container mx-auto px-4">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
+        <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="text-bronze text-xs uppercase tracking-widest font-medium">Planos</p>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-wine mt-2">
-              Escolha o ritmo da sua jornada.
+            <p className="text-sm font-bold uppercase text-bronze">Planos</p>
+            <h2 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+              Escolha o ritmo, não uma promessa vaga.
             </h2>
           </div>
           <Link
             to="/planos"
-            className="text-sm font-semibold text-wine hover:text-bronze flex items-center gap-1"
+            className="inline-flex items-center gap-2 font-semibold text-wine transition hover:text-bronze"
           >
-            Comparar todos os planos <ArrowRight className="h-4 w-4" />
+            Comparar todos os planos <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
 
         <div className="grid gap-5 md:grid-cols-3">
-          {cards.map((c) => (
+          {cards.map((card) => (
             <div
-              key={c.name}
-              className={`relative rounded-2xl border p-7 bg-white flex flex-col ${
-                c.featured ? "border-bronze ring-2 ring-bronze/30 shadow-bronze" : "border-border"
+              key={card.name}
+              className={`gw-panel rounded-[1.6rem] p-7 ${
+                card.featured ? "border-bronze shadow-bronze" : ""
               }`}
             >
-              {c.featured && (
-                <span className="absolute -top-3 left-6 inline-flex items-center gap-1 bg-bronze text-white text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full">
-                  <Trophy className="h-3 w-3" /> Mais escolhido
-                </span>
+              {card.featured && (
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-bronze px-3 py-1 text-xs font-bold uppercase text-white">
+                  <Trophy className="h-3.5 w-3.5" />
+                  Mais escolhido
+                </div>
               )}
-              <div className="flex items-center gap-2">
-                {c.featured && <Trophy className="h-5 w-5 text-bronze" />}
-                <h3 className="font-display text-2xl font-bold text-wine">{c.name}</h3>
-              </div>
-              <p className="text-sm text-brown-soft mt-1 min-h-[40px]">{c.tag}</p>
-              <p className="font-display text-3xl font-bold text-wine mt-4">
-                R$ {c.price}
-                <span className="text-sm text-brown-soft font-sans"> /mês</span>
+              <h3 className="font-display text-2xl font-bold text-wine">{card.name}</h3>
+              <p className="mt-2 text-sm text-brown-soft">{card.detail}</p>
+              <p className="mt-7 font-display text-4xl font-bold text-wine">
+                {card.price}
+                <span className="font-sans text-sm font-semibold text-brown-soft"> /mês</span>
               </p>
-              <Link to="/planos" className="mt-6">
+              <Link to="/planos" className="mt-7 block">
                 <Button
-                  className={`w-full ${
-                    c.featured
-                      ? "bg-bronze hover:bg-wine text-white"
-                      : "bg-wine hover:bg-wine-deep text-white"
+                  className={`h-11 w-full rounded-full ${
+                    card.featured
+                      ? "bg-bronze text-white hover:bg-wine"
+                      : "bg-wine text-white hover:bg-wine-deep"
                   }`}
                 >
                   Ver detalhes
@@ -393,25 +506,27 @@ function PlansTeaser() {
   );
 }
 
-/* ---------- FINAL CTA ---------- */
 function FinalCTA() {
   return (
-    <section className="py-20">
+    <section className="bg-white py-20">
       <div className="container mx-auto px-4">
-        <div className="rounded-3xl bg-wine text-white p-10 md:p-16 relative overflow-hidden">
-          <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full bg-bronze/30 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-bronze/20 blur-2xl" />
-          <div className="relative grid md:grid-cols-2 gap-10 items-center">
-            <div>
-              <h2 className="font-display text-3xl md:text-5xl font-bold text-white leading-tight">
-                Pronto para começar de verdade?
+        <div className="overflow-hidden rounded-[2rem] bg-wine text-white shadow-warm">
+          <div className="grid lg:grid-cols-[1fr_0.9fr]">
+            <div className="p-8 md:p-12">
+              <p className="text-sm font-bold uppercase text-bronze">Próximo passo</p>
+              <h2 className="mt-3 max-w-xl font-display text-4xl font-bold leading-tight text-white md:text-5xl">
+                Comece com estrutura desde o primeiro acesso.
               </h2>
-              <p className="text-white/80 mt-4 max-w-md">
-                Crie sua conta, escolha um plano e tenha sua primeira aula em até 48 horas.
+              <p className="mt-4 max-w-lg leading-8 text-white/78">
+                Crie sua conta, escolha um plano e entre em uma jornada com aula, material,
+                professor e acompanhamento.
               </p>
-              <div className="flex flex-wrap gap-3 mt-7">
+              <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/auth/signup">
-                  <Button size="lg" className="bg-bronze text-white hover:bg-white hover:text-wine">
+                  <Button
+                    size="lg"
+                    className="h-12 rounded-full bg-bronze px-6 text-white hover:bg-white hover:text-wine"
+                  >
                     Criar minha conta
                   </Button>
                 </Link>
@@ -419,25 +534,25 @@ function FinalCTA() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white bg-white text-wine shadow-[0_0_0_rgba(196,113,52,0)] transition-all duration-300 hover:border-bronze hover:bg-white hover:text-wine hover:shadow-[0_0_28px_rgba(196,113,52,0.85)] focus-visible:ring-2 focus-visible:ring-bronze focus-visible:ring-offset-2 focus-visible:ring-offset-wine active:scale-[0.98] active:shadow-[0_0_36px_rgba(196,113,52,0.95)]"
+                    className="h-12 rounded-full border-white bg-white px-6 text-wine transition-all duration-300 hover:border-bronze hover:bg-white hover:text-wine hover:shadow-[0_0_28px_rgba(196,113,52,0.85)] active:scale-[0.98]"
                   >
                     Ver planos
                   </Button>
                 </Link>
               </div>
             </div>
-            <ul className="space-y-3 text-white/90 text-sm">
+            <div className="grid gap-px bg-white/10 md:grid-cols-2 lg:grid-cols-1">
               {[
-                "Plataforma 100% online com painel do aluno",
-                "Materiais semanais entregues automaticamente",
-                "Diretoria pedagógica acompanhando cada caso",
-                "Pagamento por Cartão ou PIX, com nota fiscal",
-              ].map((t) => (
-                <li key={t} className="flex gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-bronze flex-shrink-0 mt-0.5" /> {t}
-                </li>
+                "Painel do aluno com agenda, materiais e atividades",
+                "Professores selecionados e acompanhamento pedagógico",
+                "Pagamento por cartão ou PIX com registro de assinatura",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 bg-wine-deep/45 p-7">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-bronze" />
+                  <p className="text-sm leading-6 text-white/82">{item}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
       </div>
