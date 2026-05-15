@@ -1,5 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  BookOpen,
+  Download,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  Headphones,
+  MessageCircle,
+  Send,
+  Sparkles,
+  Star,
+  Users,
+  Video,
+} from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -12,17 +29,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Video, FolderOpen, FileText, Headphones, BookOpen, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MeetingLinkButton } from "@/components/MeetingLinkEditor";
 import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
+import { WEEKDAYS } from "@/lib/constants";
+import { openLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Booking = Tables<"bookings">;
+type ClassGroup = Tables<"class_groups">;
+type ClassMember = Tables<"class_members">;
+type ClassMaterial = Tables<"class_materials">;
+type ClassAssignment = Tables<"class_assignments">;
+type StudentMessage = Tables<"teacher_student_messages">;
+type StudentScore = Tables<"student_scores">;
 type TeacherProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url">;
 
 export const Route = createFileRoute("/meus-agendamentos")({
@@ -39,36 +61,114 @@ function Page() {
   const [items, setItems] = useState<Booking[]>([]);
   const [teachers, setTeachers] = useState<Map<string, TeacherProfile>>(new Map());
   const [reviews, setReviews] = useState<Set<string>>(new Set());
+  const [memberships, setMemberships] = useState<ClassMember[]>([]);
+  const [classes, setClasses] = useState<ClassGroup[]>([]);
+  const [materials, setMaterials] = useState<ClassMaterial[]>([]);
+  const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const [messages, setMessages] = useState<StudentMessage[]>([]);
+  const [scores, setScores] = useState<StudentScore[]>([]);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("student_id", user.id)
-      .order("scheduled_at", { ascending: false });
-    setItems(data || []);
-    if (data?.length) {
-      const ids = Array.from(new Set(data.map((b) => b.teacher_id)));
+    const [
+      { data: bookingRows },
+      { data: memberRows },
+      { data: materialRows },
+      { data: assignmentRows },
+      { data: messageRows },
+      { data: scoreRows },
+    ] = await Promise.all([
+      supabase
+        .from("bookings")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("scheduled_at", { ascending: false }),
+      supabase.from("class_members").select("*").eq("student_id", user.id).eq("status", "ativo"),
+      supabase.from("class_materials").select("*").order("created_at", { ascending: false }),
+      supabase.from("class_assignments").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("teacher_student_messages")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("student_scores")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    setItems(bookingRows || []);
+    setMemberships(memberRows || []);
+    setMaterials(materialRows || []);
+    setAssignments(assignmentRows || []);
+    setMessages(messageRows || []);
+    setScores(scoreRows || []);
+
+    let classRows: ClassGroup[] = [];
+    if (memberRows?.length) {
+      const classIds = memberRows.map((item) => item.class_id);
+      const { data } = await supabase.from("class_groups").select("*").in("id", classIds);
+      classRows = data || [];
+      setClasses(classRows);
+    } else {
+      setClasses([]);
+    }
+
+    const teacherIds = Array.from(
+      new Set([
+        ...(bookingRows || []).map((b) => b.teacher_id),
+        ...classRows.map((c) => c.teacher_id),
+      ]),
+    );
+
+    if (teacherIds.length) {
       const { data: profs } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url")
-        .in("id", ids);
+        .in("id", teacherIds);
       setTeachers(new Map(profs?.map((p) => [p.id, p]) ?? []));
+    } else {
+      setTeachers(new Map());
+    }
+
+    if (bookingRows?.length) {
       const { data: revs } = await supabase
         .from("reviews")
         .select("booking_id")
         .in(
           "booking_id",
-          data.map((b) => b.id),
+          bookingRows.map((b) => b.id),
         );
       setReviews(new Set(revs?.map((r) => r.booking_id) ?? []));
+    } else {
+      setReviews(new Set());
     }
   }, [user]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`student-live-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "teacher_student_messages",
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => load(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [load, user]);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -89,80 +189,38 @@ function Page() {
           className="mt-6 bg-background rounded-3xl border border-border p-4 md:p-6 shadow-soft"
         >
           <TabsList className="bg-cream w-full justify-start flex-wrap h-auto">
-            <TabsTrigger
-              value="aulas"
-              className="data-[state=active]:bg-wine data-[state=active]:text-white"
-            >
-              <Video className="h-4 w-4 mr-2" />
-              Minhas Aulas
-            </TabsTrigger>
-            <TabsTrigger
-              value="materiais"
-              className="data-[state=active]:bg-wine data-[state=active]:text-white"
-            >
-              <FolderOpen className="h-4 w-4 mr-2" />
-              Meus Materiais
-            </TabsTrigger>
+            <StudentTab value="aulas" icon={Video} label="Minhas Aulas" />
+            <StudentTab value="turmas" icon={Users} label="Turmas" />
+            <StudentTab value="atividades" icon={GraduationCap} label="Atividades" />
+            <StudentTab value="materiais" icon={FolderOpen} label="Materiais" />
+            <StudentTab value="mensagens" icon={MessageCircle} label="Mensagens" />
           </TabsList>
 
           <TabsContent value="aulas" className="mt-6">
-            {items.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-brown-soft">Você ainda não agendou aulas.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((b) => {
-                  const t = teachers.get(b.teacher_id);
-                  const past = new Date(b.scheduled_at) < new Date();
-                  const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
-                  return (
-                    <div
-                      key={b.id}
-                      className="rounded-2xl border border-border p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-bronze/40 transition"
-                    >
-                      <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0">
-                        {t?.avatar_url ? (
-                          <img
-                            src={t.avatar_url}
-                            className="w-full h-full rounded-full object-cover"
-                            alt=""
-                          />
-                        ) : (
-                          t?.full_name?.charAt(0) || "P"
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
-                        <p className="text-sm text-brown">
-                          {format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", {
-                            locale: ptBR,
-                          })}
-                        </p>
-                        <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
-                        {!past && !b.meeting_url && (
-                          <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
-                            <Video className="h-3 w-3" /> Aguardando link da videochamada do
-                            professor
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-stretch md:items-end gap-2">
-                        <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
-                          {b.status}
-                        </span>
-                        {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
-                        {canReview && <ReviewDialog booking={b} onDone={load} />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <LessonsSection items={items} teachers={teachers} reviews={reviews} onDone={load} />
+          </TabsContent>
+
+          <TabsContent value="turmas" className="mt-6">
+            <StudentClassesSection classes={classes} teachers={teachers} scores={scores} />
+          </TabsContent>
+
+          <TabsContent value="atividades" className="mt-6">
+            <StudentAssignmentsSection assignments={assignments} classes={classes} />
           </TabsContent>
 
           <TabsContent value="materiais" className="mt-6">
-            <MaterialsSection />
+            <StudentMaterialsSection materials={materials} classes={classes} />
+          </TabsContent>
+
+          <TabsContent value="mensagens" className="mt-6">
+            <StudentMessagesSection
+              userId={user?.id}
+              teachers={teachers}
+              messages={messages}
+              classes={classes}
+              bookings={items}
+              onChanged={load}
+            />
           </TabsContent>
         </Tabs>
       </main>
@@ -170,60 +228,371 @@ function Page() {
   );
 }
 
-function MaterialsSection() {
+function StudentTab({
+  value,
+  icon: Icon,
+  label,
+}: {
+  value: string;
+  icon: typeof Video;
+  label: string;
+}) {
+  return (
+    <TabsTrigger
+      value={value}
+      className="data-[state=active]:bg-wine data-[state=active]:text-white"
+    >
+      <Icon className="h-4 w-4 mr-2" />
+      {label}
+    </TabsTrigger>
+  );
+}
+
+function LessonsSection({
+  items,
+  teachers,
+  reviews,
+  onDone,
+}: {
+  items: Booking[];
+  teachers: Map<string, TeacherProfile>;
+  reviews: Set<string>;
+  onDone: () => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-brown-soft">Você ainda não agendou aulas.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.map((b) => {
+        const t = teachers.get(b.teacher_id);
+        const past = new Date(b.scheduled_at) < new Date();
+        const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
+        return (
+          <div
+            key={b.id}
+            className="rounded-2xl border border-border p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-bronze/40 transition"
+          >
+            <Avatar name={t?.full_name || "Professor"} url={t?.avatar_url} />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
+              <p className="text-sm text-brown">
+                {format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", {
+                  locale: ptBR,
+                })}
+              </p>
+              <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
+              {!past && !b.meeting_url && (
+                <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
+                  <Video className="h-3 w-3" /> Aguardando link da videochamada do professor
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col items-stretch md:items-end gap-2">
+              <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
+                {b.status}
+              </span>
+              {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
+              {canReview && <ReviewDialog booking={b} onDone={onDone} />}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StudentClassesSection({
+  classes,
+  teachers,
+  scores,
+}: {
+  classes: ClassGroup[];
+  teachers: Map<string, TeacherProfile>;
+  scores: StudentScore[];
+}) {
+  if (classes.length === 0) return <Empty msg="Você ainda não foi vinculado a uma turma." />;
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {classes.map((item) => {
+        const teacher = teachers.get(item.teacher_id);
+        const lastScore = scores.find((score) => score.class_id === item.id);
+        return (
+          <div key={item.id} className="rounded-2xl border border-border p-5 space-y-4">
+            <div>
+              <h3 className="font-display text-xl text-wine">{item.name}</h3>
+              <p className="text-sm text-brown">{item.language}</p>
+              <p className="text-sm text-brown-soft">{formatClassSchedule(item)}</p>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl bg-cream p-3">
+              <Avatar name={teacher?.full_name || "Professor"} url={teacher?.avatar_url} />
+              <div>
+                <p className="font-semibold text-wine">{teacher?.full_name || "Professor"}</p>
+                <p className="text-xs text-brown-soft">Professor da turma</p>
+              </div>
+            </div>
+            {item.meeting_url ? (
+              <MeetingLinkButton url={item.meeting_url} />
+            ) : (
+              <p className="text-xs text-brown-soft">Aguardando link da aula.</p>
+            )}
+            {lastScore && (
+              <div className="rounded-xl border border-border p-3">
+                <p className="text-sm font-semibold text-wine">
+                  Último acompanhamento: {lastScore.score ?? "sem nota"}
+                </p>
+                {lastScore.note && <p className="text-xs text-brown mt-1">{lastScore.note}</p>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StudentAssignmentsSection({
+  assignments,
+  classes,
+}: {
+  assignments: ClassAssignment[];
+  classes: ClassGroup[];
+}) {
+  if (assignments.length === 0) return <Empty msg="Nenhuma atividade enviada ainda." />;
+  return (
+    <div className="space-y-3">
+      {assignments.map((item) => (
+        <ResourceRow
+          key={item.id}
+          icon={GraduationCap}
+          title={item.title}
+          subtitle={`${classes.find((cls) => cls.id === item.class_id)?.name || "Turma"}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
+          description={item.instructions}
+          filePath={item.file_path}
+          fileName={item.file_name}
+          externalUrl={item.external_url}
+        />
+      ))}
+    </div>
+  );
+}
+
+function StudentMaterialsSection({
+  materials,
+  classes,
+}: {
+  materials: ClassMaterial[];
+  classes: ClassGroup[];
+}) {
   const categories = [
     {
       icon: FileText,
       title: "Revisões",
       desc: "Resumos consolidados de cada conteúdo trabalhado em aula.",
-      color: "bg-wine/10 text-wine",
     },
     {
       icon: Headphones,
       title: "Listening & Reading",
       desc: "Áudios e textos selecionados para fixação semanal.",
-      color: "bg-bronze/15 text-bronze",
     },
     {
       icon: BookOpen,
       title: "Homeworks",
       desc: "Atividades semanais com correção do professor.",
-      color: "bg-cream text-wine border border-border",
     },
     {
       icon: Sparkles,
       title: "Atividades Personalizadas",
       desc: "Materiais sob medida para o seu objetivo de aprendizado.",
-      color: "bg-wine/10 text-wine",
     },
   ];
+
   return (
-    <div>
-      <p className="text-sm text-brown-soft mb-5">
-        Aqui você encontra os materiais prometidos no seu plano. Seu professor envia novos arquivos
-        a cada semana.
-      </p>
+    <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         {categories.map((c) => (
-          <div
-            key={c.title}
-            className="rounded-2xl border border-border p-5 hover:border-bronze/40 transition flex gap-4"
-          >
-            <div
-              className={`h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 ${c.color}`}
-            >
+          <div key={c.title} className="rounded-2xl border border-border p-5 flex gap-4">
+            <div className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-bronze/15 text-bronze">
               <c.icon className="h-5 w-5" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-wine">{c.title}</p>
               <p className="text-xs text-brown-soft mt-1">{c.desc}</p>
-              <p className="text-[11px] text-bronze mt-3 italic">
-                Em breve: download direto pelo painel.
-              </p>
             </div>
           </div>
         ))}
       </div>
+
+      <div className="rounded-2xl border border-border p-5">
+        <h3 className="font-display text-xl text-wine mb-4">Arquivos disponíveis</h3>
+        {materials.length === 0 ? (
+          <Empty msg="Nenhum material disponível ainda." />
+        ) : (
+          <div className="space-y-3">
+            {materials.map((item) => (
+              <ResourceRow
+                key={item.id}
+                icon={FolderOpen}
+                title={item.title}
+                subtitle={
+                  item.source === "platform"
+                    ? "Material padrão da plataforma"
+                    : classes.find((cls) => cls.id === item.class_id)?.name
+                }
+                description={item.description}
+                filePath={item.file_path}
+                fileName={item.file_name}
+                externalUrl={item.external_url}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StudentMessagesSection({
+  userId,
+  teachers,
+  messages,
+  classes,
+  bookings,
+  onChanged,
+}: {
+  userId?: string;
+  teachers: Map<string, TeacherProfile>;
+  messages: StudentMessage[];
+  classes: ClassGroup[];
+  bookings: Booking[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const teacherIds = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...classes.map((item) => item.teacher_id),
+          ...bookings.map((item) => item.teacher_id),
+        ]),
+      ),
+    [bookings, classes],
+  );
+  const [selectedTeacher, setSelectedTeacher] = useState("");
+  const activeTeacher = selectedTeacher || teacherIds[0] || "";
+
+  useEffect(() => {
+    if (!selectedTeacher && teacherIds[0]) setSelectedTeacher(teacherIds[0]);
+  }, [selectedTeacher, teacherIds]);
+
+  if (!teacherIds.length) return <Empty msg="Você ainda não tem professores para conversar." />;
+
+  return (
+    <div className="grid gap-5 md:grid-cols-[240px_1fr]">
+      <div className="rounded-2xl border border-border p-3 space-y-2">
+        {teacherIds.map((id) => {
+          const teacher = teachers.get(id);
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSelectedTeacher(id)}
+              className={`w-full rounded-xl p-3 text-left flex items-center gap-3 ${activeTeacher === id ? "bg-wine text-white" : "bg-cream text-wine"}`}
+            >
+              <Avatar name={teacher?.full_name || "Professor"} url={teacher?.avatar_url} />
+              <span className="text-sm font-semibold truncate">
+                {teacher?.full_name || "Professor"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <StudentChat
+        userId={userId}
+        teacherId={activeTeacher}
+        teacher={teachers.get(activeTeacher)}
+        messages={messages.filter((item) => item.teacher_id === activeTeacher)}
+        onChanged={onChanged}
+      />
+    </div>
+  );
+}
+
+function StudentChat({
+  userId,
+  teacherId,
+  teacher,
+  messages,
+  onChanged,
+}: {
+  userId?: string;
+  teacherId: string;
+  teacher?: TeacherProfile;
+  messages: StudentMessage[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const [body, setBody] = useState("");
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !teacherId || body.trim().length < 1) return;
+    const { error } = await supabase.from("teacher_student_messages").insert({
+      teacher_id: teacherId,
+      student_id: userId,
+      sender_id: userId,
+      body: body.trim(),
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setBody("");
+    await onChanged();
+  };
+
+  return (
+    <div className="rounded-2xl border border-border overflow-hidden">
+      <div className="bg-wine text-white px-4 py-3">
+        <p className="font-semibold">Chat com {teacher?.full_name || "professor"}</p>
+        <p className="text-xs text-white/70">
+          Conversa privada sobre aulas, materiais e atividades.
+        </p>
+      </div>
+      <div className="h-[420px] overflow-y-auto bg-[#f7f0e9] p-4 space-y-3">
+        {messages.length === 0 ? (
+          <p className="text-sm text-brown-soft text-center py-20">Nenhuma mensagem ainda.</p>
+        ) : (
+          messages.map((message) => {
+            const mine = message.sender_id === userId;
+            return (
+              <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[82%] rounded-2xl px-4 py-2 text-sm ${mine ? "bg-wine text-white" : "bg-white text-brown"}`}
+                >
+                  <p>{message.body}</p>
+                  <p className={`mt-1 text-[10px] ${mine ? "text-white/70" : "text-brown-soft"}`}>
+                    {format(new Date(message.created_at), "dd/MM HH:mm")}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+      <form onSubmit={send} className="flex gap-2 border-t border-border p-3">
+        <Input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Escreva uma mensagem..."
+        />
+        <Button className="bg-bronze text-white hover:bg-wine gap-2">
+          <Send className="h-4 w-4" />
+          Enviar
+        </Button>
+      </form>
     </div>
   );
 }
@@ -289,4 +658,71 @@ function ReviewDialog({ booking, onDone }: { booking: Booking; onDone: () => voi
       </DialogContent>
     </Dialog>
   );
+}
+
+function ResourceRow({
+  icon: Icon,
+  title,
+  subtitle,
+  description,
+  filePath,
+  fileName,
+  externalUrl,
+}: {
+  icon: typeof FileText;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  filePath?: string | null;
+  fileName?: string | null;
+  externalUrl?: string | null;
+}) {
+  const open = async () => {
+    if (externalUrl) {
+      window.open(externalUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (filePath) {
+      const ok = await openLearningFile(filePath);
+      if (!ok) toast.error("Não foi possível abrir o arquivo.");
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border p-5 flex items-start gap-4">
+      <div className="h-11 w-11 rounded-xl bg-bronze/15 text-bronze flex items-center justify-center flex-shrink-0">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-wine">{title}</p>
+        {subtitle && <p className="text-xs text-brown-soft mt-1">{subtitle}</p>}
+        {description && <p className="text-sm text-brown mt-2">{description}</p>}
+        {fileName && <p className="text-xs text-bronze mt-2">{fileName}</p>}
+      </div>
+      {(filePath || externalUrl) && (
+        <Button variant="outline" size="sm" className="border-wine text-wine gap-2" onClick={open}>
+          <Download className="h-4 w-4" />
+          Abrir
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function Avatar({ name, url }: { name: string; url?: string | null }) {
+  return (
+    <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0 overflow-hidden">
+      {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : name.charAt(0)}
+    </div>
+  );
+}
+
+function Empty({ msg }: { msg: string }) {
+  return <div className="text-center py-12 text-brown-soft text-sm">{msg}</div>;
+}
+
+function formatClassSchedule(item: ClassGroup) {
+  if (item.day_of_week === null || !item.start_time) return "Horário a definir";
+  const end = item.end_time ? ` - ${item.end_time.slice(0, 5)}` : "";
+  return `${WEEKDAYS[item.day_of_week]} às ${item.start_time.slice(0, 5)}${end}`;
 }

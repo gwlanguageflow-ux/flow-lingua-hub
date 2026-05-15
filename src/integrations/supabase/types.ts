@@ -47,6 +47,207 @@ export type Database = {
         };
         Relationships: [];
       };
+      class_assignments: {
+        Row: {
+          class_id: string;
+          created_at: string;
+          due_at: string | null;
+          external_url: string | null;
+          file_mime_type: string | null;
+          file_name: string | null;
+          file_path: string | null;
+          id: string;
+          instructions: string | null;
+          teacher_id: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          class_id: string;
+          created_at?: string;
+          due_at?: string | null;
+          external_url?: string | null;
+          file_mime_type?: string | null;
+          file_name?: string | null;
+          file_path?: string | null;
+          id?: string;
+          instructions?: string | null;
+          teacher_id: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          class_id?: string;
+          created_at?: string;
+          due_at?: string | null;
+          external_url?: string | null;
+          file_mime_type?: string | null;
+          file_name?: string | null;
+          file_path?: string | null;
+          id?: string;
+          instructions?: string | null;
+          teacher_id?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      class_groups: {
+        Row: {
+          created_at: string;
+          day_of_week: number | null;
+          description: string | null;
+          end_time: string | null;
+          id: string;
+          language: string;
+          level: Database["public"]["Enums"]["language_level"] | null;
+          meeting_url: string | null;
+          name: string;
+          start_time: string | null;
+          status: string;
+          teacher_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          day_of_week?: number | null;
+          description?: string | null;
+          end_time?: string | null;
+          id?: string;
+          language: string;
+          level?: Database["public"]["Enums"]["language_level"] | null;
+          meeting_url?: string | null;
+          name: string;
+          start_time?: string | null;
+          status?: string;
+          teacher_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          day_of_week?: number | null;
+          description?: string | null;
+          end_time?: string | null;
+          id?: string;
+          language?: string;
+          level?: Database["public"]["Enums"]["language_level"] | null;
+          meeting_url?: string | null;
+          name?: string;
+          start_time?: string | null;
+          status?: string;
+          teacher_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      class_materials: {
+        Row: {
+          class_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          external_url: string | null;
+          file_mime_type: string | null;
+          file_name: string | null;
+          file_path: string | null;
+          id: string;
+          source: string;
+          teacher_id: string | null;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          class_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          external_url?: string | null;
+          file_mime_type?: string | null;
+          file_name?: string | null;
+          file_path?: string | null;
+          id?: string;
+          source?: string;
+          teacher_id?: string | null;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          class_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          external_url?: string | null;
+          file_mime_type?: string | null;
+          file_name?: string | null;
+          file_path?: string | null;
+          id?: string;
+          source?: string;
+          teacher_id?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      class_members: {
+        Row: {
+          class_id: string;
+          created_at: string;
+          id: string;
+          joined_at: string;
+          status: string;
+          student_id: string;
+        };
+        Insert: {
+          class_id: string;
+          created_at?: string;
+          id?: string;
+          joined_at?: string;
+          status?: string;
+          student_id: string;
+        };
+        Update: {
+          class_id?: string;
+          created_at?: string;
+          id?: string;
+          joined_at?: string;
+          status?: string;
+          student_id?: string;
+        };
+        Relationships: [];
+      };
+      material_requests: {
+        Row: {
+          class_id: string | null;
+          created_at: string;
+          director_response: string | null;
+          id: string;
+          message: string;
+          status: string;
+          teacher_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          class_id?: string | null;
+          created_at?: string;
+          director_response?: string | null;
+          id?: string;
+          message: string;
+          status?: string;
+          teacher_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          class_id?: string | null;
+          created_at?: string;
+          director_response?: string | null;
+          id?: string;
+          message?: string;
+          status?: string;
+          teacher_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           age: number | null;
@@ -207,6 +408,36 @@ export type Database = {
           },
         ];
       };
+      student_scores: {
+        Row: {
+          class_id: string | null;
+          created_at: string;
+          id: string;
+          note: string | null;
+          score: number | null;
+          student_id: string;
+          teacher_id: string;
+        };
+        Insert: {
+          class_id?: string | null;
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          score?: number | null;
+          student_id: string;
+          teacher_id: string;
+        };
+        Update: {
+          class_id?: string | null;
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          score?: number | null;
+          student_id?: string;
+          teacher_id?: string;
+        };
+        Relationships: [];
+      };
       subscription_plans: {
         Row: {
           created_at: string;
@@ -258,6 +489,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      teacher_announcements: {
+        Row: {
+          body: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string | null;
+          id: string;
+          link_url: string | null;
+          published_at: string;
+          title: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          link_url?: string | null;
+          published_at?: string;
+          title: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          link_url?: string | null;
+          published_at?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
       teacher_availability: {
         Row: {
           created_at: string;
@@ -292,6 +556,132 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      teacher_meetings: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          meeting_url: string | null;
+          notes: string | null;
+          scheduled_at: string;
+          teacher_id: string | null;
+          title: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          meeting_url?: string | null;
+          notes?: string | null;
+          scheduled_at: string;
+          teacher_id?: string | null;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          meeting_url?: string | null;
+          notes?: string | null;
+          scheduled_at?: string;
+          teacher_id?: string | null;
+          title?: string;
+        };
+        Relationships: [];
+      };
+      teacher_posts: {
+        Row: {
+          caption: string;
+          created_at: string;
+          id: string;
+          image_path: string | null;
+          image_url: string | null;
+          teacher_id: string;
+          updated_at: string;
+          visibility: string;
+        };
+        Insert: {
+          caption: string;
+          created_at?: string;
+          id?: string;
+          image_path?: string | null;
+          image_url?: string | null;
+          teacher_id: string;
+          updated_at?: string;
+          visibility?: string;
+        };
+        Update: {
+          caption?: string;
+          created_at?: string;
+          id?: string;
+          image_path?: string | null;
+          image_url?: string | null;
+          teacher_id?: string;
+          updated_at?: string;
+          visibility?: string;
+        };
+        Relationships: [];
+      };
+      teacher_secretariat_messages: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          read_at: string | null;
+          sender_id: string;
+          sender_role: string;
+          teacher_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          read_at?: string | null;
+          sender_id: string;
+          sender_role?: string;
+          teacher_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          read_at?: string | null;
+          sender_id?: string;
+          sender_role?: string;
+          teacher_id?: string;
+        };
+        Relationships: [];
+      };
+      teacher_student_messages: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          read_at: string | null;
+          sender_id: string;
+          student_id: string;
+          teacher_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          read_at?: string | null;
+          sender_id: string;
+          student_id: string;
+          teacher_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          read_at?: string | null;
+          sender_id?: string;
+          student_id?: string;
+          teacher_id?: string;
+        };
+        Relationships: [];
       };
       teacher_wallet_transactions: {
         Row: {

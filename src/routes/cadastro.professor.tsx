@@ -58,6 +58,7 @@ function Page() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [existingProfile, setExistingProfile] = useState(false);
   const [fullName, setFullName] = useState("");
   const [cpf, setCpf] = useState("");
   const [age, setAge] = useState("");
@@ -77,19 +78,41 @@ function Page() {
   useEffect(() => {
     if (!user) return;
     if (roles.includes("professor")) {
-      supabase
-        .from("teacher_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) navigate({ to: "/dashboard" });
-          else setChecking(false);
-        });
+      Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, cpf, age, avatar_url")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase.from("teacher_profiles").select("*").eq("id", user.id).maybeSingle(),
+      ]).then(([{ data: profile }, { data: teacherProfile }]) => {
+        if (profile) {
+          setFullName(profile.full_name || "");
+          if (profile.cpf) setCpf(formatCpf(profile.cpf));
+          if (profile.age) setAge(String(profile.age));
+          if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
+        }
+        if (teacherProfile) {
+          setExistingProfile(true);
+          setBio(teacherProfile.bio || "");
+          setExperiences(teacherProfile.experiences || "");
+          setLivedAbroad(!!teacherProfile.lived_abroad);
+          setCountriesLived(teacherProfile.countries_lived || "");
+          setLanguagesSpoken(teacherProfile.languages_spoken || []);
+          setLanguagesTaught(teacherProfile.languages_taught || []);
+          setLevelsTaught(teacherProfile.levels_taught || []);
+          setUseCustomPricing(!!teacherProfile.use_custom_pricing);
+          const prices = (teacherProfile.custom_prices || {}) as Record<string, number>;
+          setCustomPrices(
+            Object.fromEntries(Object.entries(prices).map(([key, value]) => [key, String(value)])),
+          );
+        }
+        setChecking(false);
+      });
     } else {
       setChecking(false);
     }
-  }, [user, roles, navigate]);
+  }, [user, roles]);
 
   useEffect(() => {
     if (!user) return;
@@ -180,8 +203,12 @@ function Page() {
     }
     await refreshRoles();
 
-    toast.success("Perfil de professor criado!");
-    navigate({ to: "/dashboard" });
+    toast.success(existingProfile ? "Perfil atualizado!" : "Perfil de professor criado!");
+    if (existingProfile) {
+      navigate({ to: "/professor/$id", params: { id: user.id } });
+    } else {
+      navigate({ to: "/dashboard" });
+    }
   };
 
   if (checking) {
@@ -201,7 +228,7 @@ function Page() {
             Cadastro de professor
           </p>
           <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">
-            Crie seu perfil
+            {existingProfile ? "Edite seu perfil" : "Crie seu perfil"}
           </h1>
           <p className="text-brown mt-2">Quanto mais completo, mais alunos você atrai.</p>
         </div>
@@ -381,7 +408,11 @@ function Page() {
             disabled={loading}
             className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
           >
-            {loading ? "Salvando..." : "Publicar meu perfil"}
+            {loading
+              ? "Salvando..."
+              : existingProfile
+                ? "Salvar alterações"
+                : "Publicar meu perfil"}
           </Button>
         </form>
       </main>

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Languages, Sparkles, Calendar } from "lucide-react";
+import { Star, MapPin, Languages, Sparkles, Calendar, ImagePlus, PencilLine } from "lucide-react";
 import { LEVELS, WEEKDAYS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { uploadTeacherPostImage } from "@/lib/upload";
+import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/professor/$id")({
   head: () => ({ meta: [{ title: "Perfil do Professor — GWLanguageFlow" }] }),
@@ -69,7 +72,9 @@ const PRICE_LABELS: Record<string, string> = {
 
 function TeacherProfilePage() {
   const { id } = useParams({ from: "/professor/$id" });
+  const { user } = useAuth();
   const [teacher, setTeacher] = useState<TeacherFull | null>(null);
+  const [posts, setPosts] = useState<Tables<"teacher_posts">[]>([]);
   const [reviews, setReviews] = useState<
     { rating: number; comment: string | null; created_at: string; student_name: string }[]
   >([]);
@@ -140,6 +145,13 @@ function TeacherProfilePage() {
         .select("day_of_week, start_time, end_time")
         .eq("teacher_id", id);
       setAvailability(avs || []);
+
+      const { data: postRows } = await supabase
+        .from("teacher_posts")
+        .select("*")
+        .eq("teacher_id", id)
+        .order("created_at", { ascending: false });
+      setPosts(postRows || []);
       setLoading(false);
     })();
   }, [id]);
@@ -169,6 +181,7 @@ function TeacherProfilePage() {
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : null;
+  const isOwner = user?.id === id;
 
   return (
     <div className="min-h-screen flex flex-col bg-cream">
@@ -210,11 +223,27 @@ function TeacherProfilePage() {
                   )}
                 </div>
               </div>
-              <BookingDialog teacher={teacher} />
+              <div className="flex flex-col sm:flex-row gap-2">
+                {isOwner && (
+                  <Link to="/cadastro/professor">
+                    <Button variant="outline" className="border-wine text-wine gap-2">
+                      <PencilLine className="h-4 w-4" />
+                      Editar dados
+                    </Button>
+                  </Link>
+                )}
+                {!isOwner && <BookingDialog teacher={teacher} />}
+              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6 mt-10">
               <div className="md:col-span-2 space-y-6">
+                {isOwner && (
+                  <PostComposer
+                    teacherId={id}
+                    onCreated={(post) => setPosts((prev) => [post, ...prev])}
+                  />
+                )}
                 <Card title="Sobre">
                   <p className="text-brown whitespace-pre-line">{teacher.bio || "—"}</p>
                 </Card>
@@ -248,6 +277,30 @@ function TeacherProfilePage() {
                           </div>
                           {r.comment && <p className="text-sm text-brown">{r.comment}</p>}
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+                <Card title="Posts do professor">
+                  {posts.length === 0 ? (
+                    <p className="text-sm text-brown-soft">Nenhum post publicado ainda.</p>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {posts.map((post) => (
+                        <article
+                          key={post.id}
+                          className="rounded-2xl border border-border overflow-hidden bg-cream"
+                        >
+                          {post.image_url && (
+                            <img src={post.image_url} alt="" className="h-48 w-full object-cover" />
+                          )}
+                          <div className="p-4">
+                            <p className="text-sm text-brown whitespace-pre-line">{post.caption}</p>
+                            <p className="text-[11px] text-brown-soft mt-3">
+                              {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                        </article>
                       ))}
                     </div>
                   )}
@@ -370,6 +423,91 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
       </h3>
       {children}
     </div>
+  );
+}
+
+function PostComposer({
+  teacherId,
+  onCreated,
+}: {
+  teacherId: string;
+  onCreated: (post: Tables<"teacher_posts">) => void;
+}) {
+  const [caption, setCaption] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (caption.trim().length < 3) {
+      toast.error("Escreva uma legenda para o post.");
+      return;
+    }
+
+    setLoading(true);
+    const imageUrl = image ? await uploadTeacherPostImage(teacherId, image) : null;
+    if (image && !imageUrl) {
+      setLoading(false);
+      toast.error("Não foi possível enviar a imagem.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("teacher_posts")
+      .insert({
+        teacher_id: teacherId,
+        caption: caption.trim(),
+        image_url: imageUrl,
+      })
+      .select("*")
+      .single();
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Post publicado no seu perfil.");
+    setCaption("");
+    setImage(null);
+    setPreview("");
+    if (data) onCreated(data);
+  };
+
+  return (
+    <form onSubmit={submit} className="bg-cream rounded-2xl border border-border p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <ImagePlus className="h-5 w-5 text-bronze" />
+        <h3 className="font-display text-lg text-wine">Criar post no perfil</h3>
+      </div>
+      {preview && (
+        <img
+          src={preview}
+          alt=""
+          className="h-56 w-full rounded-2xl object-cover border border-border"
+        />
+      )}
+      <Textarea
+        rows={3}
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        placeholder="Compartilhe uma dica, bastidor de aula ou conquista dos alunos..."
+      />
+      <Input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          setImage(file || null);
+          setPreview(file ? URL.createObjectURL(file) : "");
+        }}
+      />
+      <Button disabled={loading} className="bg-bronze text-white hover:bg-wine">
+        {loading ? "Publicando..." : "Publicar post"}
+      </Button>
+    </form>
   );
 }
 
