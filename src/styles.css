@@ -233,4 +233,86 @@
       transparent
     );
   }
+  .gw-app-shell {
+    background:
+      radial-gradient(
+        circle at 12% 8%,
+        color-mix(in oklab, var(--bronze) 13%, transparent) 0,
+        transparent 28rem
+      ),
+      radial-gradient(
+        circle at 88% 0%,
+        color-mix(in oklab, var(--wine) 10%, transparent) 0,
+        transparent 32rem
+      ),
+      linear-gradient(180deg, color-mix(in oklab, var(--cream) 88%, white) 0%, white 46%);
+  }
+  .gw-command-hero {
+    border: 1px solid color-mix(in oklab, var(--border) 86%, var(--bronze));
+    background:
+      linear-gradient(135deg, color-mix(in oklab, white 91%, var(--cream)) 0%, white 62%), white;
+    box-shadow: var(--shadow-warm);
+  }
+  .gw-app-card {
+    border: 1px solid color-mix(in oklab, var(--border) 88%, var(--bronze));
+    background: color-mix(in oklab, white 96%, var(--cream));
+    box-shadow: var(--shadow-soft);
+  }
+  .gw-stat-card {
+    border: 1px solid color-mix(in oklab, var(--border) 86%, var(--bronze));
+    background:
+      linear-gradient(180deg, white 0%, color-mix(in oklab, var(--cream) 58%, white) 100%), white;
+    box-shadow: var(--shadow-soft);
+  }
+  .gw-tab-list {
+    border: 1px solid color-mix(in oklab, var(--border) 80%, var(--bronze));
+    background: color-mix(in oklab, var(--cream) 78%, white);
+    box-shadow: inset 0 1px 0 color-mix(in oklab, white 84%, transparent);
+  }
+  .gw-tab-trigger {
+    border-radius: 999px;
+    color: var(--brown);
+    transition:
+      transform 180ms ease,
+      background-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .gw-tab-trigger:hover {
+    background: white;
+    color: var(--wine);
+    box-shadow: var(--shadow-soft);
+  }
+  .gw-tab-trigger[data-state="active"] {
+    background: var(--wine);
+    color: white;
+    box-shadow: var(--shadow-bronze);
+  }
+  .gw-empty-state {
+    border: 1px dashed color-mix(in oklab, var(--bronze) 46%, var(--border));
+    background:
+      radial-gradient(
+        circle at 50% 0%,
+        color-mix(in oklab, var(--bronze) 11%, transparent),
+        transparent 18rem
+      ),
+      color-mix(in oklab, var(--cream) 72%, white);
+  }
+  .gw-input-shell :where(input, textarea, button[role="combobox"]) {
+    border-radius: 1rem;
+    border-color: color-mix(in oklab, var(--border) 86%, var(--bronze));
+    background: color-mix(in oklab, white 92%, var(--cream));
+    box-shadow: inset 0 1px 0 color-mix(in oklab, white 88%, transparent);
+  }
+  .gw-auth-visual {
+    background:
+      linear-gradient(135deg, color-mix(in oklab, var(--wine) 96%, black) 0%, var(--wine) 54%),
+      var(--wine);
+  }
+  .gw-auth-card {
+    border: 1px solid color-mix(in oklab, var(--border) 82%, var(--bronze));
+    background:
+      linear-gradient(180deg, color-mix(in oklab, white 96%, var(--cream)) 0%, white 100%), white;
+    box-shadow: var(--shadow-warm);
+  }
 }

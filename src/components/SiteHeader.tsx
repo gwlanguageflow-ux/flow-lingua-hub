@@ -26,7 +26,7 @@ export function SiteHeader() {
   const isDev = roles.includes("dev");
   const isTeacher = roles.includes("professor");
   const isStudent = roles.includes("aluno");
-  const dashboardLink = isDev ? "/admin" : isTeacher ? "/dashboard" : "/feed";
+  const dashboardLink = isDev ? "/admin" : isTeacher ? "/dashboard" : "/meus-agendamentos";
 
   const handleSignOut = async () => {
     await signOut();

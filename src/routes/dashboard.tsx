@@ -294,6 +294,7 @@ function DashboardPage() {
   const classroomBookings = bookings.filter(
     (b) => b.status !== "cancelado" && b.status !== "concluido",
   );
+  const completedLessons = bookings.filter((b) => b.status === "concluido").length;
 
   const handleCompleteBooking = async (bookingId: string) => {
     setCreditingBookingId(bookingId);
@@ -313,19 +314,23 @@ function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="gw-app-shell min-h-screen">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <main className="container mx-auto max-w-7xl px-4 py-8 md:py-10">
+        <div className="gw-command-hero mb-6 flex flex-col gap-6 rounded-[2rem] p-7 md:flex-row md:items-end md:justify-between md:p-9">
           <div>
-            <p className="text-bronze text-xs uppercase tracking-widest font-medium">Dashboard</p>
-            <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">
+            <p className="text-sm font-bold uppercase text-bronze">Dashboard do professor</p>
+            <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
               Olá, professor
             </h1>
+            <p className="mt-3 max-w-2xl leading-7 text-brown-soft">
+              Organize turmas, aulas, materiais, atividades, mensagens e carteira em uma central de
+              operaÃ§Ã£o pedagÃ³gica.
+            </p>
           </div>
           {pricingMode && (
             <div
-              className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm shadow-soft ${
+              className={`inline-flex items-center gap-3 rounded-[1.5rem] border px-5 py-4 text-sm shadow-soft ${
                 pricingMode === "padrao"
                   ? "bg-wine text-white border-wine"
                   : "bg-background border-bronze text-wine"
@@ -362,25 +367,18 @@ function DashboardPage() {
           )}
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-3 mb-8">
-          <Stat icon={Users} label="Alunos" value={students.length} />
+        <div className="mb-8 grid gap-4 lg:grid-cols-3">
+          <Stat icon={Users} label="Alunos ativos" value={students.length} />
           <UpcomingLessonsCard
             upcoming={upcoming}
             studentMap={studentMap}
             teacherLanguages={teacherProfile?.languages_taught || []}
           />
-          <Stat
-            icon={BookOpen}
-            label="Aulas dadas"
-            value={bookings.filter((b) => b.status === "concluido").length}
-          />
+          <Stat icon={BookOpen} label="Aulas concluÃ­das" value={completedLessons} />
         </div>
 
-        <Tabs
-          defaultValue="sala"
-          className="bg-background rounded-3xl border border-border p-4 md:p-6 shadow-soft"
-        >
-          <TabsList className="bg-cream w-full justify-start flex-wrap h-auto">
+        <Tabs defaultValue="sala" className="gw-app-card rounded-[2rem] p-3 md:p-5">
+          <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-full p-1">
             <TeacherTab value="sala" icon={Calendar} label="Sala de Aula" />
             <TeacherTab value="alunos" icon={Users} label="Meus Alunos" />
             <TeacherTab value="atividades" icon={GraduationCap} label="Atividades" />
@@ -461,7 +459,7 @@ function DashboardPage() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 hidden text-center">
           {user && (
             <Link to="/professor/$id" params={{ id: user.id }}>
               <Button variant="outline" className="border-wine text-wine gap-2">
@@ -486,11 +484,8 @@ function TeacherTab({
   label: string;
 }) {
   return (
-    <TabsTrigger
-      value={value}
-      className="data-[state=active]:bg-wine data-[state=active]:text-white"
-    >
-      <Icon className="h-4 w-4 mr-2" />
+    <TabsTrigger value={value} className="gw-tab-trigger px-4 py-2 text-sm font-semibold">
+      <Icon className="mr-2 h-4 w-4" />
       {label}
     </TabsTrigger>
   );
@@ -519,8 +514,8 @@ function UpcomingLessonsCard({
   }, [studentMap, teacherLanguages, upcoming]);
 
   return (
-    <div className="bg-background rounded-2xl border border-border p-5 min-h-[122px]">
-      <Calendar className="h-5 w-5 text-bronze mb-2" />
+    <div className="gw-stat-card min-h-[138px] rounded-[1.5rem] p-5">
+      <Calendar className="mb-3 h-5 w-5 text-bronze" />
       <p className="text-xs text-brown-soft">Próximas aulas</p>
       {groups.length === 0 ? (
         <p className="text-sm text-brown-soft mt-4">Sem aulas próximas na agenda.</p>
@@ -637,7 +632,7 @@ function ClassroomPanel({
 
   return (
     <div className="space-y-6">
-      <form onSubmit={createClass} className="rounded-2xl border border-border p-5 bg-cream/60">
+      <form onSubmit={createClass} className="gw-app-card gw-input-shell rounded-[1.7rem] p-5">
         <div className="flex items-center gap-2 mb-4">
           <Plus className="h-5 w-5 text-bronze" />
           <h3 className="font-display text-xl text-wine">Criar turma</h3>
@@ -731,7 +726,7 @@ function ClassroomPanel({
               (student) => !classStudentIds.has(student.id),
             );
             return (
-              <div key={item.id} className="rounded-2xl border border-border p-5 space-y-4">
+              <div key={item.id} className="gw-app-card rounded-[1.7rem] p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-display text-xl text-wine">{item.name}</h3>
@@ -812,7 +807,7 @@ function ClassroomPanel({
           })}
         </div>
       ) : (
-        <div className="rounded-2xl border border-border p-5">
+        <div className="gw-app-card rounded-[1.7rem] p-5">
           <h3 className="font-display text-xl text-wine mb-3">Aulas agendadas sem turma criada</h3>
           {bookings.length === 0 ? (
             <Empty msg="Nenhuma aula agendada ainda." />
@@ -1824,7 +1819,7 @@ function WalletPanel({
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <form
           onSubmit={submitWithdrawal}
-          className="rounded-2xl border border-border p-5 space-y-4"
+          className="gw-app-card gw-input-shell rounded-[1.7rem] p-5"
         >
           <div>
             <h3 className="font-display text-xl text-wine">Solicitar saque Pix</h3>
@@ -1891,7 +1886,7 @@ function WalletPanel({
           </Button>
         </form>
 
-        <div className="rounded-2xl border border-border p-5">
+        <div className="gw-app-card rounded-[1.7rem] p-5">
           <div className="flex items-center gap-2 mb-4">
             <History className="h-5 w-5 text-bronze" />
             <h3 className="font-display text-xl text-wine">Historico financeiro</h3>
@@ -1932,7 +1927,7 @@ function WalletPanel({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border p-5">
+      <div className="gw-app-card rounded-[1.7rem] p-5">
         <h3 className="font-display text-xl text-wine mb-4">Historico de transferencias</h3>
         {withdrawals.length === 0 ? (
           <Empty msg="Nenhuma solicitacao de saque ainda." />
@@ -1987,7 +1982,11 @@ function WalletStat({
   strong?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-5 ${strong ? "bg-wine text-white" : "bg-cream"}`}>
+    <div
+      className={`rounded-[1.5rem] border p-5 shadow-soft ${
+        strong ? "bg-wine text-white" : "bg-white"
+      }`}
+    >
       <Icon className="h-5 w-5 mb-3 text-bronze" />
       <p className={`text-2xl font-display font-bold ${strong ? "text-white" : "text-wine"}`}>
         {value}
@@ -1999,24 +1998,28 @@ function WalletStat({
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
   return (
-    <div className="bg-background rounded-2xl border border-border p-5">
-      <Icon className="h-5 w-5 text-bronze mb-2" />
-      <p className="text-2xl font-display font-bold text-wine">{value}</p>
-      <p className="text-xs text-brown-soft mt-1">{label}</p>
+    <div className="gw-stat-card rounded-[1.5rem] p-5">
+      <Icon className="mb-3 h-5 w-5 text-bronze" />
+      <p className="font-display text-3xl font-bold text-wine">{value}</p>
+      <p className="mt-1 text-sm text-brown-soft">{label}</p>
     </div>
   );
 }
 
 function Avatar({ name, url }: { name: string; url?: string | null }) {
   return (
-    <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0 overflow-hidden">
+    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-warm font-display text-white shadow-soft">
       {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : name.charAt(0)}
     </div>
   );
 }
 
 function Empty({ msg }: { msg: string }) {
-  return <div className="text-center py-12 text-brown-soft text-sm">{msg}</div>;
+  return (
+    <div className="gw-empty-state rounded-[1.5rem] px-5 py-12 text-center text-sm text-brown-soft">
+      {msg}
+    </div>
+  );
 }
 
 function formatClassSchedule(item: ClassGroup) {

@@ -1,16 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import heroStudent from "@/assets/hero-student.jpg";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/Logo";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { isGoogleAuthEnabled } from "@/lib/auth-providers";
+import { useAuth } from "@/contexts/AuthContext";
 import { getAuthRedirectUrl } from "@/lib/auth-redirect";
+import { isGoogleAuthEnabled } from "@/lib/auth-providers";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth/login")({
   head: () => ({ meta: [{ title: "Entrar — GWLanguageFlow" }] }),
@@ -47,7 +49,7 @@ function LoginPage() {
         : roles.includes("professor")
           ? "/dashboard"
           : roles.includes("aluno")
-            ? "/feed"
+            ? "/meus-agendamentos"
             : "/escolher-perfil";
       navigate({ to: dest });
     }
@@ -92,123 +94,191 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid md:grid-cols-2">
-      <div className="hidden md:flex bg-gradient-warm items-center justify-center p-12 relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: "radial-gradient(circle at 30% 20%, white 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
+    <div className="grid min-h-screen bg-white lg:grid-cols-[1.05fr_0.95fr]">
+      <aside className="gw-auth-visual relative hidden overflow-hidden lg:flex">
+        <img
+          src={heroStudent}
+          alt="Aluna estudando idiomas com fones de ouvido"
+          className="absolute inset-0 h-full w-full object-cover opacity-34 mix-blend-screen"
         />
-        <div className="relative text-white max-w-md">
-          <h2 className="font-display text-4xl font-bold leading-tight mb-4">
-            Continue sua jornada com idiomas.
-          </h2>
-          <p className="text-white/85">
-            Acesse seus agendamentos, professores favoritos e materiais de aula.
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center justify-center p-6 md:p-12 bg-background">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md space-y-6"
-        >
-          <div className="space-y-3">
-            <Logo />
-            <h1 className="font-display text-3xl text-wine font-bold">Bem-vindo de volta</h1>
-            <p className="text-brown text-sm">Entre com seu e-mail ou continue com Google.</p>
-          </div>
+        <div className="absolute inset-0 gw-grid opacity-20" aria-hidden="true" />
+        <div className="relative flex min-h-screen w-full flex-col justify-between p-12">
+          <Logo variant="light" />
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleGoogle}
-            disabled={loading || googleEnabled !== true}
-            className="w-full border-brown/30 hover:bg-cream gap-2"
-          >
-            <GoogleIcon /> Continuar com Google
-          </Button>
-          {googleEnabled === false && (
-            <p className="text-xs text-center text-brown-soft">
-              Google aguardando ativacao no painel da GWLanguage.
+          <div className="max-w-xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-4 py-2 text-xs font-bold uppercase text-white/84 backdrop-blur">
+              <ShieldCheck className="h-4 w-4 text-bronze" />
+              Acesso seguro GWLanguageFlow
+            </div>
+            <h2 className="font-display text-6xl font-bold leading-[1.02] text-white">
+              Entre na sua central de aprendizagem.
+            </h2>
+            <p className="mt-5 max-w-lg text-lg leading-8 text-white/76">
+              Agenda, salas, professores, materiais, atividades e mensagens em um ambiente único.
             </p>
-          )}
+          </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
+          <div className="grid max-w-xl grid-cols-3 gap-3">
+            {[
+              ["Aulas", "agenda e link"],
+              ["Materiais", "arquivos e trilhas"],
+              ["Mensagens", "contato direto"],
+            ].map(([title, text]) => (
+              <div key={title} className="rounded-2xl border border-white/12 bg-white/9 p-4">
+                <p className="font-display text-xl font-bold text-bronze">{title}</p>
+                <p className="mt-1 text-xs text-white/66">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <main className="flex min-h-screen items-center justify-center bg-white px-5 py-10 md:px-10">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-[520px]"
+        >
+          <div className="mb-8 lg:hidden">
+            <Logo />
+          </div>
+
+          <div className="gw-auth-card rounded-[2rem] p-6 md:p-8">
+            <div className="mb-7 flex items-start justify-between gap-5">
+              <div>
+                <div className="hidden lg:block">
+                  <Logo />
+                </div>
+                <h1 className="mt-5 font-display text-4xl font-bold text-wine">
+                  Bem-vindo de volta
+                </h1>
+                <p className="mt-2 leading-7 text-brown-soft">
+                  Acesse sua conta com e-mail e senha ou continue com Google.
+                </p>
+              </div>
+              <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-cream text-bronze md:flex">
+                <Sparkles className="h-5 w-5" />
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-3 text-brown-soft">ou</span>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogle}
+              disabled={loading || googleEnabled !== true}
+              className="h-12 w-full rounded-full border-brown/20 bg-white text-sm font-semibold text-brown shadow-soft hover:border-bronze hover:bg-white hover:text-wine"
+            >
+              <GoogleIcon /> Continuar com Google
+            </Button>
+
+            {googleEnabled === false && (
+              <div className="mt-3 rounded-2xl border border-bronze/25 bg-cream px-4 py-3 text-xs leading-5 text-brown-soft">
+                Login com Google em configuração pela equipe GWLanguageFlow. Use e-mail e senha por
+                enquanto.
+              </div>
+            )}
+
+            <div className="my-7 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-semibold text-brown-soft">ou</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="gw-input-shell space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-wine">
+                  E-mail
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="password" className="text-wine">
+                    Senha
+                  </Label>
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-xs font-bold text-bronze transition hover:text-wine"
+                  >
+                    Esqueci minha senha
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-12 w-full rounded-full bg-wine text-white shadow-bronze hover:bg-wine-deep"
+              >
+                {loading ? "Entrando..." : "Entrar"}
+                {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
+            </form>
+
+            <div className="mt-7 space-y-4 text-center">
+              <p className="text-sm text-brown">
+                Ainda não tem conta?{" "}
+                <Link to="/auth/signup" className="font-bold text-bronze hover:text-wine">
+                  Criar conta
+                </Link>
+              </p>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-brown-soft hover:text-wine"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Voltar ao início
+              </Link>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="password">Senha</Label>
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-xs font-semibold text-bronze hover:text-wine"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
-            >
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
-
-          <p className="text-sm text-center text-brown">
-            Ainda não tem conta?{" "}
-            <Link to="/auth/signup" className="text-bronze hover:text-wine font-semibold">
-              Criar conta
-            </Link>
-          </p>
-          <p className="text-xs text-center text-brown-soft">
-            <Link to="/" className="hover:text-wine">
-              ← Voltar ao início
-            </Link>
-          </p>
+          <div className="mt-5 flex items-center justify-center gap-2 text-xs text-brown-soft">
+            <CheckCircle2 className="h-4 w-4 text-bronze" />
+            Ambiente protegido para alunos, professores e diretoria.
+          </div>
         </motion.div>
-      </div>
+      </main>
     </div>
   );
 }
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24">
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M21.6 12.23c0-.78-.07-1.53-.2-2.23H12v4.22h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.52Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 22c2.7 0 4.96-.9 6.62-2.44l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.6 0-4.8-1.76-5.59-4.12H3.07v2.6A10 10 0 0 0 12 22Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.41 13.88A6 6 0 0 1 6.1 12c0-.65.11-1.29.31-1.88v-2.6H3.07A10 10 0 0 0 2 12c0 1.61.39 3.14 1.07 4.48l3.34-2.6Z"
+      />
       <path
         fill="#EA4335"
-        d="M12 11v3.2h5.7c-.2 1.5-1.7 4.4-5.7 4.4-3.4 0-6.2-2.8-6.2-6.3S8.6 6 12 6c2 0 3.3.8 4 1.5l2.7-2.6C17 3.3 14.7 2.4 12 2.4 6.7 2.4 2.5 6.7 2.5 12s4.2 9.6 9.5 9.6c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1-.1-1.4H12z"
+        d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.96 3 14.7 2 12 2a10 10 0 0 0-8.93 5.52l3.34 2.6C7.2 7.75 9.4 5.99 12 5.99Z"
       />
     </svg>
   );

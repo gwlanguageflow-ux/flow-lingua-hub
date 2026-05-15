@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
-import { Star, Search, Filter, Globe2 } from "lucide-react";
+import { BookOpenCheck, CalendarCheck, Filter, Globe2, Search, Star } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/feed")({
@@ -110,17 +110,33 @@ function FeedPage() {
   }, [teachers, search, language, level, maxPrice]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-cream">
+    <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-wine">Professores</h1>
+      <main className="container mx-auto max-w-7xl flex-1 px-4 py-8 md:py-10">
+        <section className="gw-command-hero mb-6 rounded-[2rem] p-7 md:p-9">
+          <p className="text-sm font-bold uppercase text-bronze">Professores GWLanguageFlow</p>
+          <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+            Encontre o especialista certo para sua jornada.
+          </h1>
           <p className="text-brown mt-2">Encontre o seu próximo professor de idiomas.</p>
-        </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-ink p-5 text-white shadow-soft">
+              <CalendarCheck className="mb-3 h-5 w-5 text-bronze" />
+              <p className="font-display text-2xl font-bold text-white">Agenda online</p>
+              <p className="mt-1 text-sm text-white/66">aulas com link e horÃ¡rio registrados</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-white p-5 shadow-soft">
+              <BookOpenCheck className="mb-3 h-5 w-5 text-bronze" />
+              <p className="font-display text-2xl font-bold text-wine">MÃ©todo guiado</p>
+              <p className="mt-1 text-sm text-brown-soft">materiais, atividades e acompanhamento</p>
+            </div>
+          </div>
+        </section>
 
-        <div className="bg-background rounded-2xl border border-border p-4 md:p-5 mb-8 shadow-soft">
-          <div className="flex items-center gap-2 mb-3 text-wine">
-            <Filter className="h-4 w-4" /> <span className="text-sm font-medium">Filtros</span>
+        <div className="gw-app-card gw-input-shell mb-8 rounded-[1.7rem] p-4 md:p-5">
+          <div className="mb-4 flex items-center gap-2 text-wine">
+            <Filter className="h-4 w-4 text-bronze" />{" "}
+            <span className="text-sm font-bold">Filtros de busca</span>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
             <div className="relative">
@@ -177,7 +193,7 @@ function FeedPage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20 bg-background rounded-2xl border border-border">
+          <div className="gw-empty-state rounded-[1.7rem] py-20 text-center">
             <Globe2 className="h-12 w-12 text-bronze mx-auto mb-4" />
             <h3 className="font-display text-xl text-wine mb-2">Nenhum professor encontrado</h3>
             <p className="text-brown text-sm">Ajuste os filtros para ver mais resultados.</p>
@@ -201,9 +217,9 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="bg-background rounded-2xl border border-border overflow-hidden hover:shadow-warm transition-shadow group"
+      className="gw-app-card group overflow-hidden rounded-[1.7rem] transition hover:-translate-y-1 hover:shadow-warm"
     >
-      <div className="relative h-48 bg-gradient-warm">
+      <div className="relative h-52 bg-gradient-warm">
         {teacher.avatar_url ? (
           <img
             src={teacher.avatar_url}
@@ -223,7 +239,7 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
           </div>
         )}
       </div>
-      <div className="p-5 space-y-3">
+      <div className="space-y-3 p-5">
         <div>
           <h3 className="font-display text-lg font-bold text-wine truncate">{teacher.full_name}</h3>
           <p className="text-xs text-brown-soft">
@@ -243,12 +259,17 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
         </div>
         <div className="flex gap-2 pt-2">
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
-            <Button variant="outline" className="w-full border-wine/30 text-wine hover:bg-cream">
+            <Button
+              variant="outline"
+              className="w-full rounded-full border-wine/30 text-wine hover:bg-cream"
+            >
               Ver perfil
             </Button>
           </Link>
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
-            <Button className="w-full bg-bronze text-white hover:bg-wine">Agendar</Button>
+            <Button className="w-full rounded-full bg-wine text-white hover:bg-bronze">
+              Agendar
+            </Button>
           </Link>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   BookOpen,
+  CalendarCheck,
   Download,
   FileText,
   FolderOpen,
@@ -170,25 +171,80 @@ function Page() {
     };
   }, [load, user]);
 
+  const upcomingItems = items.filter(
+    (item) => new Date(item.scheduled_at) > new Date() && item.status !== "cancelado",
+  );
+  const completedItems = items.filter((item) => item.status === "concluido");
+  const pendingAssignments = assignments.filter(
+    (item) => !item.due_at || new Date(item.due_at) >= new Date(),
+  );
+
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="gw-app-shell min-h-screen">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="mb-6">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">
-            Painel do Aluno
-          </p>
-          <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">
-            Minha jornada
-          </h1>
-        </div>
+      <main className="container mx-auto max-w-7xl px-4 py-8 md:py-10">
+        <section className="gw-command-hero mb-6 overflow-hidden rounded-[2rem]">
+          <div className="grid gap-px bg-border/70 lg:grid-cols-[1.25fr_0.75fr]">
+            <div className="bg-white/92 p-7 md:p-9">
+              <p className="text-sm font-bold uppercase text-bronze">Dashboard do aluno</p>
+              <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+                Minha jornada
+              </h1>
+              <p className="mt-3 max-w-2xl leading-7 text-brown-soft">
+                Acompanhe aulas, turmas, atividades, materiais e mensagens em uma rotina clara de
+                evolução.
+              </p>
+
+              <div className="mt-8 grid gap-3 md:grid-cols-3">
+                <StudentMetric icon={Video} label="Próximas aulas" value={upcomingItems.length} />
+                <StudentMetric icon={Users} label="Turmas ativas" value={classes.length} />
+                <StudentMetric
+                  icon={GraduationCap}
+                  label="Atividades abertas"
+                  value={pendingAssignments.length}
+                />
+              </div>
+            </div>
+
+            <aside className="bg-ink p-7 text-white md:p-8">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/7 p-5">
+                <div className="flex items-start gap-3">
+                  <CalendarCheck className="mt-1 h-6 w-6 text-bronze" />
+                  <div>
+                    <p className="font-display text-2xl font-bold text-white">Próxima aula</p>
+                    <p className="mt-2 text-sm leading-6 text-white/68">
+                      {upcomingItems[0]
+                        ? format(
+                            new Date(upcomingItems[0].scheduled_at),
+                            "EEEE, dd/MM 'às' HH:mm",
+                            {
+                              locale: ptBR,
+                            },
+                          )
+                        : "Nenhuma aula próxima na agenda."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/7 p-4">
+                  <p className="font-display text-2xl font-bold text-bronze">
+                    {completedItems.length}
+                  </p>
+                  <p className="mt-1 text-xs text-white/66">aulas concluídas</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/7 p-4">
+                  <p className="font-display text-2xl font-bold text-bronze">{materials.length}</p>
+                  <p className="mt-1 text-xs text-white/66">materiais disponíveis</p>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
         <SubscriptionStatusBanner />
 
-        <Tabs
-          defaultValue="aulas"
-          className="mt-6 bg-background rounded-3xl border border-border p-4 md:p-6 shadow-soft"
-        >
-          <TabsList className="bg-cream w-full justify-start flex-wrap h-auto">
+        <Tabs defaultValue="aulas" className="gw-app-card mt-6 rounded-[2rem] p-3 md:p-5">
+          <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-full p-1">
             <StudentTab value="aulas" icon={Video} label="Minhas Aulas" />
             <StudentTab value="turmas" icon={Users} label="Turmas" />
             <StudentTab value="atividades" icon={GraduationCap} label="Atividades" />
@@ -228,6 +284,24 @@ function Page() {
   );
 }
 
+function StudentMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Video;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="gw-stat-card rounded-[1.5rem] p-5">
+      <Icon className="mb-3 h-5 w-5 text-bronze" />
+      <p className="font-display text-3xl font-bold text-wine">{value}</p>
+      <p className="mt-1 text-sm text-brown-soft">{label}</p>
+    </div>
+  );
+}
+
 function StudentTab({
   value,
   icon: Icon,
@@ -238,11 +312,8 @@ function StudentTab({
   label: string;
 }) {
   return (
-    <TabsTrigger
-      value={value}
-      className="data-[state=active]:bg-wine data-[state=active]:text-white"
-    >
-      <Icon className="h-4 w-4 mr-2" />
+    <TabsTrigger value={value} className="gw-tab-trigger px-4 py-2 text-sm font-semibold">
+      <Icon className="mr-2 h-4 w-4" />
       {label}
     </TabsTrigger>
   );
@@ -276,7 +347,7 @@ function LessonsSection({
         return (
           <div
             key={b.id}
-            className="rounded-2xl border border-border p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-bronze/40 transition"
+            className="gw-app-card flex flex-col gap-4 rounded-[1.5rem] p-5 transition hover:-translate-y-0.5 md:flex-row md:items-center"
           >
             <Avatar name={t?.full_name || "Professor"} url={t?.avatar_url} />
             <div className="flex-1 min-w-0">
@@ -323,7 +394,7 @@ function StudentClassesSection({
         const teacher = teachers.get(item.teacher_id);
         const lastScore = scores.find((score) => score.class_id === item.id);
         return (
-          <div key={item.id} className="rounded-2xl border border-border p-5 space-y-4">
+          <div key={item.id} className="gw-app-card rounded-[1.5rem] p-5">
             <div>
               <h3 className="font-display text-xl text-wine">{item.name}</h3>
               <p className="text-sm text-brown">{item.language}</p>
@@ -416,7 +487,7 @@ function StudentMaterialsSection({
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         {categories.map((c) => (
-          <div key={c.title} className="rounded-2xl border border-border p-5 flex gap-4">
+          <div key={c.title} className="gw-app-card flex gap-4 rounded-[1.5rem] p-5">
             <div className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-bronze/15 text-bronze">
               <c.icon className="h-5 w-5" />
             </div>
@@ -428,7 +499,7 @@ function StudentMaterialsSection({
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border p-5">
+      <div className="gw-app-card rounded-[1.5rem] p-5">
         <h3 className="font-display text-xl text-wine mb-4">Arquivos disponíveis</h3>
         {materials.length === 0 ? (
           <Empty msg="Nenhum material disponível ainda." />
@@ -493,7 +564,7 @@ function StudentMessagesSection({
 
   return (
     <div className="grid gap-5 md:grid-cols-[240px_1fr]">
-      <div className="rounded-2xl border border-border p-3 space-y-2">
+      <div className="gw-app-card space-y-2 rounded-[1.5rem] p-3">
         {teacherIds.map((id) => {
           const teacher = teachers.get(id);
           return (
@@ -554,7 +625,7 @@ function StudentChat({
   };
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden">
+    <div className="overflow-hidden rounded-[1.5rem] border border-border bg-white shadow-soft">
       <div className="bg-wine text-white px-4 py-3">
         <p className="font-semibold">Chat com {teacher?.full_name || "professor"}</p>
         <p className="text-xs text-white/70">
@@ -689,7 +760,7 @@ function ResourceRow({
   };
 
   return (
-    <div className="rounded-2xl border border-border p-5 flex items-start gap-4">
+    <div className="gw-app-card flex items-start gap-4 rounded-[1.5rem] p-5">
       <div className="h-11 w-11 rounded-xl bg-bronze/15 text-bronze flex items-center justify-center flex-shrink-0">
         <Icon className="h-5 w-5" />
       </div>
@@ -711,14 +782,18 @@ function ResourceRow({
 
 function Avatar({ name, url }: { name: string; url?: string | null }) {
   return (
-    <div className="h-12 w-12 rounded-full bg-gradient-warm flex items-center justify-center text-white font-display flex-shrink-0 overflow-hidden">
+    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-warm font-display text-white shadow-soft">
       {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : name.charAt(0)}
     </div>
   );
 }
 
 function Empty({ msg }: { msg: string }) {
-  return <div className="text-center py-12 text-brown-soft text-sm">{msg}</div>;
+  return (
+    <div className="gw-empty-state rounded-[1.5rem] px-5 py-12 text-center text-sm text-brown-soft">
+      {msg}
+    </div>
+  );
 }
 
 function formatClassSchedule(item: ClassGroup) {
