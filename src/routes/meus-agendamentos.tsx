@@ -243,6 +243,7 @@ function Page() {
           </div>
         </section>
         <SubscriptionStatusBanner />
+        <StudyStreakBanner />
 
         <Tabs defaultValue="aulas" className="gw-app-card mt-6 rounded-[2rem] p-3 md:p-5">
           <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-full p-1">
