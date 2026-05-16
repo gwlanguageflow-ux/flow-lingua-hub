@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MeetingLinkButton } from "@/components/MeetingLinkEditor";
 import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
+import { StudyStreakBanner } from "@/components/StudyStreakBanner";
 import { WEEKDAYS } from "@/lib/constants";
 import { openLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";

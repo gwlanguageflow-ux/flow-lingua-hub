@@ -21,7 +21,7 @@ function ResetPasswordPage() {
             <Logo />
             <h1 className="font-display text-3xl text-wine font-bold">Recuperar senha</h1>
             <p className="text-brown text-sm">
-              A recuperacao agora e feita confirmando seu e-mail e CPF cadastrados.
+              A recuperação agora é feita confirmando seu e-mail e CPF cadastrados.
             </p>
           </div>
 

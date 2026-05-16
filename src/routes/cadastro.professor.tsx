@@ -40,7 +40,7 @@ type PriceKey = (typeof PRICE_FIELDS)[number]["key"];
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
-  cpf: z.string().refine(isValidCpf, "Informe um CPF valido"),
+  cpf: z.string().refine(isValidCpf, "Informe um CPF válido"),
   age: z.coerce.number().int().min(18).max(120),
   bio: z.string().trim().min(20, "Conte um pouco mais (mín. 20 caracteres)").max(800),
   experiences: z.string().trim().max(1000).optional().or(z.literal("")),

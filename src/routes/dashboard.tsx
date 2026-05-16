@@ -1748,12 +1748,12 @@ function WalletPanel({
     const parsedAmount = parseMoney(amount);
 
     if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
-      toast.error("O saque minimo e de R$ 10,00.");
+      toast.error("O saque mínimo é de R$ 10,00.");
       return;
     }
 
     if (parsedAmount > Number(summary.available_balance || 0)) {
-      toast.error("Valor maior que o saldo disponivel.");
+      toast.error("Valor maior que o saldo disponível.");
       return;
     }
 
@@ -1778,7 +1778,7 @@ function WalletPanel({
       return;
     }
 
-    toast.success("Solicitacao de saque enviada.");
+    toast.success("Solicitação de saque enviada.");
     setAmount("");
     setPixKey("");
     setHolderName("");
@@ -1791,7 +1791,7 @@ function WalletPanel({
       <div className="grid gap-4 md:grid-cols-4">
         <WalletStat
           icon={Wallet}
-          label="Saldo disponivel"
+          label="Saldo disponível"
           value={formatMoney(summary.available_balance)}
           strong
         />
@@ -1811,7 +1811,7 @@ function WalletPanel({
       <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
         <p className="font-semibold text-wine">Regra de repasse ativa</p>
         <p className="mt-1">
-          A cada aula concluida, 90% do valor-hora do plano do aluno entra na carteira do professor
+          A cada aula concluída, 90% do valor-hora do plano do aluno entra na carteira do professor
           e 10% fica como taxa da plataforma.
         </p>
       </div>
@@ -1824,7 +1824,7 @@ function WalletPanel({
           <div>
             <h3 className="font-display text-xl text-wine">Solicitar saque Pix</h3>
             <p className="text-sm text-brown-soft mt-1">
-              O valor fica reservado ate a transferencia ser conferida pela plataforma.
+              O valor fica reservado até a transferência ser conferida pela plataforma.
             </p>
           </div>
 
