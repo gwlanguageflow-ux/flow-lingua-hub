@@ -111,7 +111,7 @@ function Page() {
       _age: parsed.data.age,
       _desired_language: parsed.data.desiredLanguage,
       _comprehension_level: parsed.data.level,
-      _avatar_url: avatarUrl,
+      _avatar_url: avatarUrl ?? undefined,
     });
 
     if (error) {
