@@ -32,7 +32,7 @@ export const Route = createFileRoute("/cadastro/aluno")({
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
-  cpf: z.string().refine(isValidCpf, "Informe um CPF valido"),
+  cpf: z.string().refine(isValidCpf, "Informe um CPF válido"),
   age: z.coerce.number().int().min(5).max(120),
   desiredLanguage: z.string().min(1, "Escolha um idioma"),
   level: z.enum(["iniciante", "basico", "intermediario", "avancado", "fluente"]),

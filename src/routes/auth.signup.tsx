@@ -139,7 +139,7 @@ function SignupPage() {
             <Logo />
             <h1 className="font-display text-3xl text-wine font-bold">Criar sua conta</h1>
             <p className="text-brown text-sm">
-              Crie com e-mail ou continue com Google. Em seguida voce escolhe seu perfil.
+              Crie com e-mail ou continue com Google. Em seguida você escolhe seu perfil.
             </p>
           </div>
 
@@ -154,7 +154,7 @@ function SignupPage() {
           </Button>
           {googleEnabled === false && (
             <p className="text-xs text-center text-brown-soft">
-              Google aguardando ativacao no painel da GWLanguage.
+              Google aguardando ativação no painel da GWLanguage.
             </p>
           )}
 
@@ -173,7 +173,7 @@ function SignupPage() {
                 <p className="font-semibold text-wine">Confirme seu e-mail para continuar</p>
                 <p className="mt-1">
                   Enviamos um link para <strong>{confirmationEmail}</strong>. Depois de confirmar,
-                  voce volta para escolher se quer aprender ou ensinar.
+                  você volta para escolher se quer aprender ou ensinar.
                 </p>
                 <Button
                   type="button"

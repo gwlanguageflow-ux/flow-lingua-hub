@@ -20,8 +20,8 @@ export const Route = createFileRoute("/auth/forgot-password")({
 });
 
 const identitySchema = z.object({
-  email: z.string().trim().email("E-mail invalido").max(255),
-  cpf: z.string().refine(isValidCpf, "Informe um CPF valido"),
+  email: z.string().trim().email("E-mail inválido").max(255),
+  cpf: z.string().refine(isValidCpf, "Informe um CPF válido"),
 });
 
 const passwordSchema = z
@@ -81,7 +81,7 @@ function ForgotPasswordPage() {
       setStep("password");
       toast.success("Dados confirmados. Crie sua nova senha.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "E-mail e CPF nao conferem.");
+      toast.error(error instanceof Error ? error.message : "E-mail e CPF não conferem.");
     } finally {
       setLoading(false);
     }

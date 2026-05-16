@@ -34,5 +34,5 @@ export function isValidCpf(value: string) {
 }
 
 export function cpfSchemaMessage() {
-  return "Informe um CPF valido";
+  return "Informe um CPF válido";
 }
