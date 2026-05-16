@@ -190,7 +190,13 @@ function Page() {
       _countries_lived: (d.livedAbroad && d.countriesLived) || "",
       _languages_spoken: d.languagesSpoken,
       _languages_taught: d.languagesTaught,
-      _levels_taught: d.levelsTaught as ("avancado" | "basico" | "fluente" | "iniciante" | "intermediario")[],
+      _levels_taught: d.levelsTaught as (
+        | "avancado"
+        | "basico"
+        | "fluente"
+        | "iniciante"
+        | "intermediario"
+      )[],
       _use_custom_pricing: d.useCustomPricing,
       _custom_prices: d.customPrices,
       _avatar_url: avatarUrl ?? undefined,

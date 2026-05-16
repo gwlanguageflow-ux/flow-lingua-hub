@@ -530,6 +530,7 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
       .from("student_subscriptions")
       .select("status, current_period_end")
       .eq("student_id", user.id)
+      .eq("teacher_id", teacher.id)
       .eq("status", "ativa")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -539,7 +540,7 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
           !!data && (!data.current_period_end || new Date(data.current_period_end) > new Date());
         setHasActiveSub(ok);
       });
-  }, [user]);
+  }, [teacher.id, user]);
 
   const handleConfirm = async () => {
     if (!user) {
@@ -568,7 +569,7 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
     if (error) {
       if (error.message.toLowerCase().includes("row-level security")) {
         toast.error("Você precisa de uma assinatura ativa para agendar aulas.");
-        navigate({ to: "/planos" });
+        window.location.href = `/planos?professor=${teacher.id}`;
       } else {
         toast.error(error.message);
       }
@@ -585,7 +586,7 @@ function BookingDialog({ teacher }: { teacher: TeacherFull }) {
       <Button
         onClick={() => {
           toast.info("Assine um plano para agendar aulas.");
-          navigate({ to: "/planos" });
+          window.location.href = `/planos?professor=${teacher.id}`;
         }}
         className="bg-bronze text-white hover:bg-wine shadow-bronze gap-2"
       >

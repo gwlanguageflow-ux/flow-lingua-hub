@@ -97,60 +97,64 @@ function Hero() {
         aria-hidden="true"
       />
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 hidden md:block"
         style={{
           background:
             "linear-gradient(90deg, rgba(255,251,244,0.98) 0%, rgba(255,251,244,0.92) 42%, rgba(255,251,244,0.58) 68%, rgba(255,251,244,0.12) 100%)",
         }}
         aria-hidden="true"
       />
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-cream/98 via-cream/88 to-cream/64 md:hidden"
+        aria-hidden="true"
+      />
       <div className="absolute inset-0 gw-grid opacity-55" aria-hidden="true" />
 
-      <div className="container relative mx-auto px-4 py-14 md:py-20">
-        <div className="grid min-h-[620px] items-center gap-10 lg:grid-cols-[1fr_520px]">
+      <div className="container relative mx-auto px-4 py-10 md:py-20">
+        <div className="grid min-h-[560px] items-center gap-8 md:min-h-[620px] lg:grid-cols-[1fr_520px]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
             className="max-w-3xl"
           >
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-bronze/35 bg-white/82 px-4 py-2 text-xs font-bold uppercase text-wine shadow-soft">
+            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-bronze/35 bg-white/86 px-3 py-2 text-[11px] font-bold uppercase text-wine shadow-soft md:mb-7 md:px-4 md:text-xs">
               <span className="h-2 w-2 rounded-full bg-bronze" />
               Plataforma GWLanguageFlow
             </div>
 
-            <h1 className="text-balance font-display text-5xl font-bold leading-[1.02] text-wine md:text-7xl">
+            <h1 className="max-w-full font-display text-[2.6rem] font-bold leading-[1.04] text-wine sm:text-5xl md:text-7xl">
               GWLanguageFlow
             </h1>
-            <p className="mt-5 max-w-2xl text-balance text-2xl font-semibold leading-snug text-brown md:text-3xl">
+            <p className="mt-4 max-w-2xl text-xl font-semibold leading-snug text-brown sm:text-2xl md:mt-5 md:text-3xl">
               Método, direção pedagógica e uma rotina digital para aprender idiomas com seriedade.
             </p>
-            <p className="mt-5 max-w-xl text-base leading-8 text-brown-soft md:text-lg">
+            <p className="mt-4 max-w-xl text-sm leading-7 text-brown-soft sm:text-base md:mt-5 md:text-lg md:leading-8">
               A plataforma organiza aula, material, atividade, professor e acompanhamento no mesmo
               fluxo. Menos improviso. Mais clareza para evoluir.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/auth/signup">
+            <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap md:mt-8">
+              <Link to="/auth/signup" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="h-12 rounded-full bg-wine px-6 text-base text-white shadow-bronze hover:bg-wine-deep"
+                  className="h-12 w-full rounded-full bg-wine px-6 text-base text-white shadow-bronze hover:bg-wine-deep sm:w-auto"
                 >
                   Começar agora <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/planos">
+              <Link to="/planos" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 rounded-full border-wine/20 bg-white px-6 text-base text-wine shadow-soft transition-all duration-300 hover:border-bronze hover:bg-white hover:shadow-[0_0_28px_rgba(196,113,52,0.55)] active:scale-[0.98]"
+                  className="h-12 w-full rounded-full border-wine/20 bg-white px-6 text-base text-wine shadow-soft transition-all duration-300 hover:border-bronze hover:bg-white hover:shadow-[0_0_28px_rgba(196,113,52,0.55)] active:scale-[0.98] sm:w-auto"
                 >
                   Ver planos
                 </Button>
               </Link>
             </div>
 
-            <div className="mt-8 grid max-w-2xl gap-3 text-sm text-brown md:grid-cols-3">
+            <div className="mt-7 grid max-w-2xl gap-2 text-sm text-brown sm:grid-cols-3 md:mt-8 md:gap-3">
               <Proof icon={ShieldCheck} text="Pagamento seguro" />
               <Proof icon={CalendarCheck} text="Agenda guiada" />
               <Proof icon={Trophy} text="Padrão pedagógico GW" />
@@ -318,15 +322,15 @@ function MethodArchitecture() {
   ];
 
   return (
-    <section className="gw-paper py-20">
+    <section className="gw-paper py-14 md:py-20">
       <div className="container mx-auto px-4">
         <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
           <div className="lg:sticky lg:top-28">
             <p className="text-sm font-bold uppercase text-bronze">Método GW</p>
-            <h2 className="mt-3 max-w-xl font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+            <h2 className="mt-3 max-w-xl font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
               Uma plataforma para estudar com ritmo, evidência e direção.
             </h2>
-            <p className="mt-5 max-w-lg text-lg leading-8 text-brown">
+            <p className="mt-4 max-w-lg text-base leading-7 text-brown md:mt-5 md:text-lg md:leading-8">
               O aluno sabe o que precisa fazer. O professor sabe o que precisa acompanhar. A direção
               pedagógica enxerga o percurso.
             </p>
@@ -340,17 +344,19 @@ function MethodArchitecture() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.08 }}
-                className="gw-panel gw-lift grid gap-5 rounded-[1.75rem] p-6 md:grid-cols-[72px_1fr]"
+                className="gw-panel gw-lift grid gap-4 rounded-[1.35rem] p-5 md:grid-cols-[72px_1fr] md:gap-5 md:rounded-[1.75rem] md:p-6"
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-wine text-white">
                   <pillar.icon className="h-7 w-7 text-bronze" />
                 </div>
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="font-display text-3xl font-bold text-bronze">
+                    <span className="font-display text-2xl font-bold text-bronze md:text-3xl">
                       0{index + 1}
                     </span>
-                    <h3 className="font-display text-2xl font-bold text-wine">{pillar.title}</h3>
+                    <h3 className="font-display text-xl font-bold text-wine md:text-2xl">
+                      {pillar.title}
+                    </h3>
                   </div>
                   <p className="mt-2 leading-7 text-brown">{pillar.description}</p>
                 </div>
@@ -388,20 +394,20 @@ function FlowExperience() {
   ];
 
   return (
-    <section className="border-y border-border bg-white py-20">
+    <section className="border-y border-border bg-white py-14 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase text-bronze">Não é só aula online</p>
-          <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+          <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
             A GWLanguageFlow funciona como uma central de aprendizagem.
           </h2>
-          <p className="mt-4 text-lg leading-8 text-brown-soft">
+          <p className="mt-4 text-base leading-7 text-brown-soft md:text-lg md:leading-8">
             A experiência foi pensada para reduzir ruído: cada parte do estudo tem lugar, dono e
             próximo passo.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-4">
+        <div className="mt-9 grid gap-4 md:mt-12 md:grid-cols-4">
           {tools.map((tool) => (
             <div key={tool.label} className="gw-panel gw-lift rounded-[1.5rem] p-5">
               <tool.icon className="h-7 w-7 text-bronze" />
@@ -411,11 +417,11 @@ function FlowExperience() {
           ))}
         </div>
 
-        <div className="mt-12 overflow-hidden rounded-[2rem] bg-ink text-white shadow-warm">
+        <div className="mt-9 overflow-hidden rounded-[1.35rem] bg-ink text-white shadow-warm md:mt-12 md:rounded-[2rem]">
           <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
+            <div className="border-b border-white/10 p-6 md:p-8 lg:border-b-0 lg:border-r">
               <p className="text-sm font-bold uppercase text-bronze">Visão de qualidade</p>
-              <h3 className="mt-3 font-display text-3xl font-bold leading-tight text-white">
+              <h3 className="mt-3 font-display text-2xl font-bold leading-tight text-white md:text-3xl">
                 Acompanhamento que aparece antes do problema virar atraso.
               </h3>
               <p className="mt-4 text-sm leading-7 text-white/68">
@@ -450,12 +456,12 @@ function PlansTeaser() {
   ];
 
   return (
-    <section className="gw-paper py-20">
+    <section className="gw-paper py-14 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-bold uppercase text-bronze">Planos</p>
-            <h2 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+            <h2 className="mt-3 max-w-3xl font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
               Escolha o ritmo, não uma promessa vaga.
             </h2>
           </div>
@@ -483,7 +489,7 @@ function PlansTeaser() {
               )}
               <h3 className="font-display text-2xl font-bold text-wine">{card.name}</h3>
               <p className="mt-2 text-sm text-brown-soft">{card.detail}</p>
-              <p className="mt-7 font-display text-4xl font-bold text-wine">
+              <p className="mt-7 font-display text-3xl font-bold text-wine md:text-4xl">
                 {card.price}
                 <span className="font-sans text-sm font-semibold text-brown-soft"> /mês</span>
               </p>
@@ -508,13 +514,13 @@ function PlansTeaser() {
 
 function FinalCTA() {
   return (
-    <section className="bg-white py-20">
+    <section className="bg-white py-14 md:py-20">
       <div className="container mx-auto px-4">
-        <div className="overflow-hidden rounded-[2rem] bg-wine text-white shadow-warm">
+        <div className="overflow-hidden rounded-[1.35rem] bg-wine text-white shadow-warm md:rounded-[2rem]">
           <div className="grid lg:grid-cols-[1fr_0.9fr]">
-            <div className="p-8 md:p-12">
+            <div className="p-6 md:p-12">
               <p className="text-sm font-bold uppercase text-bronze">Próximo passo</p>
-              <h2 className="mt-3 max-w-xl font-display text-4xl font-bold leading-tight text-white md:text-5xl">
+              <h2 className="mt-3 max-w-xl font-display text-3xl font-bold leading-tight text-white md:text-5xl">
                 Comece com estrutura desde o primeiro acesso.
               </h2>
               <p className="mt-4 max-w-lg leading-8 text-white/78">

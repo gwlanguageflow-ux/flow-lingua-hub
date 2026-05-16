@@ -60,18 +60,17 @@ export const Route = createRootRoute({
       },
       {
         property: "og:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/SNRPziOYWBOb4jH0ZOO6dZrnRFw1/social-images/social-1776899926779-LOGO_GWLanguage.webp",
+        content: "/logo-gwenglishflow-social.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/SNRPziOYWBOb4jH0ZOO6dZrnRFw1/social-images/social-1776899926779-LOGO_GWLanguage.webp",
+        content: "/logo-gwenglishflow-social.png",
       },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/logo-gwenglishflow-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

@@ -54,26 +54,23 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               if (!subscriptionId) break;
 
               if (session.mode === "subscription") {
-                await supabaseAdmin
-                  .from("student_subscriptions")
-                  .update({
-                    status: "ativa",
-                    stripe_subscription_id: stripeId(session.subscription),
-                    last_payment_at: new Date().toISOString(),
-                  })
-                  .eq("id", subscriptionId);
+                const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", {
+                  _subscription_id: subscriptionId,
+                  _stripe_subscription_id: stripeId(session.subscription),
+                  _period_start: new Date().toISOString(),
+                  _period_end: null,
+                });
+                if (error) throw error;
               } else if (session.mode === "payment") {
                 // PIX único — period_end vem nos metadados
                 const periodEnd = session.metadata?.period_end;
-                await supabaseAdmin
-                  .from("student_subscriptions")
-                  .update({
-                    status: "ativa",
-                    current_period_start: new Date().toISOString(),
-                    current_period_end: periodEnd ?? null,
-                    last_payment_at: new Date().toISOString(),
-                  })
-                  .eq("id", subscriptionId);
+                const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", {
+                  _subscription_id: subscriptionId,
+                  _stripe_subscription_id: null,
+                  _period_start: new Date().toISOString(),
+                  _period_end: periodEnd ?? null,
+                });
+                if (error) throw error;
               }
               break;
             }

@@ -40,10 +40,7 @@ export function StudyStreakBanner() {
 
       if (!data) return;
       const start = new Date(data.current_period_start || data.created_at);
-      const diff = Math.max(
-        1,
-        Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24)),
-      );
+      const diff = Math.max(1, Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24)));
       setDays(diff);
       setPhrase(MOTIVATIONAL_PHRASES[diff % MOTIVATIONAL_PHRASES.length]);
     })();

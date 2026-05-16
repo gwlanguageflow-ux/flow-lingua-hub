@@ -1,17 +1,24 @@
 import { Link } from "@tanstack/react-router";
 
 export function Logo({ variant = "default" }: { variant?: "default" | "light" }) {
-  const textColor = variant === "light" ? "text-white" : "text-wine";
+  const isLight = variant === "light";
   return (
-    <Link to="/" className="group flex items-center gap-3">
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-[1.15rem] bg-gradient-warm shadow-bronze transition-transform group-hover:scale-105">
-        <span className="font-display text-2xl font-bold leading-none text-white">G</span>
-        <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-background bg-bronze" />
-      </div>
-      <div className="flex flex-col leading-none">
-        <span className={`font-display text-xl font-bold ${textColor}`}>GW</span>
-        <span className="text-[10px] uppercase text-brown-soft">LanguageFlow</span>
-      </div>
+    <Link
+      to="/"
+      aria-label="GW English Flow"
+      className={`group inline-flex items-center ${
+        isLight
+          ? "rounded-2xl bg-white/95 px-3 py-2 shadow-soft"
+          : "rounded-2xl transition-transform hover:scale-[1.02]"
+      }`}
+    >
+      <img
+        src={isLight ? "/logo-gwenglishflow.png" : "/logo-gwenglishflow-header.png"}
+        alt="GW English Flow by Eloiza GW"
+        className={`${isLight ? "h-14" : "h-12 sm:h-14"} w-auto object-contain`}
+        width={isLight ? 220 : 260}
+        height={isLight ? 134 : 114}
+      />
     </Link>
   );
 }

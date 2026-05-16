@@ -16,6 +16,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     z
       .object({
         planSlug: z.string().min(1).max(60),
+        teacherId: z.string().uuid(),
         paymentMethod: z.enum(["card", "pix"]),
         termsAccepted: z.literal(true),
         successUrl: z.string().url(),
@@ -32,13 +33,22 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const stripe = getStripe();
 
     // 1. Carrega plano
-    const { data: plan, error: pErr } = await supabaseAdmin
-      .from("subscription_plans")
-      .select("*")
-      .eq("slug", data.planSlug)
-      .eq("is_active", true)
-      .maybeSingle();
+    const [{ data: plan, error: pErr }, { data: teacher, error: tErr }] = await Promise.all([
+      supabaseAdmin
+        .from("subscription_plans")
+        .select("*")
+        .eq("slug", data.planSlug)
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("teacher_profiles")
+        .select("id, is_active")
+        .eq("id", data.teacherId)
+        .eq("is_active", true)
+        .maybeSingle(),
+    ]);
     if (pErr || !plan) throw new Error("Plano nÃ£o encontrado");
+    if (tErr || !teacher) throw new Error("Professor não encontrado ou inativo");
 
     // 2. Carrega/cria customer Stripe
     const { data: existingSub } = await supabaseAdmin
@@ -76,6 +86,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .from("student_subscriptions")
       .insert({
         student_id: userId,
+        teacher_id: data.teacherId,
         plan_id: plan.id,
         status: "pendente",
         payment_method: data.paymentMethod,
@@ -118,12 +129,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         metadata: {
           subscription_id: sub.id,
           plan_slug: plan.slug,
+          teacher_id: data.teacherId,
           user_id: userId,
         },
         subscription_data: {
           metadata: {
             subscription_id: sub.id,
             plan_slug: plan.slug,
+            teacher_id: data.teacherId,
             user_id: userId,
           },
         },
@@ -153,6 +166,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
           metadata: {
             subscription_id: sub.id,
             plan_slug: plan.slug,
+            teacher_id: data.teacherId,
             user_id: userId,
             period_end: periodEnd.toISOString(),
           },
@@ -160,6 +174,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         metadata: {
           subscription_id: sub.id,
           plan_slug: plan.slug,
+          teacher_id: data.teacherId,
           user_id: userId,
           period_end: periodEnd.toISOString(),
         },

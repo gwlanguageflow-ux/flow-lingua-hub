@@ -309,7 +309,11 @@ function DashboardPage() {
     }
 
     const credited = data?.[0]?.teacher_amount ?? 0;
-    toast.success(`Aula concluida. Credito liberado: ${formatMoney(credited)}.`);
+    toast.success(
+      credited > 0
+        ? `Aula concluida. Credito liberado: ${formatMoney(credited)}.`
+        : "Aula concluida. Assinatura ja creditada na carteira.",
+    );
     await loadDashboard();
   };
 

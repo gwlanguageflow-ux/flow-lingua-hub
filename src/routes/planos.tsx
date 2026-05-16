@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trophy,
+  UserRound,
   WalletCards,
 } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -55,6 +56,12 @@ interface Plan {
   sort_order: number;
 }
 
+interface SelectedTeacher {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+}
+
 const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
@@ -70,14 +77,28 @@ function PlansPage() {
   const [method, setMethod] = useState<"card" | "pix">("card");
   const [terms, setTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [teacher, setTeacher] = useState<SelectedTeacher | null>(null);
 
   useEffect(() => {
+    const professor = new URLSearchParams(window.location.search).get("professor");
+    setTeacherId(professor);
+
     supabase
       .from("subscription_plans")
       .select("*")
       .eq("is_active", true)
       .order("sort_order")
       .then(({ data }) => setPlans((data ?? []) as Plan[]));
+
+    if (professor) {
+      supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .eq("id", professor)
+        .maybeSingle()
+        .then(({ data }) => setTeacher((data as SelectedTeacher | null) ?? null));
+    }
   }, []);
 
   const handleCheckout = async () => {
@@ -86,6 +107,11 @@ function PlansPage() {
       return;
     }
     if (!selected) return;
+    if (!teacherId) {
+      toast.error("Escolha um professor antes de assinar.");
+      navigate({ to: "/feed" });
+      return;
+    }
     if (!terms) {
       toast.error("Você precisa aceitar o Termo de Adesão e Contrato.");
       return;
@@ -97,10 +123,11 @@ function PlansPage() {
       const res = await createSubscriptionCheckout({
         data: {
           planSlug: selected.slug,
+          teacherId,
           paymentMethod: method,
           termsAccepted: true,
-          successUrl: `${origin}/meus-agendamentos?checkout=success`,
-          cancelUrl: `${origin}/planos?checkout=cancel`,
+          successUrl: `${origin}/meus-agendamentos?checkout=success&professor=${teacherId}`,
+          cancelUrl: `${origin}/planos?checkout=cancel&professor=${teacherId}`,
         },
       });
       if (res.url) window.location.href = res.url;
@@ -133,6 +160,27 @@ function PlansPage() {
               <PlanSignal icon={WalletCards} label="Cartão ou PIX" />
               <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" />
             </div>
+
+            {teacher ? (
+              <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-3 rounded-full border border-bronze/30 bg-white/80 px-4 py-3 text-sm font-semibold text-wine shadow-soft">
+                {teacher.avatar_url ? (
+                  <img
+                    src={teacher.avatar_url}
+                    alt={teacher.full_name}
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cream text-bronze">
+                    <UserRound className="h-4 w-4" />
+                  </span>
+                )}
+                Assinatura com {teacher.full_name}
+              </div>
+            ) : (
+              <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-bronze/30 bg-white/80 px-4 py-3 text-center text-sm font-semibold text-brown shadow-soft">
+                Escolha um professor no feed para vincular sua assinatura.
+              </div>
+            )}
           </div>
         </section>
 
