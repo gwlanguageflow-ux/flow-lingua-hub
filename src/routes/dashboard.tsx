@@ -1768,8 +1768,8 @@ function WalletPanel({
       _pix_key_type: pixKeyType,
       _pix_key: pixKey.trim(),
       _account_holder_name: holderName.trim(),
-      _account_holder_document: holderDocument.trim() || null,
-      _teacher_notes: null,
+      _account_holder_document: holderDocument.trim() || undefined,
+      _teacher_notes: undefined,
     });
     setSubmitting(false);
 
