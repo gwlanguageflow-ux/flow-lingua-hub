@@ -3,12 +3,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Cria uma Checkout Session de assinatura ou pagamento Ãºnico PIX.
- * - CartÃ£o: cria/usa um Stripe Price recorrente e abre subscription Checkout.
- * - PIX: cria pagamento Ãºnico do perÃ­odo (PIX no Stripe nÃ£o suporta recorrÃªncia).
+ * Cria uma Checkout Session de assinatura ou pagamento único PIX.
+ * - Cartão: cria/usa um Stripe Price recorrente e abre subscription Checkout.
+ * - PIX: cria pagamento único do período (PIX no Stripe não suporta recorrência).
  *
  * Em ambos os casos, registra/atualiza student_subscriptions com status pendente.
- * O webhook confirma a ativaÃ§Ã£o apÃ³s pagamento.
+ * O webhook confirma a ativação após pagamento.
  */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -47,7 +47,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         .eq("is_active", true)
         .maybeSingle(),
     ]);
-    if (pErr || !plan) throw new Error("Plano nÃ£o encontrado");
+    if (pErr || !plan) throw new Error("Plano não encontrado");
     if (tErr || !teacher) throw new Error("Professor não encontrado ou inativo");
 
     // 2. Carrega/cria customer Stripe
@@ -74,7 +74,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       customerId = customer.id;
     }
 
-    // 3. Calcula perÃ­odo
+    // 3. Calcula período
     const now = new Date();
     const periodEnd = new Date(now);
     if (plan.interval === "mensal") periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -119,7 +119,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
                 interval_count: intervalCount,
               },
               product_data: {
-                name: `${plan.name} â€” GWLanguageFlow`,
+                name: `${plan.name} — GWLanguageFlow`,
                 description: plan.description ?? undefined,
               },
             },
@@ -144,7 +144,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         cancel_url: data.cancelUrl,
       });
     } else {
-      // PIX = pagamento Ãºnico do perÃ­odo
+      // PIX = pagamento único do período
       session = await stripe.checkout.sessions.create({
         mode: "payment",
         customer: customerId,
@@ -155,8 +155,8 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
               currency: "brl",
               unit_amount: totalCents,
               product_data: {
-                name: `${plan.name} (${plan.interval}) â€” GWLanguageFlow`,
-                description: "Pagamento Ãºnico do perÃ­odo. PIX nÃ£o renova automaticamente.",
+                name: `${plan.name} (${plan.interval}) — GWLanguageFlow`,
+                description: "Pagamento único do período. PIX não renova automaticamente.",
               },
             },
             quantity: 1,

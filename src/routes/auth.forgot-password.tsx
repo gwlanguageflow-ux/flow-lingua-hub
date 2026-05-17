@@ -125,7 +125,7 @@ function ForgotPasswordPage() {
       toast.success("Senha atualizada. Bem-vindo de volta!");
       await navigateAfterLogin();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar a senha.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a senha.");
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ function ForgotPasswordPage() {
         />
         <div className="relative text-white max-w-md">
           <h2 className="font-display text-4xl font-bold leading-tight mb-4">
-            Recuperacao direta e segura.
+            Recuperação direta e segura.
           </h2>
           <p className="text-white/85">
             Confirme seus dados e defina uma nova senha sem depender de link por e-mail.

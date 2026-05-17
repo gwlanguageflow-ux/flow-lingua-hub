@@ -49,7 +49,7 @@ function LoginPage() {
         : roles.includes("professor")
           ? "/dashboard"
           : roles.includes("aluno")
-            ? "/meus-agendamentos"
+            ? "/feed"
             : "/escolher-perfil";
       navigate({ to: dest });
     }
@@ -94,7 +94,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen bg-white lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="grid min-h-dvh bg-cream lg:grid-cols-[1.05fr_0.95fr] lg:bg-white">
       <aside className="gw-auth-visual relative hidden overflow-hidden lg:flex">
         <img
           src={heroStudent}
@@ -133,27 +133,27 @@ function LoginPage() {
         </div>
       </aside>
 
-      <main className="flex min-h-screen items-center justify-center bg-white px-5 py-10 md:px-10">
+      <main className="flex min-h-dvh items-center justify-center bg-cream px-4 py-6 sm:px-6 md:px-10 lg:bg-white">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="w-full max-w-[520px]"
         >
-          <div className="mb-8 lg:hidden">
+          <div className="mb-5 flex justify-center lg:hidden">
             <Logo />
           </div>
 
-          <div className="gw-auth-card rounded-[2rem] p-6 md:p-8">
-            <div className="mb-7 flex items-start justify-between gap-5">
+          <div className="gw-auth-card rounded-[1.5rem] p-5 sm:p-6 md:rounded-[2rem] md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4 md:mb-7 md:gap-5">
               <div>
                 <div className="hidden lg:block">
                   <Logo />
                 </div>
-                <h1 className="mt-5 font-display text-4xl font-bold text-wine">
+                <h1 className="mt-2 font-display text-3xl font-bold leading-tight text-wine sm:mt-5 sm:text-4xl">
                   Bem-vindo de volta
                 </h1>
-                <p className="mt-2 leading-7 text-brown-soft">
+                <p className="mt-2 text-sm leading-6 text-brown-soft sm:text-base sm:leading-7">
                   Acesse sua conta com e-mail e senha ou continue com Google.
                 </p>
               </div>
@@ -167,7 +167,7 @@ function LoginPage() {
               variant="outline"
               onClick={handleGoogle}
               disabled={loading || googleEnabled !== true}
-              className="h-12 w-full rounded-full border-brown/20 bg-white text-sm font-semibold text-brown shadow-soft hover:border-bronze hover:bg-white hover:text-wine"
+              className="h-11 w-full rounded-full border-brown/20 bg-white text-sm font-semibold text-brown shadow-soft hover:border-bronze hover:bg-white hover:text-wine sm:h-12"
             >
               <GoogleIcon /> Continuar com Google
             </Button>
@@ -179,13 +179,13 @@ function LoginPage() {
               </div>
             )}
 
-            <div className="my-7 flex items-center gap-3">
+            <div className="my-6 flex items-center gap-3 sm:my-7">
               <div className="h-px flex-1 bg-border" />
               <span className="text-xs font-semibold text-brown-soft">ou</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
-            <form onSubmit={handleSubmit} className="gw-input-shell space-y-5">
+            <form onSubmit={handleSubmit} className="gw-input-shell space-y-4 sm:space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-wine">
                   E-mail
@@ -197,7 +197,7 @@ function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-12"
+                  className="h-11 sm:h-12"
                 />
               </div>
 
@@ -220,21 +220,21 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12"
+                  className="h-11 sm:h-12"
                 />
               </div>
 
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-12 w-full rounded-full bg-wine text-white shadow-bronze hover:bg-wine-deep"
+                className="h-11 w-full rounded-full bg-wine text-white shadow-bronze hover:bg-wine-deep sm:h-12"
               >
                 {loading ? "Entrando..." : "Entrar"}
                 {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </form>
 
-            <div className="mt-7 space-y-4 text-center">
+            <div className="mt-6 space-y-3 text-center sm:mt-7 sm:space-y-4">
               <p className="text-sm text-brown">
                 Ainda não tem conta?{" "}
                 <Link to="/auth/signup" className="font-bold text-bronze hover:text-wine">
@@ -251,9 +251,11 @@ function LoginPage() {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-center gap-2 text-xs text-brown-soft">
-            <CheckCircle2 className="h-4 w-4 text-bronze" />
-            Ambiente protegido para alunos, professores e diretoria.
+          <div className="mt-5 flex items-start justify-center gap-2 px-2 text-xs text-brown-soft">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-bronze" />
+            <span className="text-center leading-5">
+              Ambiente protegido para alunos, professores e diretoria.
+            </span>
           </div>
         </motion.div>
       </main>

@@ -323,7 +323,7 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
       <Button
         onClick={onSelect}
-        className={`mt-7 h-11 rounded-full text-white ${
+        className={`gw-spark-button mt-7 h-11 rounded-full text-white ${
           featured ? "bg-bronze hover:bg-wine" : "bg-wine hover:bg-wine-deep"
         }`}
       >

@@ -3,11 +3,11 @@ import { z } from "zod";
 import { normalizeCpf, isValidCpf } from "@/lib/cpf";
 
 const identitySchema = z.object({
-  email: z.string().trim().email("E-mail invalido").max(255),
+  email: z.string().trim().email("E-mail inválido").max(255),
   cpf: z.string().transform((value, ctx) => {
     const cpf = normalizeCpf(value);
     if (!isValidCpf(cpf)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe um CPF valido" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe um CPF válido" });
       return z.NEVER;
     }
     return cpf;
@@ -30,7 +30,7 @@ async function findUserByEmailAndCpf(email: string, cpf: string) {
     .maybeSingle();
 
   if (error || !profile) {
-    throw new Error("E-mail e CPF nao conferem.");
+    throw new Error("E-mail e CPF não conferem.");
   }
 
   return { supabaseAdmin, userId: profile.id, email: normalizedEmail };
@@ -54,7 +54,7 @@ export const resetPasswordWithCpf = createServerFn({ method: "POST" })
     });
 
     if (error) {
-      throw new Error("Nao foi possivel atualizar a senha agora.");
+      throw new Error("Não foi possível atualizar a senha agora.");
     }
 
     return { email };

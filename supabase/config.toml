@@ -11,6 +11,7 @@ additional_redirect_urls = [
 ]
 
 [auth.email]
+enable_confirmations = false
 max_frequency = "1m"
 otp_length = 8
 

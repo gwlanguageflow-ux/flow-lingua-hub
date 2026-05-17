@@ -315,4 +315,78 @@
       linear-gradient(180deg, color-mix(in oklab, white 96%, var(--cream)) 0%, white 100%), white;
     box-shadow: var(--shadow-warm);
   }
+  .gw-spark-button {
+    position: relative;
+    isolation: isolate;
+    overflow: visible;
+  }
+  .gw-spark-button::before {
+    content: "";
+    position: absolute;
+    inset: -0.55rem -0.7rem;
+    z-index: -1;
+    border-radius: 999px;
+    background:
+      radial-gradient(
+        circle at 18% 48%,
+        color-mix(in oklab, var(--bronze) 92%, white) 0 0.15rem,
+        transparent 0.22rem
+      ),
+      radial-gradient(
+        circle at 78% 28%,
+        color-mix(in oklab, var(--bronze) 82%, white) 0 0.12rem,
+        transparent 0.2rem
+      ),
+      radial-gradient(
+        circle at 86% 68%,
+        color-mix(in oklab, var(--wine) 75%, var(--bronze)) 0 0.1rem,
+        transparent 0.18rem
+      ),
+      linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in oklab, var(--bronze) 44%, transparent),
+        transparent
+      );
+    filter: blur(0.5px);
+    opacity: 0.74;
+    transform: scale(0.94);
+    animation: gw-spark-glow 2.4s ease-in-out infinite;
+  }
+  .gw-spark-button::after {
+    content: "";
+    position: absolute;
+    right: 1.1rem;
+    top: -0.45rem;
+    z-index: -1;
+    width: 1.45rem;
+    height: 1.45rem;
+    background: color-mix(in oklab, var(--bronze) 86%, white);
+    clip-path: polygon(50% 0, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0 50%, 39% 38%);
+    opacity: 0.92;
+    transform-origin: center;
+    animation: gw-spark-twinkle 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes gw-spark-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes gw-spark-twinkle {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(0.82);
+  }
+  50% {
+    transform: rotate(18deg) scale(1.08);
+  }
 }

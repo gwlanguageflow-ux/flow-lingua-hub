@@ -27,9 +27,7 @@ function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { user, roles, loading: authLoading } = useAuth();
@@ -61,17 +59,15 @@ function SignupPage() {
       return;
     }
     setLoading(true);
-    setConfirmationEmail("");
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: getAuthRedirectUrl("/escolher-perfil"),
         data: { full_name: parsed.data.fullName },
       },
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(
         error.message.includes("already registered") ? "E-mail já cadastrado." : error.message,
       );
@@ -79,35 +75,23 @@ function SignupPage() {
     }
 
     if (!data.session) {
-      setLoading(false);
-      setConfirmationEmail(parsed.data.email);
-      toast.success("Conta criada. Confirme seu e-mail para escolher seu perfil.");
-      return;
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+
+      if (loginError) {
+        setLoading(false);
+        toast.error(
+          "Conta criada, mas a confirmação por e-mail ainda está ativa no Supabase. Desative Confirm Email para liberar o fluxo direto.",
+        );
+        return;
+      }
     }
 
     setLoading(false);
     toast.success("Conta criada! Vamos configurar seu perfil.");
     navigate({ to: "/escolher-perfil" });
-  };
-
-  const handleResendConfirmation = async () => {
-    if (!confirmationEmail) return;
-    setResending(true);
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: confirmationEmail,
-      options: {
-        emailRedirectTo: getAuthRedirectUrl("/escolher-perfil"),
-      },
-    });
-    setResending(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    toast.success("E-mail de confirmação reenviado.");
   };
 
   const handleGoogle = async () => {
@@ -168,25 +152,6 @@ function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {confirmationEmail && (
-              <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
-                <p className="font-semibold text-wine">Confirme seu e-mail para continuar</p>
-                <p className="mt-1">
-                  Enviamos um link para <strong>{confirmationEmail}</strong>. Depois de confirmar,
-                  você volta para escolher se quer aprender ou ensinar.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={resending}
-                  onClick={handleResendConfirmation}
-                  className="mt-3 border-bronze text-wine hover:bg-bronze/10"
-                >
-                  {resending ? "Reenviando..." : "Reenviar e-mail"}
-                </Button>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="name">Nome completo</Label>
               <Input

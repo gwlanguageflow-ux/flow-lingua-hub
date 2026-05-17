@@ -329,7 +329,7 @@ function DashboardPage() {
             </h1>
             <p className="mt-3 max-w-2xl leading-7 text-brown-soft">
               Organize turmas, aulas, materiais, atividades, mensagens e carteira em uma central de
-              operaÃ§Ã£o pedagÃ³gica.
+              operação pedagógica.
             </p>
           </div>
           {pricingMode && (
@@ -378,7 +378,7 @@ function DashboardPage() {
             studentMap={studentMap}
             teacherLanguages={teacherProfile?.languages_taught || []}
           />
-          <Stat icon={BookOpen} label="Aulas concluÃ­das" value={completedLessons} />
+          <Stat icon={BookOpen} label="Aulas concluídas" value={completedLessons} />
         </div>
 
         <Tabs defaultValue="sala" className="gw-app-card rounded-[2rem] p-3 md:p-5">

@@ -123,11 +123,11 @@ function FeedPage() {
             <div className="rounded-2xl bg-ink p-5 text-white shadow-soft">
               <CalendarCheck className="mb-3 h-5 w-5 text-bronze" />
               <p className="font-display text-2xl font-bold text-white">Agenda online</p>
-              <p className="mt-1 text-sm text-white/66">aulas com link e horÃ¡rio registrados</p>
+              <p className="mt-1 text-sm text-white/66">aulas com link e horário registrados</p>
             </div>
             <div className="rounded-2xl border border-border bg-white p-5 shadow-soft">
               <BookOpenCheck className="mb-3 h-5 w-5 text-bronze" />
-              <p className="font-display text-2xl font-bold text-wine">MÃ©todo guiado</p>
+              <p className="font-display text-2xl font-bold text-wine">Método guiado</p>
               <p className="mt-1 text-sm text-brown-soft">materiais, atividades e acompanhamento</p>
             </div>
           </div>

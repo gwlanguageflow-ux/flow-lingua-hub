@@ -69,6 +69,7 @@ function Page() {
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
   const [messages, setMessages] = useState<StudentMessage[]>([]);
   const [scores, setScores] = useState<StudentScore[]>([]);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -151,6 +152,21 @@ function Page() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") !== "success") return;
+
+    setCheckoutSuccess(true);
+    toast.success(
+      "Parabéns pela sua assinatura! A GWLanguageFlow vai cuidar da sua evolução de perto. Você não vai se arrepender.",
+      { duration: 8000 },
+    );
+
+    params.delete("checkout");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -242,6 +258,23 @@ function Page() {
             </aside>
           </div>
         </section>
+        {checkoutSuccess && (
+          <section className="mb-6 overflow-hidden rounded-[1.6rem] border border-bronze/30 bg-white shadow-soft">
+            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-bronze text-white shadow-bronze">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-bold text-wine">
+                  Parabéns pela sua assinatura!
+                </p>
+                <p className="mt-1 leading-7 text-brown-soft">
+                  A GWLanguageFlow vai cuidar da sua evolução de perto. Você não vai se arrepender.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
         <SubscriptionStatusBanner />
         <StudyStreakBanner />
 

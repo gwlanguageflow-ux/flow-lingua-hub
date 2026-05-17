@@ -39,7 +39,7 @@ function AdminPage() {
         setStudents(data.students);
         setBookings(data.bookings);
       } catch {
-        setError("Nao foi possivel carregar o painel administrativo.");
+        setError("Não foi possível carregar o painel administrativo.");
       }
     })();
   }, []);
