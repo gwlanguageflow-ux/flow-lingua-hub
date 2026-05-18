@@ -1096,6 +1096,248 @@ export type Database = {
           },
         ];
       };
+      anonymous_reports: {
+        Row: {
+          admin_notes: string | null;
+          body: string;
+          category: string;
+          created_at: string;
+          id: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          admin_notes?: string | null;
+          body: string;
+          category?: string;
+          created_at?: string;
+          id?: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          admin_notes?: string | null;
+          body?: string;
+          category?: string;
+          created_at?: string;
+          id?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      director_alerts: {
+        Row: {
+          active: boolean;
+          body: string;
+          created_at: string;
+          created_by: string;
+          expires_at: string | null;
+          id: string;
+          starts_at: string;
+          target_class_id: string | null;
+          target_role: Database["public"]["Enums"]["app_role"] | null;
+          target_type: string;
+          target_user_id: string | null;
+          title: string;
+          tone: string;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          body: string;
+          created_at?: string;
+          created_by: string;
+          expires_at?: string | null;
+          id?: string;
+          starts_at?: string;
+          target_class_id?: string | null;
+          target_role?: Database["public"]["Enums"]["app_role"] | null;
+          target_type: string;
+          target_user_id?: string | null;
+          title: string;
+          tone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          body?: string;
+          created_at?: string;
+          created_by?: string;
+          expires_at?: string | null;
+          id?: string;
+          starts_at?: string;
+          target_class_id?: string | null;
+          target_role?: Database["public"]["Enums"]["app_role"] | null;
+          target_type?: string;
+          target_user_id?: string | null;
+          title?: string;
+          tone?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "director_alerts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "director_alerts_target_class_id_fkey";
+            columns: ["target_class_id"];
+            isOneToOne: false;
+            referencedRelation: "class_groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "director_alerts_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      director_message_reads: {
+        Row: {
+          message_id: string;
+          read_at: string;
+          user_id: string;
+        };
+        Insert: {
+          message_id: string;
+          read_at?: string;
+          user_id: string;
+        };
+        Update: {
+          message_id?: string;
+          read_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "director_message_reads_message_id_fkey";
+            columns: ["message_id"];
+            isOneToOne: false;
+            referencedRelation: "director_messages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "director_message_reads_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      director_messages: {
+        Row: {
+          body: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          priority: string;
+          target_class_id: string | null;
+          target_role: Database["public"]["Enums"]["app_role"] | null;
+          target_type: string;
+          target_user_id: string | null;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          priority?: string;
+          target_class_id?: string | null;
+          target_role?: Database["public"]["Enums"]["app_role"] | null;
+          target_type: string;
+          target_user_id?: string | null;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          priority?: string;
+          target_class_id?: string | null;
+          target_role?: Database["public"]["Enums"]["app_role"] | null;
+          target_type?: string;
+          target_user_id?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "director_messages_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "director_messages_target_class_id_fkey";
+            columns: ["target_class_id"];
+            isOneToOne: false;
+            referencedRelation: "class_groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "director_messages_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      director_user_messages: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          sender_id: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          sender_id: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          sender_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "director_user_messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "director_user_messages_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_roles: {
         Row: {
           created_at: string;

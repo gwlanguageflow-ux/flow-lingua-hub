@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LayoutDashboard, LogOut, Menu, Sparkles, X } from "lucide-react";
+import { DirectorNotifications } from "./DirectorNotifications";
 import { Logo } from "./Logo";
 
 const navItems = [
@@ -53,34 +54,40 @@ export function SiteHeader() {
 
         <div className="hidden items-center gap-3 md:flex">
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-11 gap-2 rounded-full border-brown/25 px-5">
-                  <Sparkles className="h-4 w-4 text-bronze" />
-                  Minha conta
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem onClick={() => navigate({ to: dashboardLink })}>
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
-                </DropdownMenuItem>
-                {isStudent && (
-                  <>
-                    <DropdownMenuItem onClick={() => navigate({ to: "/meus-agendamentos" })}>
-                      Meus agendamentos
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate({ to: "/minha-assinatura" })}>
-                      Minha assinatura
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" /> Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <DirectorNotifications />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-11 gap-2 rounded-full border-brown/25 px-5"
+                  >
+                    <Sparkles className="h-4 w-4 text-bronze" />
+                    Minha conta
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuItem onClick={() => navigate({ to: dashboardLink })}>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
+                  </DropdownMenuItem>
+                  {isStudent && (
+                    <>
+                      <DropdownMenuItem onClick={() => navigate({ to: "/meus-agendamentos" })}>
+                        Meus agendamentos
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate({ to: "/minha-assinatura" })}>
+                        Minha assinatura
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <>
               <Link to="/auth/login">
@@ -123,6 +130,7 @@ export function SiteHeader() {
 
           {user ? (
             <div className="mt-4 space-y-2 border-t border-border pt-4">
+              <DirectorNotifications mobile />
               <Link
                 to={dashboardLink}
                 onClick={() => setOpen(false)}
