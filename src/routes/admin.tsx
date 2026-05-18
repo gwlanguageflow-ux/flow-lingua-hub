@@ -201,10 +201,7 @@ function AdminPage() {
     return profiles.filter((profile) => {
       const userRoles = roleByUser.get(profile.id) ?? [];
       const roleMatch = userFilter === "all" || userRoles.includes(userFilter);
-      const searchMatch =
-        !needle ||
-        profile.full_name.toLowerCase().includes(needle) ||
-        (profile.email ?? "").toLowerCase().includes(needle);
+      const searchMatch = !needle || profileSearchText(profile).includes(needle);
       return roleMatch && searchMatch;
     });
   }, [profiles, roleByUser, search, userFilter]);
@@ -494,7 +491,9 @@ function AdminPage() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-bold">{profile.full_name}</p>
+                                <p className="truncate text-sm font-bold">
+                                  {profileDisplayName(profile)}
+                                </p>
                                 <p className="truncate text-xs text-brown-soft">
                                   {profile.email ?? "Sem e-mail"}
                                 </p>
@@ -520,7 +519,7 @@ function AdminPage() {
                       <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-start md:justify-between">
                         <div>
                           <h2 className="font-display text-2xl font-bold text-wine">
-                            {selectedUser.full_name}
+                            {profileDisplayName(selectedUser)}
                           </h2>
                           <p className="text-sm text-brown-soft">
                             {selectedUser.email ?? "Sem e-mail cadastrado"}
@@ -612,7 +611,7 @@ function AdminPage() {
                           <Input
                             value={directBody}
                             onChange={(event) => setDirectBody(event.target.value)}
-                            placeholder={`Mensagem para ${selectedUser.full_name}`}
+                            placeholder={`Mensagem para ${profileDisplayName(selectedUser)}`}
                           />
                           <Button
                             onClick={handleSendDirect}
@@ -887,7 +886,16 @@ function targetLabel(
 }
 
 function userName(userId: string, profiles: Profile[]) {
-  return profiles.find((profile) => profile.id === userId)?.full_name ?? userId.slice(0, 8);
+  const profile = profiles.find((item) => item.id === userId);
+  return profile ? profileDisplayName(profile) : userId.slice(0, 8);
+}
+
+function profileDisplayName(profile: Pick<Profile, "full_name" | "email" | "id">) {
+  return profile.full_name?.trim() || profile.email?.trim() || `Usuário ${profile.id.slice(0, 8)}`;
+}
+
+function profileSearchText(profile: Pick<Profile, "full_name" | "email" | "id">) {
+  return `${profileDisplayName(profile)} ${profile.email ?? ""}`.toLowerCase();
 }
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
@@ -1000,7 +1008,7 @@ function TargetControls<T extends TargetForm>({
             <SelectContent>
               {targetableUsers.map((profile) => (
                 <SelectItem key={profile.id} value={profile.id}>
-                  {profile.full_name}
+                  {profileDisplayName(profile)}
                 </SelectItem>
               ))}
             </SelectContent>

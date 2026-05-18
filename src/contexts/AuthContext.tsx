@@ -22,34 +22,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    setRoles(data?.map((r) => r.role as AppRole) ?? []);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      if (error) throw error;
+      setRoles(data?.map((r) => r.role as AppRole) ?? []);
+    } catch (error) {
+      console.error("Falha ao carregar permissões do usuário.", error);
+      setRoles([]);
+    }
   };
 
   useEffect(() => {
-    // Set listener FIRST
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        // defer to avoid deadlock
-        setTimeout(() => {
-          fetchRoles(newSession.user.id);
-        }, 0);
-      } else {
-        setRoles([]);
-      }
-    });
+    let subscription: { unsubscribe: () => void } | undefined;
 
-    // Then check existing
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) fetchRoles(s.user.id);
+    try {
+      // Set listener FIRST
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        if (newSession?.user) {
+          // defer to avoid deadlock
+          setTimeout(() => {
+            fetchRoles(newSession.user.id);
+          }, 0);
+        } else {
+          setRoles([]);
+        }
+      });
+      subscription = sub.subscription;
+
+      // Then check existing
+      supabase.auth
+        .getSession()
+        .then(({ data: { session: s } }) => {
+          setSession(s);
+          setUser(s?.user ?? null);
+          if (s?.user) fetchRoles(s.user.id);
+        })
+        .catch((error) => {
+          console.error("Falha ao recuperar sessão do usuário.", error);
+          setSession(null);
+          setUser(null);
+          setRoles([]);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } catch (error) {
+      console.error("Falha ao iniciar autenticação.", error);
+      setSession(null);
+      setUser(null);
+      setRoles([]);
       setLoading(false);
-    });
+    }
 
-    return () => sub.subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, []);
 
   const refreshRoles = async () => {
