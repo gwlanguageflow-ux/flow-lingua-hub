@@ -4,7 +4,6 @@ import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from "luci
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import heroStudent from "@/assets/hero-student.jpg";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,17 +95,12 @@ function LoginPage() {
   return (
     <div className="grid min-h-dvh bg-cream lg:grid-cols-[1.05fr_0.95fr] lg:bg-white">
       <aside className="gw-auth-visual relative hidden overflow-hidden lg:flex">
-        <img
-          src={heroStudent}
-          alt="Aluna estudando idiomas com fones de ouvido"
-          className="absolute inset-0 h-full w-full object-cover opacity-34 mix-blend-screen"
-        />
-        <div className="absolute inset-0 gw-grid opacity-20" aria-hidden="true" />
+        <div className="absolute inset-0 gw-product-grid opacity-35" aria-hidden="true" />
         <div className="relative flex min-h-screen w-full flex-col justify-between p-12">
           <Logo variant="light" />
 
           <div className="max-w-xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-4 py-2 text-xs font-bold uppercase text-white/84 backdrop-blur">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-lg border border-white/16 bg-white/10 px-4 py-2 text-xs font-bold uppercase text-white/84 backdrop-blur">
               <ShieldCheck className="h-4 w-4 text-bronze" />
               Acesso seguro GWLanguageFlow
             </div>
@@ -124,7 +118,7 @@ function LoginPage() {
               ["Materiais", "arquivos e trilhas"],
               ["Mensagens", "contato direto"],
             ].map(([title, text]) => (
-              <div key={title} className="rounded-2xl border border-white/12 bg-white/9 p-4">
+              <div key={title} className="rounded-xl border border-white/12 bg-white/9 p-4">
                 <p className="font-display text-xl font-bold text-bronze">{title}</p>
                 <p className="mt-1 text-xs text-white/66">{text}</p>
               </div>
@@ -144,7 +138,7 @@ function LoginPage() {
             <Logo />
           </div>
 
-          <div className="gw-auth-card rounded-[1.5rem] p-5 sm:p-6 md:rounded-[2rem] md:p-8">
+          <div className="gw-auth-card rounded-xl p-5 sm:p-6 md:rounded-2xl md:p-8">
             <div className="mb-6 flex items-start justify-between gap-4 md:mb-7 md:gap-5">
               <div>
                 <div className="hidden lg:block">
@@ -167,7 +161,7 @@ function LoginPage() {
               variant="outline"
               onClick={handleGoogle}
               disabled={loading || googleEnabled !== true}
-              className="h-11 w-full rounded-full border-brown/20 bg-white text-sm font-semibold text-brown shadow-soft hover:border-bronze hover:bg-white hover:text-wine sm:h-12"
+              className="h-11 w-full rounded-lg border-brown/20 bg-white text-sm font-semibold text-brown shadow-soft hover:border-bronze hover:bg-white hover:text-wine sm:h-12"
             >
               <GoogleIcon /> Continuar com Google
             </Button>
@@ -227,7 +221,7 @@ function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-11 w-full rounded-full bg-wine text-white shadow-bronze hover:bg-wine-deep sm:h-12"
+                className="h-11 w-full rounded-lg bg-wine text-white shadow-bronze hover:bg-wine-deep sm:h-12"
               >
                 {loading ? "Entrando..." : "Entrar"}
                 {!loading && <ArrowRight className="ml-2 h-4 w-4" />}

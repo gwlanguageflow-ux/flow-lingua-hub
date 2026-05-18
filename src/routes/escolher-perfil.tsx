@@ -30,18 +30,18 @@ function Inner() {
   }, [roles, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-soft flex flex-col items-center justify-center px-4 py-12">
-      <div className="mb-10">
+    <div className="gw-app-shell flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <div className="mb-8">
         <Logo />
       </div>
       <motion.h1
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="font-display text-3xl md:text-5xl font-bold text-wine text-center max-w-2xl"
+        className="max-w-2xl text-center font-display text-3xl font-bold text-wine md:text-5xl"
       >
         Como você quer começar?
       </motion.h1>
-      <p className="text-brown mt-4 text-center max-w-md">
+      <p className="mt-4 max-w-md text-center text-brown">
         Você poderá mudar isso depois nas configurações da conta.
       </p>
 
@@ -83,14 +83,14 @@ function Card({
     <motion.button
       whileHover={{ y: -6 }}
       onClick={onClick}
-      className={`text-left rounded-3xl p-8 border-2 transition-all ${
+      className={`gw-lift text-left rounded-xl p-7 border transition-all ${
         isWine
           ? "bg-wine text-white border-wine hover:shadow-warm"
           : "bg-background border-border hover:border-bronze hover:shadow-bronze"
       }`}
     >
       <div
-        className={`h-16 w-16 rounded-2xl flex items-center justify-center mb-5 ${isWine ? "bg-bronze" : "bg-bronze/10"}`}
+        className={`mb-5 flex h-14 w-14 items-center justify-center rounded-lg ${isWine ? "bg-bronze" : "bg-bronze/10"}`}
       >
         {icon}
       </div>

@@ -97,18 +97,21 @@ function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1 container mx-auto px-4 py-12 max-w-3xl">
-        <div className="mb-8">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">Conta</p>
-          <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">
+        <div className="gw-command-hero mb-6 rounded-xl p-6 md:p-8">
+          <p className="gw-section-kicker">Conta</p>
+          <h1 className="mt-2 font-display text-3xl font-bold text-wine md:text-4xl">
             Minha assinatura
           </h1>
+          <p className="mt-2 text-sm leading-6 text-brown-soft">
+            Acompanhe status, período, forma de pagamento e itens liberados pelo seu plano.
+          </p>
         </div>
 
         {!sub ? (
-          <div className="bg-background rounded-3xl border border-border p-10 text-center shadow-soft">
+          <div className="gw-empty-state rounded-xl p-10 text-center shadow-soft">
             <h2 className="font-display text-xl text-wine">Você ainda não tem uma assinatura</h2>
             <p className="text-brown mt-2">Escolha um plano para começar a agendar aulas.</p>
             <Link to="/planos">
@@ -119,7 +122,7 @@ function Page() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-background rounded-3xl border border-border p-6 md:p-8 shadow-soft">
+            <div className="gw-app-card rounded-xl p-6 shadow-soft md:p-8">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-brown-soft">Plano atual</p>

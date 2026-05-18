@@ -321,7 +321,7 @@ function DashboardPage() {
     <div className="gw-app-shell min-h-screen">
       <SiteHeader />
       <main className="container mx-auto max-w-7xl px-4 py-8 md:py-10">
-        <div className="gw-command-hero mb-6 flex flex-col gap-6 rounded-[2rem] p-7 md:flex-row md:items-end md:justify-between md:p-9">
+        <div className="gw-command-hero mb-6 flex flex-col gap-6 rounded-xl p-6 md:flex-row md:items-end md:justify-between md:p-8">
           <div>
             <p className="text-sm font-bold uppercase text-bronze">Dashboard do professor</p>
             <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
@@ -334,7 +334,7 @@ function DashboardPage() {
           </div>
           {pricingMode && (
             <div
-              className={`inline-flex items-center gap-3 rounded-[1.5rem] border px-5 py-4 text-sm shadow-soft ${
+              className={`inline-flex items-center gap-3 rounded-xl border px-5 py-4 text-sm shadow-soft ${
                 pricingMode === "padrao"
                   ? "bg-wine text-white border-wine"
                   : "bg-background border-bronze text-wine"
@@ -381,8 +381,8 @@ function DashboardPage() {
           <Stat icon={BookOpen} label="Aulas concluídas" value={completedLessons} />
         </div>
 
-        <Tabs defaultValue="sala" className="gw-app-card rounded-[2rem] p-3 md:p-5">
-          <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-full p-1">
+        <Tabs defaultValue="sala" className="gw-app-card rounded-xl p-3 md:p-5">
+          <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-xl p-1">
             <TeacherTab value="sala" icon={Calendar} label="Sala de Aula" />
             <TeacherTab value="alunos" icon={Users} label="Meus Alunos" />
             <TeacherTab value="atividades" icon={GraduationCap} label="Atividades" />
@@ -518,7 +518,7 @@ function UpcomingLessonsCard({
   }, [studentMap, teacherLanguages, upcoming]);
 
   return (
-    <div className="gw-stat-card min-h-[138px] rounded-[1.5rem] p-5">
+    <div className="gw-stat-card min-h-[138px] rounded-xl p-5">
       <Calendar className="mb-3 h-5 w-5 text-bronze" />
       <p className="text-xs text-brown-soft">Próximas aulas</p>
       {groups.length === 0 ? (
@@ -636,7 +636,7 @@ function ClassroomPanel({
 
   return (
     <div className="space-y-6">
-      <form onSubmit={createClass} className="gw-app-card gw-input-shell rounded-[1.7rem] p-5">
+      <form onSubmit={createClass} className="gw-app-card gw-input-shell rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Plus className="h-5 w-5 text-bronze" />
           <h3 className="font-display text-xl text-wine">Criar turma</h3>
@@ -730,7 +730,7 @@ function ClassroomPanel({
               (student) => !classStudentIds.has(student.id),
             );
             return (
-              <div key={item.id} className="gw-app-card rounded-[1.7rem] p-5">
+              <div key={item.id} className="gw-app-card rounded-xl p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-display text-xl text-wine">{item.name}</h3>
@@ -811,7 +811,7 @@ function ClassroomPanel({
           })}
         </div>
       ) : (
-        <div className="gw-app-card rounded-[1.7rem] p-5">
+        <div className="gw-app-card rounded-xl p-5">
           <h3 className="font-display text-xl text-wine mb-3">Aulas agendadas sem turma criada</h3>
           {bookings.length === 0 ? (
             <Empty msg="Nenhuma aula agendada ainda." />
@@ -1821,10 +1821,7 @@ function WalletPanel({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-        <form
-          onSubmit={submitWithdrawal}
-          className="gw-app-card gw-input-shell rounded-[1.7rem] p-5"
-        >
+        <form onSubmit={submitWithdrawal} className="gw-app-card gw-input-shell rounded-xl p-5">
           <div>
             <h3 className="font-display text-xl text-wine">Solicitar saque Pix</h3>
             <p className="text-sm text-brown-soft mt-1">
@@ -1890,7 +1887,7 @@ function WalletPanel({
           </Button>
         </form>
 
-        <div className="gw-app-card rounded-[1.7rem] p-5">
+        <div className="gw-app-card rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <History className="h-5 w-5 text-bronze" />
             <h3 className="font-display text-xl text-wine">Historico financeiro</h3>
@@ -1931,7 +1928,7 @@ function WalletPanel({
         </div>
       </div>
 
-      <div className="gw-app-card rounded-[1.7rem] p-5">
+      <div className="gw-app-card rounded-xl p-5">
         <h3 className="font-display text-xl text-wine mb-4">Historico de transferencias</h3>
         {withdrawals.length === 0 ? (
           <Empty msg="Nenhuma solicitacao de saque ainda." />
@@ -1987,9 +1984,7 @@ function WalletStat({
 }) {
   return (
     <div
-      className={`rounded-[1.5rem] border p-5 shadow-soft ${
-        strong ? "bg-wine text-white" : "bg-white"
-      }`}
+      className={`rounded-xl border p-5 shadow-soft ${strong ? "bg-wine text-white" : "bg-white"}`}
     >
       <Icon className="h-5 w-5 mb-3 text-bronze" />
       <p className={`text-2xl font-display font-bold ${strong ? "text-white" : "text-wine"}`}>
@@ -2002,7 +1997,7 @@ function WalletStat({
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
   return (
-    <div className="gw-stat-card rounded-[1.5rem] p-5">
+    <div className="gw-stat-card rounded-xl p-5">
       <Icon className="mb-3 h-5 w-5 text-bronze" />
       <p className="font-display text-3xl font-bold text-wine">{value}</p>
       <p className="mt-1 text-sm text-brown-soft">{label}</p>
@@ -2020,7 +2015,7 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
 
 function Empty({ msg }: { msg: string }) {
   return (
-    <div className="gw-empty-state rounded-[1.5rem] px-5 py-12 text-center text-sm text-brown-soft">
+    <div className="gw-empty-state rounded-xl px-5 py-12 text-center text-sm text-brown-soft">
       {msg}
     </div>
   );

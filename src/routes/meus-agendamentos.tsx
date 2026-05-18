@@ -200,7 +200,7 @@ function Page() {
     <div className="gw-app-shell min-h-screen">
       <SiteHeader />
       <main className="container mx-auto max-w-7xl px-4 py-8 md:py-10">
-        <section className="gw-command-hero mb-6 overflow-hidden rounded-[2rem]">
+        <section className="gw-command-hero mb-6 overflow-hidden rounded-xl">
           <div className="grid gap-px bg-border/70 lg:grid-cols-[1.25fr_0.75fr]">
             <div className="bg-white/92 p-7 md:p-9">
               <p className="text-sm font-bold uppercase text-bronze">Dashboard do aluno</p>
@@ -224,7 +224,7 @@ function Page() {
             </div>
 
             <aside className="bg-ink p-7 text-white md:p-8">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/7 p-5">
+              <div className="rounded-xl border border-white/10 bg-white/7 p-5">
                 <div className="flex items-start gap-3">
                   <CalendarCheck className="mt-1 h-6 w-6 text-bronze" />
                   <div>
@@ -244,13 +244,13 @@ function Page() {
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/7 p-4">
+                <div className="rounded-lg border border-white/10 bg-white/7 p-4">
                   <p className="font-display text-2xl font-bold text-bronze">
                     {completedItems.length}
                   </p>
                   <p className="mt-1 text-xs text-white/66">aulas concluídas</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/7 p-4">
+                <div className="rounded-lg border border-white/10 bg-white/7 p-4">
                   <p className="font-display text-2xl font-bold text-bronze">{materials.length}</p>
                   <p className="mt-1 text-xs text-white/66">materiais disponíveis</p>
                 </div>
@@ -259,7 +259,7 @@ function Page() {
           </div>
         </section>
         {checkoutSuccess && (
-          <section className="mb-6 overflow-hidden rounded-[1.6rem] border border-bronze/30 bg-white shadow-soft">
+          <section className="mb-6 overflow-hidden rounded-xl border border-bronze/30 bg-white shadow-soft">
             <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-bronze text-white shadow-bronze">
                 <Sparkles className="h-5 w-5" />
@@ -278,8 +278,8 @@ function Page() {
         <SubscriptionStatusBanner />
         <StudyStreakBanner />
 
-        <Tabs defaultValue="aulas" className="gw-app-card mt-6 rounded-[2rem] p-3 md:p-5">
-          <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-full p-1">
+        <Tabs defaultValue="aulas" className="gw-app-card mt-6 rounded-xl p-3 md:p-5">
+          <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-xl p-1">
             <StudentTab value="aulas" icon={Video} label="Minhas Aulas" />
             <StudentTab value="turmas" icon={Users} label="Turmas" />
             <StudentTab value="atividades" icon={GraduationCap} label="Atividades" />
@@ -329,7 +329,7 @@ function StudentMetric({
   value: number;
 }) {
   return (
-    <div className="gw-stat-card rounded-[1.5rem] p-5">
+    <div className="gw-stat-card rounded-xl p-5">
       <Icon className="mb-3 h-5 w-5 text-bronze" />
       <p className="font-display text-3xl font-bold text-wine">{value}</p>
       <p className="mt-1 text-sm text-brown-soft">{label}</p>
@@ -382,7 +382,7 @@ function LessonsSection({
         return (
           <div
             key={b.id}
-            className="gw-app-card flex flex-col gap-4 rounded-[1.5rem] p-5 transition hover:-translate-y-0.5 md:flex-row md:items-center"
+            className="gw-app-card flex flex-col gap-4 rounded-xl p-5 transition hover:-translate-y-0.5 md:flex-row md:items-center"
           >
             <Avatar name={t?.full_name || "Professor"} url={t?.avatar_url} />
             <div className="flex-1 min-w-0">
@@ -429,7 +429,7 @@ function StudentClassesSection({
         const teacher = teachers.get(item.teacher_id);
         const lastScore = scores.find((score) => score.class_id === item.id);
         return (
-          <div key={item.id} className="gw-app-card rounded-[1.5rem] p-5">
+          <div key={item.id} className="gw-app-card rounded-xl p-5">
             <div>
               <h3 className="font-display text-xl text-wine">{item.name}</h3>
               <p className="text-sm text-brown">{item.language}</p>
@@ -522,7 +522,7 @@ function StudentMaterialsSection({
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         {categories.map((c) => (
-          <div key={c.title} className="gw-app-card flex gap-4 rounded-[1.5rem] p-5">
+          <div key={c.title} className="gw-app-card flex gap-4 rounded-xl p-5">
             <div className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-bronze/15 text-bronze">
               <c.icon className="h-5 w-5" />
             </div>
@@ -534,7 +534,7 @@ function StudentMaterialsSection({
         ))}
       </div>
 
-      <div className="gw-app-card rounded-[1.5rem] p-5">
+      <div className="gw-app-card rounded-xl p-5">
         <h3 className="font-display text-xl text-wine mb-4">Arquivos disponíveis</h3>
         {materials.length === 0 ? (
           <Empty msg="Nenhum material disponível ainda." />
@@ -599,7 +599,7 @@ function StudentMessagesSection({
 
   return (
     <div className="grid gap-5 md:grid-cols-[240px_1fr]">
-      <div className="gw-app-card space-y-2 rounded-[1.5rem] p-3">
+      <div className="gw-app-card space-y-2 rounded-xl p-3">
         {teacherIds.map((id) => {
           const teacher = teachers.get(id);
           return (
@@ -660,7 +660,7 @@ function StudentChat({
   };
 
   return (
-    <div className="overflow-hidden rounded-[1.5rem] border border-border bg-white shadow-soft">
+    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-soft">
       <div className="bg-wine text-white px-4 py-3">
         <p className="font-semibold">Chat com {teacher?.full_name || "professor"}</p>
         <p className="text-xs text-white/70">
@@ -795,7 +795,7 @@ function ResourceRow({
   };
 
   return (
-    <div className="gw-app-card flex items-start gap-4 rounded-[1.5rem] p-5">
+    <div className="gw-app-card flex items-start gap-4 rounded-xl p-5">
       <div className="h-11 w-11 rounded-xl bg-bronze/15 text-bronze flex items-center justify-center flex-shrink-0">
         <Icon className="h-5 w-5" />
       </div>
@@ -825,7 +825,7 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
 
 function Empty({ msg }: { msg: string }) {
   return (
-    <div className="gw-empty-state rounded-[1.5rem] px-5 py-12 text-center text-sm text-brown-soft">
+    <div className="gw-empty-state rounded-xl px-5 py-12 text-center text-sm text-brown-soft">
       {msg}
     </div>
   );

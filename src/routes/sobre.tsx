@@ -5,9 +5,9 @@ import {
   ClipboardCheck,
   HeartHandshake,
   ShieldCheck,
+  Sparkles,
   Target,
 } from "lucide-react";
-import heroStudent from "@/assets/hero-student.jpg";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ const principles = [
 
 function AboutPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1">
         <section className="gw-paper border-b border-border py-16 md:py-20">
@@ -73,21 +73,29 @@ function AboutPage() {
                 </p>
               </div>
 
-              <div className="overflow-hidden rounded-[2rem] border border-border bg-white shadow-warm">
-                <img
-                  src={heroStudent}
-                  alt="Aluna em ambiente de estudo online"
-                  className="h-72 w-full object-cover"
-                />
-                <div className="p-6">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-wine">
+              <div className="gw-ink-panel overflow-hidden rounded-xl border border-border shadow-warm">
+                <div className="gw-product-grid p-7 md:p-8">
+                  <div className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/8 px-3 py-2 text-sm font-semibold text-white/82">
                     <ShieldCheck className="h-5 w-5 text-bronze" />
                     Padrão pedagógico GW
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-brown-soft">
-                    A direção acompanha a qualidade da experiência para que o aluno não receba só
-                    aulas, mas um percurso.
-                  </p>
+                  <div className="mt-10 space-y-3">
+                    {[
+                      ["Diagnóstico", "Nível, meta e rotina do aluno"],
+                      ["Percurso", "Aulas, materiais e atividades conectadas"],
+                      ["Diretoria", "Acompanhamento de qualidade e avisos"],
+                    ].map(([title, text]) => (
+                      <div key={title} className="rounded-lg border border-white/10 bg-white/8 p-4">
+                        <div className="flex items-start gap-3">
+                          <Sparkles className="mt-1 h-4 w-4 text-bronze" />
+                          <div>
+                            <p className="font-display text-lg font-bold text-white">{title}</p>
+                            <p className="mt-1 text-sm leading-6 text-white/66">{text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -103,7 +111,7 @@ function AboutPage() {
               </h2>
             </div>
 
-            <div className="mt-12 grid gap-px overflow-hidden rounded-[2rem] border border-border bg-border shadow-soft md:grid-cols-2">
+            <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border shadow-soft md:grid-cols-2">
               {principles.map((principle) => (
                 <div key={principle.title} className="bg-white p-7 md:p-8">
                   <principle.icon className="h-7 w-7 text-bronze" />
@@ -132,7 +140,7 @@ function AboutPage() {
                   ["Rotina", "Aula, material e atividade em uma sequência visível."],
                   ["Confiança", "Pagamento, agenda e histórico registrados na plataforma."],
                 ].map(([title, text]) => (
-                  <div key={title} className="gw-panel rounded-[1.4rem] p-5">
+                  <div key={title} className="gw-panel rounded-xl p-5">
                     <p className="font-display text-2xl font-bold text-wine">{title}</p>
                     <p className="mt-2 text-sm leading-6 text-brown-soft">{text}</p>
                   </div>
@@ -149,14 +157,14 @@ function AboutPage() {
             </h2>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Link to="/planos">
-                <Button className="h-12 rounded-full bg-wine px-6 text-white hover:bg-wine-deep">
+                <Button className="h-12 rounded-lg bg-wine px-6 text-white hover:bg-wine-deep">
                   Ver planos <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/seja-professor">
                 <Button
                   variant="outline"
-                  className="h-12 rounded-full border-wine/20 px-6 text-wine hover:bg-cream"
+                  className="h-12 rounded-lg border-wine/20 px-6 text-wine hover:bg-cream"
                 >
                   Quero ensinar
                 </Button>

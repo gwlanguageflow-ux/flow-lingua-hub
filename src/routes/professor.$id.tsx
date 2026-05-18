@@ -184,14 +184,14 @@ function TeacherProfilePage() {
   const isOwner = user?.id === id;
 
   return (
-    <div className="min-h-screen flex flex-col bg-cream">
+    <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
-        <div className="bg-background rounded-3xl overflow-hidden shadow-soft border border-border">
+        <div className="gw-app-card overflow-hidden rounded-xl">
           <div className="h-40 md:h-52 bg-gradient-warm" />
           <div className="px-6 md:px-10 pb-8 -mt-16 md:-mt-20">
             <div className="flex flex-col md:flex-row md:items-end gap-5 md:gap-8">
-              <div className="h-32 w-32 md:h-40 md:w-40 rounded-3xl overflow-hidden border-4 border-background bg-cream shadow-warm flex items-center justify-center">
+              <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-xl border-4 border-background bg-cream shadow-warm md:h-40 md:w-40">
                 {teacher.avatar_url ? (
                   <img
                     src={teacher.avatar_url}
@@ -289,7 +289,7 @@ function TeacherProfilePage() {
                       {posts.map((post) => (
                         <article
                           key={post.id}
-                          className="rounded-2xl border border-border overflow-hidden bg-cream"
+                          className="overflow-hidden rounded-xl border border-border bg-cream"
                         >
                           {post.image_url && (
                             <img src={post.image_url} alt="" className="h-48 w-full object-cover" />
@@ -330,7 +330,7 @@ function TeacherProfilePage() {
                         {teacher.languages_spoken.map((l) => (
                           <span
                             key={l}
-                            className="px-2.5 py-1 rounded-full bg-cream text-wine text-xs border border-border"
+                            className="rounded-lg border border-border bg-cream px-2.5 py-1 text-xs text-wine"
                           >
                             {l}
                           </span>
@@ -417,7 +417,7 @@ function TeacherProfilePage() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-background rounded-2xl border border-border p-5">
+    <div className="gw-surface rounded-xl p-5">
       <h3 className="font-display text-lg text-wine mb-3 flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-bronze" /> {title}
       </h3>
@@ -477,7 +477,7 @@ function PostComposer({
   };
 
   return (
-    <form onSubmit={submit} className="bg-cream rounded-2xl border border-border p-5 space-y-4">
+    <form onSubmit={submit} className="gw-surface rounded-xl p-5 space-y-4">
       <div className="flex items-center gap-2">
         <ImagePlus className="h-5 w-5 text-bronze" />
         <h3 className="font-display text-lg text-wine">Criar post no perfil</h3>

@@ -55,7 +55,7 @@ const teacherTools = [
 
 function TeacherPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1">
         <section className="gw-paper border-b border-border py-16 md:py-20">
@@ -72,14 +72,14 @@ function TeacherPage() {
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link to="/auth/signup">
-                    <Button className="h-12 rounded-full bg-wine px-6 text-white shadow-bronze hover:bg-wine-deep">
+                    <Button className="h-12 rounded-lg bg-wine px-6 text-white shadow-bronze hover:bg-wine-deep">
                       Começar cadastro <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                   <Link to="/sobre">
                     <Button
                       variant="outline"
-                      className="h-12 rounded-full border-wine/20 bg-white px-6 text-wine hover:bg-cream"
+                      className="h-12 rounded-lg border-wine/20 bg-white px-6 text-wine hover:bg-cream"
                     >
                       Conhecer o método
                     </Button>
@@ -87,7 +87,7 @@ function TeacherPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[2rem] bg-ink text-white shadow-warm">
+              <div className="gw-ink-panel overflow-hidden rounded-xl text-white shadow-warm">
                 <div className="border-b border-white/10 p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -113,7 +113,7 @@ function TeacherPage() {
                   ))}
                 </div>
                 <div className="p-6">
-                  <div className="rounded-2xl border border-white/10 bg-white/7 p-4">
+                  <div className="rounded-lg border border-white/10 bg-white/7 p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold">
                       <ShieldCheck className="h-4 w-4 text-bronze" />
                       Modelo financeiro
@@ -140,7 +140,7 @@ function TeacherPage() {
 
             <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
               {teacherTools.map((tool) => (
-                <div key={tool.title} className="gw-panel gw-lift rounded-[1.5rem] p-6">
+                <div key={tool.title} className="gw-panel gw-lift rounded-xl p-6">
                   <tool.icon className="h-7 w-7 text-bronze" />
                   <h3 className="mt-5 font-display text-xl font-bold text-wine">{tool.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-brown-soft">{tool.text}</p>
@@ -164,7 +164,7 @@ function TeacherPage() {
                 </p>
               </div>
 
-              <div className="overflow-hidden rounded-[1.7rem] border border-border bg-white shadow-soft">
+              <div className="overflow-hidden rounded-xl border border-border bg-white shadow-soft">
                 {[
                   {
                     icon: Users,
@@ -186,7 +186,7 @@ function TeacherPage() {
                     key={item.title}
                     className="grid gap-4 border-b border-border p-6 last:border-b-0 md:grid-cols-[56px_1fr]"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cream">
                       <item.icon className="h-6 w-6 text-bronze" />
                     </div>
                     <div>
@@ -202,7 +202,7 @@ function TeacherPage() {
 
         <section className="bg-white py-16">
           <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-4xl overflow-hidden rounded-[2rem] bg-wine text-white shadow-warm">
+            <div className="mx-auto max-w-4xl overflow-hidden rounded-xl bg-wine text-white shadow-warm">
               <div className="grid gap-px bg-white/10 md:grid-cols-[1fr_0.85fr]">
                 <div className="bg-wine p-8 md:p-10">
                   <p className="text-sm font-bold uppercase text-bronze">Credenciamento</p>
@@ -214,7 +214,7 @@ function TeacherPage() {
                     presença no feed de professores.
                   </p>
                   <Link to="/auth/signup" className="mt-7 inline-block">
-                    <Button className="h-12 rounded-full bg-bronze px-6 text-white hover:bg-white hover:text-wine">
+                    <Button className="h-12 rounded-lg bg-bronze px-6 text-white hover:bg-white hover:text-wine">
                       Quero me cadastrar
                     </Button>
                   </Link>

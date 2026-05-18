@@ -310,25 +310,21 @@ function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="gw-app-shell min-h-screen">
       <SiteHeader />
-      <main className="container mx-auto max-w-7xl px-4 py-6 md:py-8">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <main className="container mx-auto max-w-7xl px-4 py-8 md:py-10">
+        <div className="gw-command-hero mb-6 flex flex-col gap-4 rounded-xl p-6 md:flex-row md:items-end md:justify-between md:p-8">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-bronze">Administração</p>
-            <h1 className="mt-2 font-display text-3xl font-bold text-wine md:text-4xl">
+            <p className="gw-section-kicker">Administração</p>
+            <h1 className="mt-2 font-display text-3xl font-bold text-wine md:text-5xl">
               Diretoria
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-brown-soft">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-brown-soft">
               Central para comunicados, avisos, denúncias e conversas diretas com alunos e
               professores.
             </p>
           </div>
-          <Button
-            onClick={loadDashboard}
-            variant="outline"
-            className="w-full rounded-full md:w-auto"
-          >
+          <Button onClick={loadDashboard} variant="outline" className="w-full rounded-lg md:w-auto">
             Atualizar painel
           </Button>
         </div>
@@ -352,11 +348,8 @@ function AdminPage() {
             Carregando Diretoria...
           </div>
         ) : (
-          <Tabs
-            defaultValue="comunicados"
-            className="rounded-xl border border-border bg-background p-3 shadow-soft md:p-5"
-          >
-            <TabsList className="mb-4 flex h-auto flex-wrap justify-start gap-2 bg-cream p-1">
+          <Tabs defaultValue="comunicados" className="gw-app-card rounded-xl p-3 md:p-5">
+            <TabsList className="gw-tab-list mb-4 h-auto w-full flex-wrap justify-start gap-1 rounded-xl p-1">
               <Tab value="comunicados" icon={Megaphone} label="Comunicados" />
               <Tab value="usuarios" icon={MessageCircle} label="Usuários" />
               <Tab value="alertas" icon={BellRing} label="Alertas" />
@@ -415,7 +408,7 @@ function AdminPage() {
                     <Button
                       onClick={handleCreateMessage}
                       disabled={sending}
-                      className="rounded-full bg-wine text-white hover:bg-bronze"
+                      className="rounded-lg bg-wine text-white hover:bg-bronze"
                     >
                       <Send className="mr-2 h-4 w-4" />
                       Enviar comunicado
@@ -617,7 +610,7 @@ function AdminPage() {
                           <Button
                             onClick={handleSendDirect}
                             disabled={sending || !directBody.trim()}
-                            className="rounded-full bg-wine text-white hover:bg-bronze"
+                            className="rounded-lg bg-wine text-white hover:bg-bronze"
                           >
                             <Send className="mr-2 h-4 w-4" />
                             Enviar
@@ -692,7 +685,7 @@ function AdminPage() {
                     <Button
                       onClick={handleCreateAlert}
                       disabled={sending}
-                      className="rounded-full bg-wine text-white hover:bg-bronze"
+                      className="rounded-lg bg-wine text-white hover:bg-bronze"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
                       Criar alerta
@@ -916,7 +909,7 @@ function profileSearchText(profile: Pick<Profile, "full_name" | "email" | "id">)
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
+    <div className="gw-stat-card rounded-xl p-4">
       <Icon className="mb-2 h-5 w-5 text-bronze" />
       <p className="font-display text-2xl font-bold text-wine">{value}</p>
       <p className="mt-1 text-xs text-brown-soft">{label}</p>
@@ -928,7 +921,7 @@ function Tab({ value, icon: Icon, label }: { value: string; icon: LucideIcon; la
   return (
     <TabsTrigger
       value={value}
-      className="gap-2 rounded-full data-[state=active]:bg-wine data-[state=active]:text-white"
+      className="gw-tab-trigger gap-2 rounded-lg data-[state=active]:bg-wine data-[state=active]:text-white"
     >
       <Icon className="h-4 w-4" />
       {label}

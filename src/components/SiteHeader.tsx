@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, LogOut, Menu, Sparkles, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, UserRound, X } from "lucide-react";
 import { DirectorNotifications } from "./DirectorNotifications";
 import { Logo } from "./Logo";
 
@@ -36,16 +36,16 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-white/88 backdrop-blur-2xl">
-      <div className="container mx-auto flex h-[76px] items-center justify-between px-4">
+    <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-white/90 shadow-[0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-2xl">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 md:h-[76px] md:px-6">
         <Logo />
 
-        <nav className="hidden items-center rounded-full border border-border/80 bg-cream/55 p-1 text-sm font-semibold text-brown shadow-soft md:flex">
+        <nav className="hidden items-center rounded-xl border border-border/80 bg-white/68 p-1 text-sm font-semibold text-brown shadow-soft md:flex">
           {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="rounded-full px-4 py-2 transition hover:bg-white hover:text-wine hover:shadow-soft"
+              className="rounded-lg px-4 py-2 transition hover:bg-cream/80 hover:text-wine"
             >
               {item.label}
             </Link>
@@ -60,9 +60,9 @@ export function SiteHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-11 gap-2 rounded-full border-brown/25 px-5"
+                    className="h-11 gap-2 rounded-xl border-brown/20 bg-white/86 px-5"
                   >
-                    <Sparkles className="h-4 w-4 text-bronze" />
+                    <UserRound className="h-4 w-4 text-bronze" />
                     Minha conta
                   </Button>
                 </DropdownMenuTrigger>
@@ -91,12 +91,12 @@ export function SiteHeader() {
           ) : (
             <>
               <Link to="/auth/login">
-                <Button variant="ghost" className="rounded-full px-5 text-wine hover:bg-cream">
+                <Button variant="ghost" className="rounded-lg px-5 text-wine hover:bg-cream">
                   Entrar
                 </Button>
               </Link>
               <Link to="/auth/signup">
-                <Button className="h-11 rounded-full bg-wine px-5 text-white shadow-bronze hover:bg-bronze">
+                <Button className="h-11 rounded-lg bg-wine px-5 text-white shadow-bronze hover:bg-bronze">
                   Criar conta
                 </Button>
               </Link>
@@ -105,7 +105,7 @@ export function SiteHeader() {
         </div>
 
         <button
-          className="rounded-full border border-border bg-white p-2 text-wine shadow-soft md:hidden"
+          className="rounded-lg border border-border bg-white p-2 text-wine shadow-soft md:hidden"
           onClick={() => setOpen((o) => !o)}
           aria-label="Abrir menu"
         >
@@ -114,14 +114,14 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="border-t border-border bg-white px-4 py-4 shadow-soft md:hidden">
+        <div className="border-t border-border bg-white/98 px-4 py-4 shadow-soft backdrop-blur md:hidden">
           <div className="space-y-1">
             {navItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className="block rounded-xl px-3 py-3 text-sm font-semibold text-brown hover:bg-cream hover:text-wine"
+                className="block rounded-lg px-3 py-3 text-sm font-semibold text-brown hover:bg-cream hover:text-wine"
               >
                 {item.label}
               </Link>
@@ -148,12 +148,12 @@ export function SiteHeader() {
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4">
               <Link to="/auth/login" onClick={() => setOpen(false)}>
-                <Button variant="outline" className="w-full rounded-full">
+                <Button variant="outline" className="w-full rounded-lg">
                   Entrar
                 </Button>
               </Link>
               <Link to="/auth/signup" onClick={() => setOpen(false)}>
-                <Button className="w-full rounded-full bg-wine text-white hover:bg-bronze">
+                <Button className="w-full rounded-lg bg-wine text-white hover:bg-bronze">
                   Criar conta
                 </Button>
               </Link>

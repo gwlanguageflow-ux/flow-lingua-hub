@@ -132,15 +132,8 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen grid md:grid-cols-2">
-      <div className="hidden md:flex bg-gradient-warm items-center justify-center p-12 relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: "radial-gradient(circle at 30% 20%, white 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
-        />
+    <div className="grid min-h-dvh bg-cream md:grid-cols-2">
+      <div className="gw-auth-visual gw-product-grid relative hidden items-center justify-center overflow-hidden p-12 md:flex">
         <div className="relative text-white max-w-md">
           <h2 className="font-display text-4xl font-bold leading-tight mb-4">
             Recuperação direta e segura.
@@ -151,11 +144,11 @@ function ForgotPasswordPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6 md:p-12 bg-background">
+      <div className="flex items-center justify-center bg-white p-6 md:p-12">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md space-y-6"
+          className="gw-auth-card w-full max-w-md space-y-6 rounded-xl p-6 md:p-8"
         >
           <div className="space-y-3">
             <Logo />
@@ -204,7 +197,7 @@ function ForgotPasswordPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-bronze text-white hover:bg-wine shadow-bronze"
+                className="w-full rounded-lg bg-bronze text-white shadow-bronze hover:bg-wine"
               >
                 {loading ? "Confirmando..." : "Confirmar dados"}
               </Button>
@@ -220,7 +213,7 @@ function ForgotPasswordPage() {
                 aria-hidden="true"
                 readOnly
               />
-              <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
+              <div className="rounded-xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
                 <p className="font-semibold text-wine">Dados confirmados</p>
                 <p className="mt-1">{email}</p>
               </div>
@@ -252,14 +245,14 @@ function ForgotPasswordPage() {
                   variant="outline"
                   onClick={() => setStep("identity")}
                   disabled={loading}
-                  className="border-bronze text-wine hover:bg-bronze/10"
+                  className="rounded-lg border-bronze text-wine hover:bg-bronze/10"
                 >
                   Voltar
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="bg-bronze text-white hover:bg-wine shadow-bronze"
+                  className="rounded-lg bg-bronze text-white shadow-bronze hover:bg-wine"
                 >
                   {loading ? "Salvando..." : "Salvar e entrar"}
                 </Button>

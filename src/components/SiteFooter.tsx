@@ -40,11 +40,11 @@ export function SiteFooter() {
           <div>
             <h4 className="mb-4 font-display text-base text-white">Contato</h4>
             <a
-              href="mailto:contato@gwlanguageflow.com"
+              href="mailto:contato@gwlanguageflow.com.br"
               className="inline-flex items-center gap-2 text-sm text-white/68 transition hover:text-bronze"
             >
               <Mail className="h-4 w-4" />
-              contato@gwlanguageflow.com
+              contato@gwlanguageflow.com.br
             </a>
             <div className="mt-7 h-px w-full bg-white/10" />
             <p className="mt-5 text-xs leading-relaxed text-white/45">

@@ -13,7 +13,16 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
-import { BookOpenCheck, CalendarCheck, Filter, Globe2, Search, Star } from "lucide-react";
+import {
+  BookOpenCheck,
+  CalendarCheck,
+  Filter,
+  Globe2,
+  Languages,
+  Search,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/feed")({
@@ -113,27 +122,39 @@ function FeedPage() {
     <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="container mx-auto max-w-7xl flex-1 px-4 py-8 md:py-10">
-        <section className="gw-command-hero mb-6 rounded-[2rem] p-7 md:p-9">
-          <p className="text-sm font-bold uppercase text-bronze">Professores GWLanguageFlow</p>
-          <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
-            Encontre o especialista certo para sua jornada.
-          </h1>
-          <p className="text-brown mt-2">Encontre o seu próximo professor de idiomas.</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-ink p-5 text-white shadow-soft">
-              <CalendarCheck className="mb-3 h-5 w-5 text-bronze" />
-              <p className="font-display text-2xl font-bold text-white">Agenda online</p>
-              <p className="mt-1 text-sm text-white/66">aulas com link e horário registrados</p>
+        <section className="gw-command-hero gw-appear mb-6 overflow-hidden rounded-xl">
+          <div className="grid gap-px bg-border/70 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="bg-white/92 p-6 md:p-9">
+              <p className="gw-section-kicker">Professores GWLanguageFlow</p>
+              <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
+                Encontre o especialista certo para sua jornada.
+              </h1>
+              <p className="mt-3 max-w-2xl leading-7 text-brown-soft">
+                Veja perfis, idiomas, níveis e planos antes de iniciar sua assinatura com o
+                professor escolhido.
+              </p>
             </div>
-            <div className="rounded-2xl border border-border bg-white p-5 shadow-soft">
-              <BookOpenCheck className="mb-3 h-5 w-5 text-bronze" />
-              <p className="font-display text-2xl font-bold text-wine">Método guiado</p>
-              <p className="mt-1 text-sm text-brown-soft">materiais, atividades e acompanhamento</p>
+
+            <div className="gw-ink-panel p-6 md:p-8">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="rounded-lg border border-white/10 bg-white/8 p-5">
+                  <CalendarCheck className="mb-3 h-5 w-5 text-bronze" />
+                  <p className="font-display text-xl font-bold text-white">Agenda online</p>
+                  <p className="mt-1 text-sm text-white/66">Aulas com link e horário registrados</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/8 p-5">
+                  <BookOpenCheck className="mb-3 h-5 w-5 text-bronze" />
+                  <p className="font-display text-xl font-bold text-white">Método guiado</p>
+                  <p className="mt-1 text-sm text-white/66">
+                    Materiais, atividades e acompanhamento
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <div className="gw-app-card gw-input-shell mb-8 rounded-[1.7rem] p-4 md:p-5">
+        <div className="gw-app-card gw-input-shell mb-8 rounded-xl p-4 md:p-5">
           <div className="mb-4 flex items-center gap-2 text-wine">
             <Filter className="h-4 w-4 text-bronze" />{" "}
             <span className="text-sm font-bold">Filtros de busca</span>
@@ -175,7 +196,7 @@ function FeedPage() {
               </SelectContent>
             </Select>
             <Input
-              placeholder="Preço máx (R$/h)"
+              placeholder="Preço máx. (R$/h)"
               type="number"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
@@ -188,12 +209,12 @@ function FeedPage() {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="h-80 rounded-2xl bg-background border border-border animate-pulse"
+                className="h-80 animate-pulse rounded-xl border border-border bg-white"
               />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="gw-empty-state rounded-[1.7rem] py-20 text-center">
+          <div className="gw-empty-state rounded-xl py-20 text-center">
             <Globe2 className="h-12 w-12 text-bronze mx-auto mb-4" />
             <h3 className="font-display text-xl text-wine mb-2">Nenhum professor encontrado</h3>
             <p className="text-brown text-sm">Ajuste os filtros para ver mais resultados.</p>
@@ -217,9 +238,9 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="gw-app-card group overflow-hidden rounded-[1.7rem] transition hover:-translate-y-1 hover:shadow-warm"
+      className="gw-app-card group overflow-hidden rounded-xl transition hover:-translate-y-1 hover:shadow-warm"
     >
-      <div className="relative h-52 bg-gradient-warm">
+      <div className="relative h-48 bg-gradient-warm">
         {teacher.avatar_url ? (
           <img
             src={teacher.avatar_url}
@@ -233,7 +254,7 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
           </div>
         )}
         {teacher.rating && (
-          <div className="absolute top-3 right-3 bg-background/95 backdrop-blur rounded-full px-2.5 py-1 flex items-center gap-1 shadow-soft">
+          <div className="absolute right-3 top-3 flex items-center gap-1 rounded-lg bg-background/95 px-2.5 py-1 shadow-soft backdrop-blur">
             <Star className="h-3.5 w-3.5 fill-bronze text-bronze" />
             <span className="text-xs font-semibold text-wine">{teacher.rating.toFixed(1)}</span>
           </div>
@@ -242,8 +263,9 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       <div className="space-y-3 p-5">
         <div>
           <h3 className="font-display text-lg font-bold text-wine truncate">{teacher.full_name}</h3>
-          <p className="text-xs text-brown-soft">
-            {teacher.languages_taught.slice(0, 3).join(" · ")}
+          <p className="mt-1 flex items-center gap-1 text-xs text-brown-soft">
+            <Languages className="h-3.5 w-3.5 text-bronze" />
+            {teacher.languages_taught.slice(0, 3).join(" · ") || "Idioma a confirmar"}
           </p>
         </div>
         <p className="text-sm text-brown line-clamp-2 min-h-[2.5rem]">
@@ -261,14 +283,15 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
             <Button
               variant="outline"
-              className="w-full rounded-full border-wine/30 text-wine hover:bg-cream"
+              className="w-full rounded-lg border-wine/30 text-wine hover:bg-cream"
             >
               Ver perfil
             </Button>
           </Link>
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
-            <Button className="w-full rounded-full bg-wine text-white hover:bg-bronze">
-              Agendar
+            <Button className="w-full rounded-lg bg-wine text-white hover:bg-bronze">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Escolher
             </Button>
           </Link>
         </div>

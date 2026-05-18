@@ -139,30 +139,46 @@ function PlansPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="gw-app-shell min-h-screen">
       <SiteHeader />
       <main>
-        <section className="gw-paper border-b border-border py-14 md:py-20">
+        <section className="border-b border-border py-10 md:py-14">
           <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-4xl text-center">
-              <p className="text-sm font-bold uppercase text-bronze">Planos GWLanguageFlow</p>
-              <h1 className="mt-3 font-display text-5xl font-bold leading-tight text-wine md:text-6xl">
-                Escolha a intensidade da sua evolução.
-              </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-brown-soft">
-                Cada assinatura combina aula, material, atividade e acompanhamento. Você escolhe o
-                ritmo, a plataforma organiza o percurso.
-              </p>
+            <div className="gw-command-hero overflow-hidden rounded-xl">
+              <div className="grid gap-px bg-border/70 lg:grid-cols-[1.15fr_0.85fr]">
+                <div className="bg-white/92 p-6 md:p-9">
+                  <p className="gw-section-kicker">Planos GWLanguageFlow</p>
+                  <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
+                    Escolha a intensidade da sua evolução.
+                  </h1>
+                  <p className="mt-4 max-w-2xl leading-7 text-brown-soft">
+                    Cada assinatura combina aula, material, atividade e acompanhamento. Você escolhe
+                    o ritmo, a plataforma organiza o percurso.
+                  </p>
+                </div>
+                <div className="gw-ink-panel p-6 md:p-8">
+                  <p className="font-display text-2xl font-bold text-white">Fluxo seguro</p>
+                  <p className="mt-2 text-sm leading-6 text-white/66">
+                    Professor vinculado, aceite registrado e pagamento processado em ambiente
+                    controlado.
+                  </p>
+                  <div className="mt-5 grid gap-3">
+                    <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" dark />
+                    <PlanSignal icon={WalletCards} label="Cartão ou PIX" dark />
+                    <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" dark />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="mx-auto mt-8 grid max-w-4xl gap-3 md:grid-cols-3">
+            <div className="mx-auto mt-6 hidden max-w-4xl gap-3 md:grid md:grid-cols-3">
               <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" />
               <PlanSignal icon={WalletCards} label="Cartão ou PIX" />
               <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" />
             </div>
 
             {teacher ? (
-              <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-3 rounded-full border border-bronze/30 bg-white/80 px-4 py-3 text-sm font-semibold text-wine shadow-soft">
+              <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-3 rounded-xl border border-bronze/30 bg-white/86 px-4 py-3 text-sm font-semibold text-wine shadow-soft">
                 {teacher.avatar_url ? (
                   <img
                     src={teacher.avatar_url}
@@ -177,17 +193,17 @@ function PlansPage() {
                 Assinatura com {teacher.full_name}
               </div>
             ) : (
-              <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-bronze/30 bg-white/80 px-4 py-3 text-center text-sm font-semibold text-brown shadow-soft">
+              <div className="mx-auto mt-6 max-w-xl rounded-xl border border-bronze/30 bg-white/86 px-4 py-3 text-center text-sm font-semibold text-brown shadow-soft">
                 Escolha um professor no feed para vincular sua assinatura.
               </div>
             )}
           </div>
         </section>
 
-        <section className="bg-white py-14 md:py-20">
+        <section className="bg-white/70 py-12 md:py-16">
           <div className="container mx-auto px-4">
             {plans.length === 0 ? (
-              <div className="gw-panel mx-auto max-w-2xl rounded-[1.6rem] p-8 text-center">
+              <div className="gw-panel mx-auto max-w-2xl rounded-xl p-8 text-center">
                 <Sparkles className="mx-auto h-8 w-8 text-bronze" />
                 <h2 className="mt-4 font-display text-2xl font-bold text-wine">
                   Planos em preparação
@@ -213,7 +229,7 @@ function PlansPage() {
           </div>
         </section>
 
-        <section className="gw-paper border-y border-border py-16">
+        <section className="gw-paper border-y border-border py-14">
           <div className="container mx-auto px-4">
             <div className="grid gap-10 lg:grid-cols-[0.7fr_1fr] lg:items-start">
               <div>
@@ -226,7 +242,7 @@ function PlansPage() {
                   aluno não ficar perdido entre uma aula e outra.
                 </p>
               </div>
-              <div className="overflow-hidden rounded-[1.6rem] border border-border bg-white shadow-soft">
+              <div className="overflow-hidden rounded-xl border border-border bg-white shadow-soft">
                 {comparisonRows.map(([title, text]) => (
                   <div
                     key={title}
@@ -260,9 +276,21 @@ function PlansPage() {
   );
 }
 
-function PlanSignal({ icon: Icon, label }: { icon: typeof ShieldCheck; label: string }) {
+function PlanSignal({
+  icon: Icon,
+  label,
+  dark = false,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  dark?: boolean;
+}) {
   return (
-    <div className="flex items-center justify-center gap-2 rounded-full border border-border bg-white/78 px-4 py-3 text-sm font-semibold text-brown shadow-soft">
+    <div
+      className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold shadow-soft ${
+        dark ? "border-white/10 bg-white/8 text-white/82" : "border-border bg-white/78 text-brown"
+      }`}
+    >
       <Icon className="h-4 w-4 text-bronze" />
       {label}
     </div>
@@ -278,12 +306,12 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
   return (
     <article
-      className={`gw-panel gw-lift relative flex min-h-[560px] flex-col rounded-[1.7rem] p-6 ${
+      className={`gw-panel gw-lift relative flex min-h-[520px] flex-col rounded-xl p-6 ${
         featured ? "border-bronze shadow-bronze" : ""
       }`}
     >
       {featured && (
-        <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full bg-bronze px-3 py-1 text-xs font-bold uppercase text-white shadow-bronze">
+        <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-lg bg-bronze px-3 py-1 text-xs font-bold uppercase text-white shadow-bronze">
           <Trophy className="h-3.5 w-3.5" />
           Mais escolhido
         </div>
@@ -323,7 +351,7 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
       <Button
         onClick={onSelect}
-        className={`gw-spark-button mt-7 h-11 rounded-full text-white ${
+        className={`gw-spark-button mt-7 h-11 rounded-lg text-white ${
           featured ? "bg-bronze hover:bg-wine" : "bg-wine hover:bg-wine-deep"
         }`}
       >
@@ -354,7 +382,7 @@ function CheckoutDialog({
 }) {
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg rounded-[1.6rem]">
+      <DialogContent className="max-w-lg rounded-xl">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-wine">
             Finalizar assinatura — {selected?.name}
@@ -395,10 +423,10 @@ function CheckoutDialog({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-bronze/30 bg-cream p-4">
+          <div className="rounded-xl border border-bronze/30 bg-cream p-4">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-wine">Resumo do contrato</p>
-              <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-bronze">
+              <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-bronze">
                 v1
               </span>
             </div>
@@ -452,7 +480,7 @@ function CheckoutDialog({
           <Button
             onClick={onCheckout}
             disabled={loading || !terms}
-            className="h-11 w-full rounded-full bg-bronze text-white shadow-bronze hover:bg-wine"
+            className="h-11 w-full rounded-lg bg-bronze text-white shadow-bronze hover:bg-wine"
           >
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Pagar e ativar

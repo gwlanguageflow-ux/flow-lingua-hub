@@ -134,20 +134,22 @@ function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="gw-app-shell min-h-screen">
       <SiteHeader />
       <main className="container mx-auto px-4 py-10 max-w-2xl">
-        <div className="mb-8">
-          <p className="text-bronze text-xs uppercase tracking-widest font-medium">
-            Cadastro de aluno
-          </p>
-          <h1 className="font-display text-3xl md:text-4xl text-wine font-bold mt-2">
+        <div className="gw-command-hero mb-6 rounded-xl p-6 md:p-8">
+          <p className="gw-section-kicker">Cadastro de aluno</p>
+          <h1 className="mt-2 font-display text-3xl font-bold text-wine md:text-4xl">
             Vamos conhecer você
           </h1>
+          <p className="mt-2 text-sm leading-6 text-brown-soft">
+            Essas informações ajudam a direcionar você para professores, materiais e planos mais
+            adequados.
+          </p>
         </div>
         <form
           onSubmit={handleSubmit}
-          className="bg-background rounded-3xl border border-border p-6 md:p-10 space-y-6 shadow-soft"
+          className="gw-app-card gw-input-shell rounded-xl p-6 shadow-soft md:p-8 space-y-6"
         >
           <div className="flex items-center gap-5">
             <div className="relative">

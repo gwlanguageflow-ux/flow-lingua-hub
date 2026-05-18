@@ -15,7 +15,6 @@ import {
   Sparkles,
   Trophy,
 } from "lucide-react";
-import heroStudent from "@/assets/hero-student.jpg";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -73,7 +72,7 @@ const qualityMetrics = [
 
 function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1">
         <Hero />
@@ -90,55 +89,33 @@ function HomePage() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border/70 bg-cream">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroStudent})` }}
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 hidden md:block"
-        style={{
-          background:
-            "linear-gradient(90deg, rgba(255,251,244,0.98) 0%, rgba(255,251,244,0.92) 42%, rgba(255,251,244,0.58) 68%, rgba(255,251,244,0.12) 100%)",
-        }}
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 bg-gradient-to-b from-cream/98 via-cream/88 to-cream/64 md:hidden"
-        aria-hidden="true"
-      />
+    <section className="relative overflow-hidden border-b border-border/70 bg-white">
       <div className="absolute inset-0 gw-grid opacity-55" aria-hidden="true" />
+      <div
+        className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent"
+        aria-hidden="true"
+      />
 
-      <div className="container relative mx-auto px-4 py-10 md:py-20">
-        <div className="grid min-h-[560px] items-center gap-8 md:min-h-[620px] lg:grid-cols-[1fr_520px]">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55 }}
-            className="max-w-3xl"
-          >
-            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-bronze/35 bg-white/86 px-3 py-2 text-[11px] font-bold uppercase text-wine shadow-soft md:mb-7 md:px-4 md:text-xs">
-              <span className="h-2 w-2 rounded-full bg-bronze" />
-              Plataforma GWLanguageFlow
-            </div>
-
-            <h1 className="max-w-full font-display text-[2.6rem] font-bold leading-[1.04] text-wine sm:text-5xl md:text-7xl">
-              GWLanguageFlow
+      <div className="container relative mx-auto px-4 py-10 md:py-16">
+        <div className="grid min-h-[560px] items-center gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          <div className="min-w-0 max-w-3xl">
+            <h1 className="max-w-[640px] break-words font-display text-[2rem] font-bold leading-[1.08] text-wine sm:text-[2.65rem] md:text-5xl xl:text-[3.35rem]">
+              GWLanguageFlow é uma central de aprendizagem, não só uma página de aulas.
             </h1>
-            <p className="mt-4 max-w-2xl text-xl font-semibold leading-snug text-brown sm:text-2xl md:mt-5 md:text-3xl">
-              Método, direção pedagógica e uma rotina digital para aprender idiomas com seriedade.
+            <p className="mt-4 max-w-2xl text-lg font-semibold leading-snug text-brown sm:text-xl md:mt-5 md:text-2xl">
+              Método, direção pedagógica, professores, agenda, materiais, atividades e mensagens em
+              um fluxo organizado.
             </p>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-brown-soft sm:text-base md:mt-5 md:text-lg md:leading-8">
-              A plataforma organiza aula, material, atividade, professor e acompanhamento no mesmo
-              fluxo. Menos improviso. Mais clareza para evoluir.
+            <p className="mt-4 max-w-xl text-sm leading-7 text-brown-soft sm:text-base md:mt-5 md:leading-8">
+              A experiência foi redesenhada para parecer produto: clara no mobile, densa o bastante
+              para operação e elegante para receber alunos, professores e diretoria.
             </p>
 
             <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap md:mt-8">
               <Link to="/auth/signup" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="h-12 w-full rounded-full bg-wine px-6 text-base text-white shadow-bronze hover:bg-wine-deep sm:w-auto"
+                  className="h-12 w-full rounded-lg bg-wine px-6 text-base text-white shadow-bronze hover:bg-wine-deep sm:w-auto"
                 >
                   Começar agora <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -147,7 +124,7 @@ function Hero() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 w-full rounded-full border-wine/20 bg-white px-6 text-base text-wine shadow-soft transition-all duration-300 hover:border-bronze hover:bg-white hover:shadow-[0_0_28px_rgba(196,113,52,0.55)] active:scale-[0.98] sm:w-auto"
+                  className="h-12 w-full rounded-lg border-wine/20 bg-white px-6 text-base text-wine shadow-soft active:scale-[0.98] sm:w-auto"
                 >
                   Ver planos
                 </Button>
@@ -159,16 +136,11 @@ function Hero() {
               <Proof icon={CalendarCheck} text="Agenda guiada" />
               <Proof icon={Trophy} text="Padrão pedagógico GW" />
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 22 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="hidden lg:block"
-          >
+          <div className="min-w-0 lg:block">
             <ProductCockpit />
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
@@ -177,7 +149,7 @@ function Hero() {
 
 function Proof({ icon: Icon, text }: { icon: typeof ShieldCheck; text: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-border bg-white/74 px-3 py-2 shadow-soft">
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-white/74 px-3 py-2 shadow-soft">
       <Icon className="h-4 w-4 text-bronze" />
       <span>{text}</span>
     </div>
@@ -186,8 +158,8 @@ function Proof({ icon: Icon, text }: { icon: typeof ShieldCheck; text: string })
 
 function ProductCockpit() {
   return (
-    <div className="relative">
-      <div className="absolute -left-10 top-12 w-52 rounded-2xl border border-white/75 bg-white/88 p-4 shadow-warm backdrop-blur">
+    <div className="relative mx-auto w-full max-w-xl">
+      <div className="absolute -left-10 top-12 hidden w-52 rounded-xl border border-white/75 bg-white/88 p-4 shadow-warm backdrop-blur xl:block">
         <p className="text-xs font-bold uppercase text-bronze">Progresso</p>
         <div className="mt-4 space-y-3">
           {[
@@ -208,7 +180,7 @@ function ProductCockpit() {
         </div>
       </div>
 
-      <div className="gw-panel overflow-hidden rounded-[2rem] backdrop-blur">
+      <div className="gw-panel overflow-hidden rounded-xl backdrop-blur md:rounded-2xl">
         <div className="flex items-center justify-between border-b border-border bg-white/75 px-5 py-4">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-wine/45" />
@@ -224,7 +196,7 @@ function ProductCockpit() {
               <p className="text-xs font-bold uppercase text-bronze">Sua agenda</p>
               <h2 className="mt-1 font-display text-2xl font-bold text-wine">Próximas aulas</h2>
             </div>
-            <div className="rounded-full bg-wine px-3 py-1 text-xs font-semibold text-white">
+            <div className="rounded-lg bg-wine px-3 py-1 text-xs font-semibold text-white">
               B2 em evolução
             </div>
           </div>
@@ -233,7 +205,7 @@ function ProductCockpit() {
             {schedule.map((item) => (
               <div
                 key={item.title}
-                className="grid grid-cols-[72px_1fr_auto] items-center gap-4 rounded-2xl border border-border bg-cream/45 p-4"
+                className="grid grid-cols-[64px_1fr_auto] items-center gap-3 rounded-xl border border-border bg-cream/45 p-3 md:grid-cols-[72px_1fr_auto] md:gap-4 md:p-4"
               >
                 <div className="text-center">
                   <p className="text-xs font-semibold uppercase text-brown-soft">{item.day}</p>
@@ -255,7 +227,7 @@ function ProductCockpit() {
               ["12d", "sequência"],
               ["4", "materiais"],
             ].map(([value, label]) => (
-              <div key={label} className="rounded-2xl bg-white p-3 text-center shadow-soft">
+              <div key={label} className="rounded-xl bg-white p-3 text-center shadow-soft">
                 <p className="font-display text-2xl font-bold text-wine">{value}</p>
                 <p className="text-xs uppercase text-brown-soft">{label}</p>
               </div>
@@ -264,7 +236,7 @@ function ProductCockpit() {
         </div>
       </div>
 
-      <div className="absolute -bottom-8 right-8 w-60 rounded-2xl border border-white/75 bg-ink p-4 text-white shadow-warm">
+      <div className="absolute -bottom-8 right-8 hidden w-60 rounded-xl border border-white/75 bg-ink p-4 text-white shadow-warm xl:block">
         <div className="flex items-center gap-2">
           <MessagesSquare className="h-4 w-4 text-bronze" />
           <p className="text-sm font-semibold">Diretoria pedagógica</p>
@@ -283,7 +255,7 @@ function QualityRail() {
       <div className="container mx-auto grid gap-4 px-4 py-7 md:grid-cols-4">
         {qualityMetrics.map((metric) => (
           <div key={metric.label} className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cream">
               <Sparkles className="h-5 w-5 text-bronze" />
             </div>
             <div>
@@ -344,9 +316,9 @@ function MethodArchitecture() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.08 }}
-                className="gw-panel gw-lift grid gap-4 rounded-[1.35rem] p-5 md:grid-cols-[72px_1fr] md:gap-5 md:rounded-[1.75rem] md:p-6"
+                className="gw-panel gw-lift grid gap-4 rounded-xl p-5 md:grid-cols-[72px_1fr] md:gap-5 md:p-6"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-wine text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-wine text-white">
                   <pillar.icon className="h-7 w-7 text-bronze" />
                 </div>
                 <div>
@@ -409,7 +381,7 @@ function FlowExperience() {
 
         <div className="mt-9 grid gap-4 md:mt-12 md:grid-cols-4">
           {tools.map((tool) => (
-            <div key={tool.label} className="gw-panel gw-lift rounded-[1.5rem] p-5">
+            <div key={tool.label} className="gw-panel gw-lift rounded-xl p-5">
               <tool.icon className="h-7 w-7 text-bronze" />
               <h3 className="mt-5 font-display text-xl font-bold text-wine">{tool.label}</h3>
               <p className="mt-2 text-sm leading-6 text-brown">{tool.text}</p>
@@ -417,7 +389,7 @@ function FlowExperience() {
           ))}
         </div>
 
-        <div className="mt-9 overflow-hidden rounded-[1.35rem] bg-ink text-white shadow-warm md:mt-12 md:rounded-[2rem]">
+        <div className="mt-9 overflow-hidden rounded-xl bg-ink text-white shadow-warm md:mt-12">
           <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
             <div className="border-b border-white/10 p-6 md:p-8 lg:border-b-0 lg:border-r">
               <p className="text-sm font-bold uppercase text-bronze">Visão de qualidade</p>
@@ -477,12 +449,12 @@ function PlansTeaser() {
           {cards.map((card) => (
             <div
               key={card.name}
-              className={`gw-panel rounded-[1.6rem] p-7 ${
+              className={`gw-panel rounded-xl p-7 ${
                 card.featured ? "border-bronze shadow-bronze" : ""
               }`}
             >
               {card.featured && (
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-bronze px-3 py-1 text-xs font-bold uppercase text-white">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-bronze px-3 py-1 text-xs font-bold uppercase text-white">
                   <Trophy className="h-3.5 w-3.5" />
                   Mais escolhido
                 </div>
@@ -495,7 +467,7 @@ function PlansTeaser() {
               </p>
               <Link to="/planos" className="mt-7 block">
                 <Button
-                  className={`h-11 w-full rounded-full ${
+                  className={`h-11 w-full rounded-lg ${
                     card.featured
                       ? "bg-bronze text-white hover:bg-wine"
                       : "bg-wine text-white hover:bg-wine-deep"
@@ -516,7 +488,7 @@ function FinalCTA() {
   return (
     <section className="bg-white py-14 md:py-20">
       <div className="container mx-auto px-4">
-        <div className="overflow-hidden rounded-[1.35rem] bg-wine text-white shadow-warm md:rounded-[2rem]">
+        <div className="overflow-hidden rounded-xl bg-wine text-white shadow-warm">
           <div className="grid lg:grid-cols-[1fr_0.9fr]">
             <div className="p-6 md:p-12">
               <p className="text-sm font-bold uppercase text-bronze">Próximo passo</p>
@@ -531,7 +503,7 @@ function FinalCTA() {
                 <Link to="/auth/signup">
                   <Button
                     size="lg"
-                    className="h-12 rounded-full bg-bronze px-6 text-white hover:bg-white hover:text-wine"
+                    className="h-12 rounded-lg bg-bronze px-6 text-white hover:bg-white hover:text-wine"
                   >
                     Criar minha conta
                   </Button>
@@ -540,7 +512,7 @@ function FinalCTA() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-12 rounded-full border-white bg-white px-6 text-wine transition-all duration-300 hover:border-bronze hover:bg-white hover:text-wine hover:shadow-[0_0_28px_rgba(196,113,52,0.85)] active:scale-[0.98]"
+                    className="h-12 rounded-lg border-white bg-white px-6 text-wine transition-all duration-300 hover:border-bronze hover:bg-white hover:text-wine hover:shadow-[0_0_28px_rgba(196,113,52,0.85)] active:scale-[0.98]"
                   >
                     Ver planos
                   </Button>
