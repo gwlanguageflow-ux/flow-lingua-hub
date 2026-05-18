@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { isGoogleAuthEnabled } from "@/lib/auth-providers";
 import { getAuthRedirectUrl } from "@/lib/auth-redirect";
+import { createConfirmedAccount } from "@/functions/auth.functions";
 
 export const Route = createFileRoute("/auth/signup")({
   head: () => ({ meta: [{ title: "Criar conta — GWLanguageFlow" }] }),
@@ -59,34 +60,30 @@ function SignupPage() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        data: { full_name: parsed.data.fullName },
-      },
-    });
-    if (error) {
+    try {
+      await createConfirmedAccount({
+        data: {
+          fullName: parsed.data.fullName,
+          email: parsed.data.email,
+          password: parsed.data.password,
+        },
+      });
+    } catch (error) {
       setLoading(false);
-      toast.error(
-        error.message.includes("already registered") ? "E-mail já cadastrado." : error.message,
-      );
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar a conta.");
       return;
     }
 
-    if (!data.session) {
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email: parsed.data.email,
-        password: parsed.data.password,
-      });
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
 
-      if (loginError) {
-        setLoading(false);
-        toast.error(
-          "Conta criada, mas a confirmação por e-mail ainda está ativa no Supabase. Desative Confirm Email para liberar o fluxo direto.",
-        );
-        return;
-      }
+    if (loginError) {
+      setLoading(false);
+      toast.error("Conta criada, mas não foi possível entrar automaticamente. Faça login.");
+      navigate({ to: "/auth/login" });
+      return;
     }
 
     setLoading(false);
