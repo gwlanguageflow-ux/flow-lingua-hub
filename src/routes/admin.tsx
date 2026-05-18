@@ -148,25 +148,26 @@ function AdminPage() {
     try {
       setError(null);
       const data = await getAdminDashboard();
-      setProfiles(data.profiles);
-      setRoles(data.roles);
-      setTeachers(data.teachers);
-      setStudents(data.students);
-      setBookings(data.bookings);
-      setClasses(data.classes);
-      setDirectorMessages(data.directorMessages);
-      setDirectorAlerts(data.directorAlerts);
-      setDirectMessages(data.directMessages);
-      setAnonymousReports(data.anonymousReports);
+      const dashboard = normalizeAdminDashboard(data);
+      setProfiles(dashboard.profiles);
+      setRoles(dashboard.roles);
+      setTeachers(dashboard.teachers);
+      setStudents(dashboard.students);
+      setBookings(dashboard.bookings);
+      setClasses(dashboard.classes);
+      setDirectorMessages(dashboard.directorMessages);
+      setDirectorAlerts(dashboard.directorAlerts);
+      setDirectMessages(dashboard.directMessages);
+      setAnonymousReports(dashboard.anonymousReports);
       setReportDrafts(
         Object.fromEntries(
-          data.anonymousReports.map((report) => [
+          dashboard.anonymousReports.map((report) => [
             report.id,
             { status: report.status, notes: report.admin_notes ?? "" },
           ]),
         ),
       );
-      setSelectedUserId((current) => current || data.profiles[0]?.id || "");
+      setSelectedUserId((current) => current || dashboard.profiles[0]?.id || "");
     } catch {
       setError("Não foi possível carregar a Diretoria.");
     } finally {
@@ -888,6 +889,21 @@ function targetLabel(
 function userName(userId: string, profiles: Profile[]) {
   const profile = profiles.find((item) => item.id === userId);
   return profile ? profileDisplayName(profile) : userId.slice(0, 8);
+}
+
+function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboard>> | undefined) {
+  return {
+    profiles: data?.profiles ?? [],
+    roles: data?.roles ?? [],
+    teachers: data?.teachers ?? [],
+    students: data?.students ?? [],
+    bookings: data?.bookings ?? [],
+    classes: data?.classes ?? [],
+    directorMessages: data?.directorMessages ?? [],
+    directorAlerts: data?.directorAlerts ?? [],
+    directMessages: data?.directMessages ?? [],
+    anonymousReports: data?.anonymousReports ?? [],
+  };
 }
 
 function profileDisplayName(profile: Pick<Profile, "full_name" | "email" | "id">) {

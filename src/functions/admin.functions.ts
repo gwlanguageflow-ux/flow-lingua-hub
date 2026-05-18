@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Enums, Tables } from "@/integrations/supabase/types";
 
@@ -131,7 +132,7 @@ function isTargetedToUser(
 }
 
 export const getAdminDashboard = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
 
@@ -193,7 +194,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
   });
 
 export const createDirectorMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => messageSchema.parse(input))
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
@@ -217,7 +218,7 @@ export const createDirectorMessage = createServerFn({ method: "POST" })
   });
 
 export const createDirectorAlert = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => alertSchema.parse(input))
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
@@ -242,7 +243,7 @@ export const createDirectorAlert = createServerFn({ method: "POST" })
   });
 
 export const updateDirectorAlertStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => alertStatusSchema.parse(input))
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
@@ -256,7 +257,7 @@ export const updateDirectorAlertStatus = createServerFn({ method: "POST" })
   });
 
 export const sendDirectorDirectMessage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => directMessageSchema.parse(input))
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
@@ -276,7 +277,7 @@ export const sendDirectorDirectMessage = createServerFn({ method: "POST" })
   });
 
 export const updateAnonymousReport = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => updateReportSchema.parse(input))
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
@@ -293,7 +294,7 @@ export const updateAnonymousReport = createServerFn({ method: "POST" })
   });
 
 export const getDirectorInbox = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
@@ -367,7 +368,7 @@ export const getDirectorInbox = createServerFn({ method: "GET" })
   });
 
 export const markDirectorMessageRead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => readSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -382,7 +383,7 @@ export const markDirectorMessageRead = createServerFn({ method: "POST" })
   });
 
 export const replyToDirector = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -407,7 +408,7 @@ export const replyToDirector = createServerFn({ method: "POST" })
   });
 
 export const createAnonymousReport = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => reportSchema.parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

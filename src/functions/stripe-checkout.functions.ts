@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
@@ -11,7 +12,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * O webhook confirma a ativação após pagamento.
  */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
@@ -195,7 +196,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
  * Retorna a assinatura atual do aluno.
  */
 export const getMySubscription = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
