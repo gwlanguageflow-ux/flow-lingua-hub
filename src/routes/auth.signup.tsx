@@ -135,7 +135,7 @@ function SignupPage() {
           </Button>
           {googleEnabled === false && (
             <p className="text-xs text-center text-brown-soft">
-              Google aguardando ativação no painel da GWLanguage.
+              Google aguardando ativação no painel da GWLanguageFlow.
             </p>
           )}
 

@@ -316,7 +316,7 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
         {plan.features.map((feature) => (
           <li key={feature} className="flex gap-2 text-sm leading-6 text-brown">
             <CheckCircle2 className="mt-1 h-4 w-4 flex-shrink-0 text-bronze" />
-            <span>{feature}</span>
+            <span>{normalizePlanFeature(feature)}</span>
           </li>
         ))}
       </ul>
@@ -468,4 +468,14 @@ function formatMoney(value: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function normalizePlanFeature(feature: string) {
+  const corrections: Record<string, string> = {
+    "Desafio da influência": "Desafio da fluência",
+    "Foco em aperfeiçoamento de complicações": "Foco em aperfeiçoamento de pontos de dificuldade",
+    "Foco em aperfeiçoar complicações": "Foco em aperfeiçoamento de pontos de dificuldade",
+  };
+
+  return corrections[feature] ?? feature;
 }
