@@ -1,12 +1,13 @@
 project_id = "lvderlqrkhodaelknydl"
 
 [auth]
-site_url = "https://flow-lingua-hub.lovable.app"
+site_url = "https://flow-lingua-hub-gwlanguageflow-uxs-projects.vercel.app"
 additional_redirect_urls = [
-  "https://flow-lingua-hub.lovable.app/**",
-  "https://preview--flow-lingua-hub.lovable.app/**",
+  "https://flow-lingua-hub-gwlanguageflow-uxs-projects.vercel.app/**",
+  "https://flow-lingua-hub-git-main-gwlanguageflow-uxs-projects.vercel.app/**",
   "http://localhost:3000/**",
   "http://localhost:4177/**",
+  "http://localhost:8080/**",
   "http://127.0.0.1:4177/**"
 ]
 

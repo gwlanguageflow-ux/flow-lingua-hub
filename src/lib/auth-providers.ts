@@ -1,3 +1,5 @@
+import { getProcessEnv } from "@/lib/env";
+
 type AuthSettings = {
   external?: {
     google?: boolean;
@@ -8,9 +10,9 @@ let googleAuthEnabled: Promise<boolean> | null = null;
 
 export function isGoogleAuthEnabled() {
   if (!googleAuthEnabled) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || getProcessEnv("SUPABASE_URL");
     const supabaseKey =
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || getProcessEnv("SUPABASE_PUBLISHABLE_KEY");
 
     if (!supabaseUrl || !supabaseKey) {
       googleAuthEnabled = Promise.resolve(false);

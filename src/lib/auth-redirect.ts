@@ -1,8 +1,10 @@
-const DEFAULT_PUBLIC_APP_URL = "https://flow-lingua-hub.lovable.app";
+import { getProcessEnv } from "@/lib/env";
+
+const DEFAULT_PUBLIC_APP_URL = "https://flow-lingua-hub-gwlanguageflow-uxs-projects.vercel.app";
 
 export function getAuthRedirectUrl(path: string) {
   const configuredOrigin =
-    import.meta.env.VITE_APP_URL || process.env.VITE_APP_URL || process.env.APP_URL;
+    import.meta.env.VITE_APP_URL || getProcessEnv("VITE_APP_URL") || getProcessEnv("APP_URL");
   const origin =
     configuredOrigin?.replace(/\/+$/, "") ||
     (typeof window !== "undefined" && !window.location.origin.includes("localhost")
