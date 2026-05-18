@@ -5,13 +5,20 @@ import type { Database } from "@/integrations/supabase/types";
 
 type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
 type CheckoutSessionPayload = {
+  id?: string | null;
   metadata?: Record<string, string> | null;
   mode?: string | null;
+  invoice?: string | { id: string } | null;
   subscription?: string | { id: string } | null;
+  payment_intent?: string | { id: string } | null;
   payment_status?: string | null;
 };
 type InvoicePayload = {
+  id?: string | null;
   subscription?: string | { id: string } | null;
+  subscription_details?: {
+    metadata?: Record<string, string> | null;
+  } | null;
   period_start?: number | null;
   period_end?: number | null;
 };
@@ -27,31 +34,93 @@ function stripeId(value: string | { id: string } | null | undefined) {
   return typeof value === "string" ? value : (value?.id ?? null);
 }
 
+function checkoutPaymentReference(session: CheckoutSessionPayload) {
+  return stripeId(session.invoice) ?? stripeId(session.payment_intent) ?? session.id ?? null;
+}
+
+function invoicePaymentReference(invoice: InvoicePayload, stripeSubId: string) {
+  return (
+    invoice.id ?? `${stripeSubId}:${invoice.period_start ?? "start"}:${invoice.period_end ?? "end"}`
+  );
+}
+
+type ActivateSubscriptionArgs =
+  Database["public"]["Functions"]["activate_paid_student_subscription"]["Args"];
+
+async function activatePaidSubscription(args: ActivateSubscriptionArgs) {
+  const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", args);
+  if (!error) return;
+
+  const canRetryLegacy =
+    "_payment_reference" in args &&
+    (error.code === "PGRST202" ||
+      /payment_reference|schema cache|function .*activate_paid_student_subscription/i.test(
+        error.message,
+      ));
+
+  if (!canRetryLegacy) throw error;
+
+  const { _payment_reference: _ignored, ...legacyArgs } = args;
+  const { error: legacyError } = await supabaseAdmin.rpc(
+    "activate_paid_student_subscription",
+    legacyArgs,
+  );
+  if (legacyError) throw legacyError;
+}
+
 async function activateCheckoutSession(session: CheckoutSessionPayload) {
   const subscriptionId = session.metadata?.subscription_id;
   if (!subscriptionId) return;
 
   if (session.mode === "subscription") {
-    const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", {
+    await activatePaidSubscription({
       _subscription_id: subscriptionId,
       _stripe_subscription_id: stripeId(session.subscription),
       _period_start: new Date().toISOString(),
       _period_end: null,
+      _payment_reference: checkoutPaymentReference(session),
     });
-    if (error) throw error;
     return;
   }
 
   if (session.mode === "payment") {
     const periodEnd = session.metadata?.period_end;
-    const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", {
+    await activatePaidSubscription({
       _subscription_id: subscriptionId,
       _stripe_subscription_id: null,
       _period_start: new Date().toISOString(),
       _period_end: periodEnd ?? null,
+      _payment_reference: checkoutPaymentReference(session),
     });
-    if (error) throw error;
   }
+}
+
+async function activateInvoicePayment(invoice: InvoicePayload) {
+  const stripeSubId = stripeId(invoice.subscription);
+  if (!stripeSubId) return;
+
+  let subscriptionId = invoice.subscription_details?.metadata?.subscription_id ?? null;
+  if (!subscriptionId) {
+    const { data, error } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("id")
+      .eq("stripe_subscription_id", stripeSubId)
+      .maybeSingle();
+    if (error) throw error;
+    subscriptionId = data?.id ?? null;
+  }
+
+  if (!subscriptionId) return;
+
+  await activatePaidSubscription({
+    _subscription_id: subscriptionId,
+    _stripe_subscription_id: stripeSubId,
+    _period_start: invoice.period_start
+      ? new Date(invoice.period_start * 1000).toISOString()
+      : new Date().toISOString(),
+    _period_end: invoice.period_end ? new Date(invoice.period_end * 1000).toISOString() : null,
+    _payment_reference: invoicePaymentReference(invoice, stripeSubId),
+  });
 }
 
 export const Route = createFileRoute("/api/public/stripe-webhook")({
@@ -106,22 +175,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             // Renovação recorrente (Cartão)
             case "invoice.paid": {
               const invoice = event.data.object as InvoicePayload;
-              const stripeSubId = stripeId(invoice.subscription);
-              if (stripeSubId) {
-                await supabaseAdmin
-                  .from("student_subscriptions")
-                  .update({
-                    status: "ativa",
-                    last_payment_at: new Date().toISOString(),
-                    current_period_start: invoice.period_start
-                      ? new Date(invoice.period_start * 1000).toISOString()
-                      : null,
-                    current_period_end: invoice.period_end
-                      ? new Date(invoice.period_end * 1000).toISOString()
-                      : null,
-                  })
-                  .eq("stripe_subscription_id", stripeSubId);
-              }
+              await activateInvoicePayment(invoice);
               break;
             }
 

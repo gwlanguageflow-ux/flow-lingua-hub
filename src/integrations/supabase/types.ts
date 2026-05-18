@@ -334,6 +334,7 @@ export type Database = {
           id: string;
           student_id: string | null;
           subscription_id: string | null;
+          subscription_payment_reference: string | null;
           teacher_id: string | null;
           transaction_type: string;
         };
@@ -347,6 +348,7 @@ export type Database = {
           id?: string;
           student_id?: string | null;
           subscription_id?: string | null;
+          subscription_payment_reference?: string | null;
           teacher_id?: string | null;
           transaction_type: string;
         };
@@ -360,6 +362,7 @@ export type Database = {
           id?: string;
           student_id?: string | null;
           subscription_id?: string | null;
+          subscription_payment_reference?: string | null;
           teacher_id?: string | null;
           transaction_type?: string;
         };
@@ -969,6 +972,7 @@ export type Database = {
           platform_fee: number | null;
           platform_fee_rate: number;
           subscription_id: string | null;
+          subscription_payment_reference: string | null;
           teacher_id: string;
           transaction_type: Database["public"]["Enums"]["teacher_wallet_transaction_type"];
           withdrawal_request_id: string | null;
@@ -984,6 +988,7 @@ export type Database = {
           platform_fee?: number | null;
           platform_fee_rate?: number;
           subscription_id?: string | null;
+          subscription_payment_reference?: string | null;
           teacher_id: string;
           transaction_type: Database["public"]["Enums"]["teacher_wallet_transaction_type"];
           withdrawal_request_id?: string | null;
@@ -999,6 +1004,7 @@ export type Database = {
           platform_fee?: number | null;
           platform_fee_rate?: number;
           subscription_id?: string | null;
+          subscription_payment_reference?: string | null;
           teacher_id?: string;
           transaction_type?: Database["public"]["Enums"]["teacher_wallet_transaction_type"];
           withdrawal_request_id?: string | null;
@@ -1368,6 +1374,7 @@ export type Database = {
         Args: {
           _period_end?: string | null;
           _period_start?: string;
+          _payment_reference?: string | null;
           _stripe_subscription_id?: string | null;
           _subscription_id: string;
         };
