@@ -6,6 +6,17 @@ import type { Enums, Tables } from "@/integrations/supabase/types";
 
 type AppRole = Enums<"app_role">;
 type TargetType = "all" | "role" | "user" | "class";
+type Profile = Tables<"profiles">;
+type UserRole = Tables<"user_roles">;
+type PlatformWalletTransaction = Tables<"platform_wallet_transactions">;
+type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
+type SubscriptionWithPlan = Pick<
+  Tables<"student_subscriptions">,
+  "id" | "plan_id" | "status" | "created_at"
+> & {
+  subscription_plans: SubscriptionPlanSummary | null;
+};
+type PlatformRange = "30d" | "90d" | "365d";
 type DirectorTarget = {
   target_type: TargetType;
   target_role: AppRole | null;
@@ -49,6 +60,11 @@ const updateReportSchema = z.object({
   reportId: z.string().uuid(),
   status: z.enum(["novo", "em_analise", "resolvido", "arquivado"]),
   adminNotes: z.string().trim().max(2000).optional().nullable(),
+});
+
+const directorWithdrawalSchema = z.object({
+  amount: z.coerce.number().positive(),
+  note: z.string().trim().max(500).optional().nullable(),
 });
 
 const alertStatusSchema = z.object({
@@ -131,6 +147,148 @@ function isTargetedToUser(
   return false;
 }
 
+function toMoney(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function readAmount(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function inPeriod(dateValue: string | null | undefined, start: Date, end: Date) {
+  if (!dateValue) return false;
+  const time = new Date(dateValue).getTime();
+  return Number.isFinite(time) && time >= start.getTime() && time <= end.getTime();
+}
+
+function rangeLabel(date: Date, range: PlatformRange) {
+  if (range === "365d") {
+    return new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(date).replace(".", "");
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
+}
+
+function buildPlatformSeries(
+  range: PlatformRange,
+  transactions: PlatformWalletTransaction[],
+  students: Profile[],
+) {
+  const config: Record<PlatformRange, { days: number; buckets: number }> = {
+    "30d": { days: 30, buckets: 6 },
+    "90d": { days: 90, buckets: 6 },
+    "365d": { days: 365, buckets: 12 },
+  };
+  const { days, buckets } = config[range];
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date(end);
+  start.setDate(start.getDate() - days + 1);
+  start.setHours(0, 0, 0, 0);
+  const bucketMs = (end.getTime() - start.getTime()) / buckets;
+
+  return Array.from({ length: buckets }, (_, index) => {
+    const periodStart = new Date(start.getTime() + bucketMs * index);
+    const periodEnd =
+      index === buckets - 1 ? end : new Date(start.getTime() + bucketMs * (index + 1) - 1);
+    const platformFees = transactions
+      .filter(
+        (item) =>
+          item.transaction_type === "subscription_fee" &&
+          readAmount(item.amount) > 0 &&
+          inPeriod(item.created_at, periodStart, periodEnd),
+      )
+      .reduce((sum, item) => sum + readAmount(item.amount), 0);
+    const studentSignups = students.filter((student) =>
+      inPeriod(student.created_at, periodStart, periodEnd),
+    ).length;
+
+    return {
+      label: rangeLabel(periodStart, range),
+      periodStart: periodStart.toISOString(),
+      platformFees: toMoney(platformFees),
+      studentSignups,
+    };
+  });
+}
+
+function buildPlanRanking(subscriptions: SubscriptionWithPlan[]) {
+  const paidStatuses = new Set(["ativa", "inadimplente", "cancelada"]);
+  const ranking = new Map<
+    string,
+    {
+      planId: string;
+      planName: string;
+      subscriptions: number;
+      revenue: number;
+      platformFees: number;
+    }
+  >();
+
+  subscriptions
+    .filter((subscription) => paidStatuses.has(subscription.status))
+    .forEach((subscription) => {
+      const plan = subscription.subscription_plans;
+      const planId = plan?.id ?? subscription.plan_id;
+      const current = ranking.get(planId) ?? {
+        planId,
+        planName: plan?.name ?? "Plano",
+        subscriptions: 0,
+        revenue: 0,
+        platformFees: 0,
+      };
+      const price = readAmount(plan?.price);
+      current.subscriptions += 1;
+      current.revenue += price;
+      current.platformFees += price * 0.1;
+      ranking.set(planId, current);
+    });
+
+  return Array.from(ranking.values())
+    .map((item) => ({
+      ...item,
+      revenue: toMoney(item.revenue),
+      platformFees: toMoney(item.platformFees),
+    }))
+    .sort((a, b) => b.subscriptions - a.subscriptions || b.revenue - a.revenue);
+}
+
+function buildPlatformWalletSummary(
+  transactions: PlatformWalletTransaction[],
+  profiles: Profile[],
+  roles: UserRole[],
+  subscriptions: SubscriptionWithPlan[],
+) {
+  const studentIds = new Set(
+    roles.filter((role) => role.role === "aluno").map((role) => role.user_id),
+  );
+  const studentProfiles = profiles.filter((profile) => studentIds.has(profile.id));
+  const totalPlatformFees = transactions
+    .filter((item) => item.transaction_type === "subscription_fee" && readAmount(item.amount) > 0)
+    .reduce((sum, item) => sum + readAmount(item.amount), 0);
+  const totalWithdrawn = transactions
+    .filter((item) => item.transaction_type === "manual_adjustment" && readAmount(item.amount) < 0)
+    .reduce((sum, item) => sum + Math.abs(readAmount(item.amount)), 0);
+  const availableBalance = transactions.reduce((sum, item) => sum + readAmount(item.amount), 0);
+
+  return {
+    totalPlatformFees: toMoney(totalPlatformFees),
+    availableBalance: toMoney(availableBalance),
+    totalWithdrawn: toMoney(totalWithdrawn),
+    transactionsCount: transactions.length,
+    ranges: {
+      "30d": buildPlatformSeries("30d", transactions, studentProfiles),
+      "90d": buildPlatformSeries("90d", transactions, studentProfiles),
+      "365d": buildPlatformSeries("365d", transactions, studentProfiles),
+    },
+    planRanking: buildPlanRanking(subscriptions),
+  };
+}
+
 export const getAdminDashboard = createServerFn({ method: "GET" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -148,6 +306,8 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       { data: directorAlerts },
       { data: directMessages },
       { data: anonymousReports },
+      { data: platformWalletTransactions },
+      { data: subscriptions },
     ] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("*"),
@@ -176,7 +336,19 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100),
+      supabaseAdmin
+        .from("platform_wallet_transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabaseAdmin
+        .from("student_subscriptions")
+        .select("id, plan_id, status, created_at, subscription_plans(id, name, price, slug)")
+        .order("created_at", { ascending: false }),
     ]);
+
+    const walletTransactions = (platformWalletTransactions ?? []) as PlatformWalletTransaction[];
+    const subscriptionRows = (subscriptions ?? []) as unknown as SubscriptionWithPlan[];
 
     return {
       profiles: profiles ?? [],
@@ -190,7 +362,55 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       directorAlerts: directorAlerts ?? [],
       directMessages: directMessages ?? [],
       anonymousReports: anonymousReports ?? [],
+      platformWalletTransactions: walletTransactions,
+      platformWalletSummary: buildPlatformWalletSummary(
+        walletTransactions,
+        (profiles ?? []) as Profile[],
+        (roles ?? []) as UserRole[],
+        subscriptionRows,
+      ),
     };
+  });
+
+export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => directorWithdrawalSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const amount = toMoney(data.amount);
+
+    if (amount < 10) {
+      throw new Error("O saque minimo e de R$ 10,00.");
+    }
+
+    const { data: balanceRows, error: balanceError } = await supabaseAdmin
+      .from("platform_wallet_transactions")
+      .select("amount")
+      .range(0, 9999);
+
+    if (balanceError) throw new Error(balanceError.message);
+
+    const availableBalance = toMoney(
+      (balanceRows ?? []).reduce((sum, item) => sum + readAmount(item.amount), 0),
+    );
+
+    if (amount > availableBalance) {
+      throw new Error("Valor maior que o saldo disponivel da plataforma.");
+    }
+
+    const note = data.note?.trim();
+    const { error } = await supabaseAdmin.from("platform_wallet_transactions").insert({
+      transaction_type: "manual_adjustment",
+      amount: -amount,
+      gross_amount: null,
+      fee_rate: 0.1,
+      description: note ? `Saque da diretoria: ${note}` : "Saque da diretoria",
+      created_by: context.userId,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return { ok: true };
   });
 
 export const createDirectorMessage = createServerFn({ method: "POST" })

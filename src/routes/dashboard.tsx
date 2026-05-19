@@ -1815,8 +1815,7 @@ function WalletPanel({
       <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
         <p className="font-semibold text-wine">Regra de repasse ativa</p>
         <p className="mt-1">
-          A cada aula concluída, 90% do valor-hora do plano do aluno entra na carteira do professor
-          e 10% fica como taxa da plataforma.
+          A assinatura paga credita a carteira do professor e reserva 10% como taxa da plataforma.
         </p>
       </div>
 
@@ -1825,7 +1824,7 @@ function WalletPanel({
           <div>
             <h3 className="font-display text-xl text-wine">Solicitar saque Pix</h3>
             <p className="text-sm text-brown-soft mt-1">
-              O valor fica reservado até a transferência ser conferida pela plataforma.
+              O professor pode solicitar saque sempre que houver saldo disponível.
             </p>
           </div>
 
