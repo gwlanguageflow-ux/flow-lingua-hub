@@ -17,6 +17,12 @@ type SubscriptionWithPlan = Pick<
   subscription_plans: SubscriptionPlanSummary | null;
 };
 type PlatformRange = "30d" | "90d" | "365d";
+type PlatformPayoutDestination = {
+  configured: boolean;
+  holderName: string;
+  pixKeyType: string;
+  maskedPixKey: string;
+};
 type DirectorTarget = {
   target_type: TargetType;
   target_role: AppRole | null;
@@ -154,6 +160,48 @@ function toMoney(value: number) {
 function readAmount(value: number | string | null | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function maskCpf(value: string) {
+  const digits = onlyDigits(value);
+  if (digits.length !== 11) return "CPF configurado";
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
+}
+
+function maskPixKey(value: string, type: string) {
+  if (!value) return "";
+  if (type === "cpf") return maskCpf(value);
+  if (type === "cnpj") {
+    const digits = onlyDigits(value);
+    if (digits.length !== 14) return "CNPJ configurado";
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/****-**`;
+  }
+  if (type === "email") {
+    const [name = "", domain = ""] = value.split("@");
+    return `${name.slice(0, 2)}***@${domain}`;
+  }
+  if (type === "telefone") {
+    const digits = onlyDigits(value);
+    return digits.length >= 4 ? `***${digits.slice(-4)}` : "Telefone configurado";
+  }
+  return "Chave configurada";
+}
+
+function getPlatformPayoutDestination(): PlatformPayoutDestination {
+  const pixKey = process.env.PLATFORM_PIX_KEY?.trim() ?? "";
+  const pixKeyType = (process.env.PLATFORM_PIX_KEY_TYPE?.trim() || "cpf").toLowerCase();
+  const holderName = process.env.PLATFORM_PIX_KEY_HOLDER?.trim() || "Eloiza Gramacho Wanderley";
+
+  return {
+    configured: Boolean(pixKey),
+    holderName,
+    pixKeyType,
+    maskedPixKey: pixKey ? maskPixKey(pixKey, pixKeyType) : "",
+  };
 }
 
 function inPeriod(dateValue: string | null | undefined, start: Date, end: Date) {
@@ -369,6 +417,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         (roles ?? []) as UserRole[],
         subscriptionRows,
       ),
+      platformPayoutDestination: getPlatformPayoutDestination(),
     };
   });
 
@@ -378,9 +427,14 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
     const amount = toMoney(data.amount);
+    const payoutDestination = getPlatformPayoutDestination();
 
-    if (amount < 10) {
-      throw new Error("O saque minimo e de R$ 10,00.");
+    if (amount <= 0) {
+      throw new Error("Informe um valor maior que zero.");
+    }
+
+    if (!payoutDestination.configured) {
+      throw new Error("Configure a chave Pix da diretoria antes de sacar.");
     }
 
     const { data: balanceRows, error: balanceError } = await supabaseAdmin
@@ -399,12 +453,15 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
     }
 
     const note = data.note?.trim();
+    const destinationLabel = `${payoutDestination.pixKeyType.toUpperCase()} ${payoutDestination.maskedPixKey}`;
     const { error } = await supabaseAdmin.from("platform_wallet_transactions").insert({
       transaction_type: "manual_adjustment",
       amount: -amount,
       gross_amount: null,
       fee_rate: 0.1,
-      description: note ? `Saque da diretoria: ${note}` : "Saque da diretoria",
+      description: note
+        ? `Saque da diretoria para ${destinationLabel}: ${note}`
+        : `Saque da diretoria para ${destinationLabel}`,
       created_by: context.userId,
     });
 

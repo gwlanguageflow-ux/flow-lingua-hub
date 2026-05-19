@@ -99,6 +99,13 @@ type PlatformWalletSummary = {
   planRanking: PlatformPlanRanking[];
 };
 
+type PlatformPayoutDestination = {
+  configured: boolean;
+  holderName: string;
+  pixKeyType: string;
+  maskedPixKey: string;
+};
+
 type TargetForm = {
   targetType: TargetType;
   targetRole: AppRole;
@@ -144,6 +151,13 @@ const emptyPlatformWalletSummary: PlatformWalletSummary = {
   planRanking: [],
 };
 
+const emptyPlatformPayoutDestination: PlatformPayoutDestination = {
+  configured: false,
+  holderName: "",
+  pixKeyType: "cpf",
+  maskedPixKey: "",
+};
+
 const platformRangeLabels: Record<PlatformRange, string> = {
   "30d": "30 dias",
   "90d": "Trimestre",
@@ -176,6 +190,8 @@ function AdminPage() {
   const [platformWalletSummary, setPlatformWalletSummary] = useState<PlatformWalletSummary>(
     emptyPlatformWalletSummary,
   );
+  const [platformPayoutDestination, setPlatformPayoutDestination] =
+    useState<PlatformPayoutDestination>(emptyPlatformPayoutDestination);
   const [platformRange, setPlatformRange] = useState<PlatformRange>("30d");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [userFilter, setUserFilter] = useState<"all" | "professor" | "aluno">("all");
@@ -222,6 +238,7 @@ function AdminPage() {
       setAnonymousReports(dashboard.anonymousReports);
       setPlatformWalletTransactions(dashboard.platformWalletTransactions);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
+      setPlatformPayoutDestination(dashboard.platformPayoutDestination);
       setReportDrafts(
         Object.fromEntries(
           dashboard.anonymousReports.map((report) => [
@@ -892,6 +909,7 @@ function AdminPage() {
               <DirectorWalletPanel
                 summary={platformWalletSummary}
                 transactions={platformWalletTransactions}
+                payoutDestination={platformPayoutDestination}
                 range={platformRange}
                 onRangeChange={setPlatformRange}
                 onChanged={loadDashboard}
@@ -925,12 +943,14 @@ function AdminPage() {
 function DirectorWalletPanel({
   summary,
   transactions,
+  payoutDestination,
   range,
   onRangeChange,
   onChanged,
 }: {
   summary: PlatformWalletSummary;
   transactions: PlatformWalletTransaction[];
+  payoutDestination: PlatformPayoutDestination;
   range: PlatformRange;
   onRangeChange: Dispatch<SetStateAction<PlatformRange>>;
   onChanged: () => void | Promise<void>;
@@ -947,13 +967,18 @@ function DirectorWalletPanel({
     event.preventDefault();
     const parsedAmount = parseMoney(amount);
 
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
-      toast.error("O saque mínimo é de R$ 10,00.");
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Informe um valor maior que zero.");
       return;
     }
 
     if (parsedAmount > availableBalance) {
       toast.error("Valor maior que o saldo disponível da plataforma.");
+      return;
+    }
+
+    if (!payoutDestination.configured) {
+      toast.error("Configure a chave Pix da diretoria na Vercel antes de sacar.");
       return;
     }
 
@@ -1064,8 +1089,31 @@ function DirectorWalletPanel({
         <form onSubmit={submitWithdrawal} className="rounded-xl border border-border bg-white p-4">
           <SectionTitle icon={LineChart} title="Saque da plataforma" />
           <p className="mt-2 text-sm text-brown-soft">
-            O saque registra a retirada do saldo da diretoria no extrato financeiro da plataforma.
+            O saque registra a retirada do saldo da diretoria e aponta o destino Pix configurado.
           </p>
+
+          <div className="mt-4 rounded-xl border border-bronze/30 bg-cream p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-bronze">Destino Pix</p>
+                <p className="mt-1 text-sm font-bold text-wine">
+                  {payoutDestination.holderName || "Diretoria"}
+                </p>
+                <p className="text-sm text-brown-soft">
+                  {payoutDestination.configured
+                    ? `${payoutDestination.pixKeyType.toUpperCase()} ${payoutDestination.maskedPixKey}`
+                    : "Chave Pix pendente nas variáveis de ambiente"}
+                </p>
+              </div>
+              <Badge
+                className={`w-fit rounded-full ${
+                  payoutDestination.configured ? "bg-emerald-700" : "bg-brown-soft"
+                } text-white`}
+              >
+                {payoutDestination.configured ? "Configurado" : "Pendente"}
+              </Badge>
+            </div>
+          </div>
 
           <div className="mt-4 grid gap-3">
             <Field label="Valor do saque">
@@ -1086,7 +1134,7 @@ function DirectorWalletPanel({
             </Field>
             <Button
               type="submit"
-              disabled={submitting || availableBalance < 10}
+              disabled={submitting || availableBalance <= 0 || !payoutDestination.configured}
               className="rounded-lg bg-wine text-white hover:bg-bronze"
             >
               <Send className="mr-2 h-4 w-4" />
@@ -1302,6 +1350,7 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     anonymousReports: data?.anonymousReports ?? [],
     platformWalletTransactions: data?.platformWalletTransactions ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,
+    platformPayoutDestination: data?.platformPayoutDestination ?? emptyPlatformPayoutDestination,
   };
 }
 
