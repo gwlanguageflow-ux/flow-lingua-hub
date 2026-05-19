@@ -55,6 +55,10 @@ export function isAsaasConfigured() {
   return Boolean(process.env.ASAAS_API_KEY?.trim());
 }
 
+export function isAsaasPixAutomaticEnabled() {
+  return process.env.ASAAS_PIX_AUTOMATIC_ENABLED === "true";
+}
+
 export function getAsaasWebhookToken() {
   return process.env.ASAAS_WEBHOOK_TOKEN?.trim() ?? "";
 }
@@ -99,7 +103,7 @@ async function asaasRequest<T>(path: string, init: RequestInit = {}) {
   }
 
   if (!response.ok) {
-    const message =
+    let message =
       typeof body === "object" &&
       body !== null &&
       "errors" in body &&
@@ -109,6 +113,10 @@ async function asaasRequest<T>(path: string, init: RequestInit = {}) {
             .filter(Boolean)
             .join(" | ")
         : `Asaas retornou HTTP ${response.status}`;
+    if (response.status === 403 && message === "Asaas retornou HTTP 403") {
+      message =
+        "Asaas retornou HTTP 403. Verifique se a chave pertence ao ambiente correto e se o recurso solicitado esta liberado na conta Asaas.";
+    }
     throw new Error(message || `Asaas retornou HTTP ${response.status}`);
   }
 

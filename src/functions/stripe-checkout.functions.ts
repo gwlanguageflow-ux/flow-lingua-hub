@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   createAsaasCustomer,
   createAsaasPixAutomaticAuthorization,
+  isAsaasPixAutomaticEnabled,
   requireAsaasConfig,
 } from "@/server/asaas.server";
 
@@ -65,6 +66,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     ]);
     if (pErr || !plan) throw new Error("Plano não encontrado");
     if (tErr || !teacher) throw new Error("Professor não encontrado ou inativo");
+    if (data.paymentMethod === "pix" && !isAsaasPixAutomaticEnabled()) {
+      throw new Error(
+        "Pix Automático ainda está em liberação no Asaas. Use cartão por enquanto; quando o Asaas liberar, ative ASAAS_PIX_AUTOMATIC_ENABLED=true.",
+      );
+    }
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")

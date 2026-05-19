@@ -75,12 +75,13 @@ const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
   ["Acompanhamento", "Direção pedagógica e histórico do aluno"],
-  ["Pagamento", "Cartão recorrente ou Pix Automático"],
+  ["Pagamento", "Cartão recorrente; Pix Automático conforme liberação do Asaas"],
 ];
 
 function PlansPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const pixAutomaticEnabled = import.meta.env.VITE_ASAAS_PIX_AUTOMATIC_ENABLED === "true";
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan | null>(null);
   const [method, setMethod] = useState<"card" | "pix">("card");
@@ -126,6 +127,11 @@ function PlansPage() {
       toast.error("Você precisa aceitar o Termo de Adesão e Contrato.");
       return;
     }
+    if (method === "pix" && !pixAutomaticEnabled) {
+      setMethod("card");
+      toast.error("Pix Automático ainda está em liberação no Asaas. Use cartão por enquanto.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -144,7 +150,7 @@ function PlansPage() {
       if ("pix" in res && res.pix) {
         setPixCheckout(res.pix);
         setSelected(null);
-        toast.success("Pix Automatico gerado. Confirme pelo QR Code.");
+        toast.success("Pix Automático gerado. Confirme pelo QR Code.");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao iniciar checkout");
@@ -179,7 +185,13 @@ function PlansPage() {
                   </p>
                   <div className="mt-5 grid gap-3">
                     <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" dark />
-                    <PlanSignal icon={WalletCards} label="Cartão ou PIX" dark />
+                    <PlanSignal
+                      icon={WalletCards}
+                      label={
+                        pixAutomaticEnabled ? "Cartão ou PIX" : "Cartão ativo; PIX em liberação"
+                      }
+                      dark
+                    />
                     <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" dark />
                   </div>
                 </div>
@@ -188,7 +200,10 @@ function PlansPage() {
 
             <div className="mx-auto mt-6 hidden max-w-4xl gap-3 md:grid md:grid-cols-3">
               <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" />
-              <PlanSignal icon={WalletCards} label="Cartão ou PIX" />
+              <PlanSignal
+                icon={WalletCards}
+                label={pixAutomaticEnabled ? "Cartão ou PIX" : "Cartão ativo; PIX em liberação"}
+              />
               <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" />
             </div>
 
@@ -282,6 +297,7 @@ function PlansPage() {
           terms={terms}
           setTerms={setTerms}
           loading={loading}
+          pixAutomaticEnabled={pixAutomaticEnabled}
           onClose={() => setSelected(null)}
           onCheckout={handleCheckout}
         />
@@ -384,6 +400,7 @@ function CheckoutDialog({
   terms,
   setTerms,
   loading,
+  pixAutomaticEnabled,
   onClose,
   onCheckout,
 }: {
@@ -393,6 +410,7 @@ function CheckoutDialog({
   terms: boolean;
   setTerms: (terms: boolean) => void;
   loading: boolean;
+  pixAutomaticEnabled: boolean;
   onClose: () => void;
   onCheckout: () => void;
 }) {
@@ -410,7 +428,10 @@ function CheckoutDialog({
             <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
             <RadioGroup
               value={method}
-              onValueChange={(value) => setMethod(value as "card" | "pix")}
+              onValueChange={(value) => {
+                if (value === "pix" && !pixAutomaticEnabled) return;
+                setMethod(value as "card" | "pix");
+              }}
               className="mt-3 grid grid-cols-2 gap-3"
             >
               <label
@@ -423,19 +444,21 @@ function CheckoutDialog({
                 <span className="text-sm font-semibold">Cartão</span>
               </label>
               <label
-                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
-                  method === "pix" ? "border-bronze bg-cream" : "border-border bg-white"
-                }`}
+                className={`flex items-center gap-2 rounded-2xl border p-4 transition ${
+                  pixAutomaticEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                } ${method === "pix" ? "border-bronze bg-cream" : "border-border bg-white"}`}
               >
-                <RadioGroupItem value="pix" />
+                <RadioGroupItem value="pix" disabled={!pixAutomaticEnabled} />
                 <QrCode className="h-4 w-4 text-bronze" />
                 <span className="text-sm font-semibold">PIX</span>
               </label>
             </RadioGroup>
             <p className="mt-2 text-xs leading-5 text-brown-soft">
-              {method === "card"
-                ? "Cobrança recorrente automática no cartão."
-                : "Pix Automático autoriza a cobrança recorrente pelo seu banco."}
+              {!pixAutomaticEnabled
+                ? "Pix Automático está aguardando liberação do Asaas. Por enquanto, finalize pelo cartão."
+                : method === "card"
+                  ? "Cobrança recorrente automática no cartão."
+                  : "Pix Automático autoriza a cobrança recorrente pelo seu banco."}
             </p>
           </div>
 
@@ -523,37 +546,37 @@ function PixAutomaticDialog({ pix, onClose }: { pix: PixCheckout | null; onClose
       <DialogContent className="max-w-md rounded-xl">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-wine">
-            Ativar Pix Automatico
+            Ativar Pix Automático
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-xl border border-bronze/30 bg-cream p-4 text-sm leading-6 text-brown">
-            Leia o QR Code no app do seu banco para autorizar a recorrencia automatica da
-            assinatura. Quando o pagamento for confirmado, seu acesso sera liberado automaticamente.
+            Leia o QR Code no app do seu banco para autorizar a recorrência automática da
+            assinatura. Quando o pagamento for confirmado, seu acesso será liberado automaticamente.
           </div>
 
           {pix?.encodedImage ? (
             <img
               src={`data:image/png;base64,${pix.encodedImage}`}
-              alt="QR Code Pix Automatico"
+              alt="QR Code Pix Automático"
               className="mx-auto h-56 w-56 rounded-lg border border-border bg-white p-3"
             />
           ) : (
             <div className="flex h-56 items-center justify-center rounded-lg border border-border bg-white text-sm text-brown-soft">
-              QR Code indisponivel. Use o codigo Pix abaixo.
+              QR Code indisponível. Use o código Pix abaixo.
             </div>
           )}
 
           {expiresAt ? (
             <p className="text-center text-xs font-semibold text-brown-soft">
-              Valido ate {expiresAt}
+              Válido até {expiresAt}
             </p>
           ) : null}
 
           <div className="rounded-xl border border-border bg-white p-3">
             <p className="text-xs font-bold uppercase text-bronze">Pix copia e cola</p>
             <p className="mt-2 max-h-24 overflow-y-auto break-all text-xs leading-5 text-brown-soft">
-              {pix?.payload || "Codigo Pix aguardando retorno do provedor."}
+              {pix?.payload || "Código Pix aguardando retorno do provedor."}
             </p>
           </div>
         </div>
@@ -565,7 +588,7 @@ function PixAutomaticDialog({ pix, onClose }: { pix: PixCheckout | null; onClose
             className="h-11 w-full rounded-lg bg-bronze text-white shadow-bronze hover:bg-wine"
           >
             <Copy className="mr-2 h-4 w-4" />
-            Copiar codigo Pix
+            Copiar código Pix
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
-import { createAsaasPixAutomaticPayment, requireAsaasConfig } from "@/server/asaas.server";
+import {
+  createAsaasPixAutomaticPayment,
+  isAsaasPixAutomaticEnabled,
+  requireAsaasConfig,
+} from "@/server/asaas.server";
 
 type PlanInterval = Database["public"]["Enums"]["plan_interval"];
 
@@ -24,6 +28,9 @@ function verifyCron(request: Request) {
 }
 
 async function runRecurringPixBilling() {
+  if (!isAsaasPixAutomaticEnabled()) {
+    return { scanned: 0, created: 0, skipped: "Pix Automático não habilitado" };
+  }
   requireAsaasConfig();
   const now = new Date();
   const windowEnd = new Date(now);
