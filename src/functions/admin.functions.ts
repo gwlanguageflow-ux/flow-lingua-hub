@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Enums, Tables } from "@/integrations/supabase/types";
+import type { Enums, Json, Tables } from "@/integrations/supabase/types";
 import { createAsaasPixTransfer, requireAsaasConfig } from "@/server/asaas.server";
 
 type AppRole = Enums<"app_role">;
@@ -510,7 +510,7 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
           payout_provider: "asaas",
           payout_external_id: transfer.id,
           payout_external_status: transfer.status ?? null,
-          payout_response: transfer,
+          payout_response: transfer as unknown as Json,
           payout_error: null,
           payout_requested_at: now,
           payout_receipt_url: transfer.transactionReceiptUrl ?? null,
@@ -702,10 +702,10 @@ export const getDirectorInbox = createServerFn({ method: "GET" })
     const readIds = new Set((reads ?? []).map((read) => read.message_id));
 
     const targetedMessages = ((messages ?? []) as Array<Tables<"director_messages">>).filter(
-      (item) => isTargetedToUser(item, userId, roles, classIds),
+      (item) => isTargetedToUser(item as DirectorTarget, userId, roles, classIds),
     );
     const targetedAlerts = ((alerts ?? []) as Array<Tables<"director_alerts">>).filter((item) =>
-      isTargetedToUser(item, userId, roles, classIds),
+      isTargetedToUser(item as DirectorTarget, userId, roles, classIds),
     );
 
     return {

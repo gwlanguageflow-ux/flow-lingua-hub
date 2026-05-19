@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { getAsaasWebhookToken } from "@/server/asaas.server";
+import { writeSecurityEvent } from "@/server/compliance.server";
 
 type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
 type WithdrawalStatus = Database["public"]["Enums"]["teacher_withdrawal_status"];
@@ -332,18 +333,36 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
         const expectedToken = getAsaasWebhookToken();
         const receivedToken = request.headers.get("asaas-access-token") ?? "";
         if (expectedToken && receivedToken !== expectedToken) {
+          await writeSecurityEvent({
+            eventType: "asaas.webhook_invalid_token",
+            severity: "high",
+            route: "/api/public/asaas-webhook",
+            request,
+          });
           return new Response("Invalid token", { status: 401 });
         }
 
         const raw = await request.text();
-        const payload = JSON.parse(raw || "{}") as AsaasWebhookPayload;
+        let payload: AsaasWebhookPayload;
+        try {
+          payload = JSON.parse(raw || "{}") as AsaasWebhookPayload;
+        } catch (err) {
+          await writeSecurityEvent({
+            eventType: "asaas.webhook_invalid_json",
+            severity: "medium",
+            route: "/api/public/asaas-webhook",
+            metadata: { message: err instanceof Error ? err.message : "invalid json" },
+            request,
+          });
+          return new Response("Invalid JSON", { status: 400 });
+        }
         const key = eventKey(payload, raw);
         const { data: eventRow, error: insertError } = await supabaseAdmin
           .from("asaas_webhook_events")
           .insert({
             event_key: key,
             event_type: payload.event ?? null,
-            payload,
+            payload: payload as unknown as Json,
           })
           .select("id")
           .single();
@@ -371,6 +390,13 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
             .eq("id", eventRow.id);
         } catch (err) {
           const message = err instanceof Error ? err.message : "Erro ao processar webhook Asaas.";
+          await writeSecurityEvent({
+            eventType: "asaas.webhook_handler_error",
+            severity: "high",
+            route: "/api/public/asaas-webhook",
+            metadata: { message },
+            request,
+          });
           await supabaseAdmin
             .from("asaas_webhook_events")
             .update({ processing_error: message.slice(0, 1000) })

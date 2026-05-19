@@ -3,7 +3,7 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { createAsaasPixTransfer, requireAsaasConfig } from "@/server/asaas.server";
 
 type PixKeyType = Database["public"]["Enums"]["pix_key_type"];
@@ -109,7 +109,7 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
           payout_provider: "asaas",
           payout_external_id: transfer.id,
           payout_external_status: transfer.status ?? null,
-          payout_response: transfer,
+          payout_response: transfer as unknown as Json,
           payout_error: null,
           payout_requested_at: now,
           payout_receipt_url: transfer.transactionReceiptUrl ?? null,

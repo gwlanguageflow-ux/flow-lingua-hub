@@ -9,11 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
+import { Route as SegurancaRouteImport } from './routes/seguranca'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as PoliticaDeRetencaoRouteImport } from './routes/politica-de-retencao'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cookies'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as MinhaAssinaturaRouteImport } from './routes/minha-assinatura'
 import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
+import { Route as MenoresRouteImport } from './routes/menores'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -26,10 +33,19 @@ import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
+import { Route as AdminLgpdRouteImport } from './routes/admin.lgpd'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
+import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
+import { Route as ApiInternalLgpdRetentionRouteImport } from './routes/api/internal/lgpd-retention'
 import { Route as ApiInternalAsaasRecurringBillingRouteImport } from './routes/api/internal/asaas-recurring-billing'
 
+const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
+  id: '/termos-de-uso',
+  path: '/termos-de-uso',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
   path: '/sobre',
@@ -38,6 +54,31 @@ const SobreRoute = SobreRouteImport.update({
 const SejaProfessorRoute = SejaProfessorRouteImport.update({
   id: '/seja-professor',
   path: '/seja-professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SegurancaRoute = SegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDeRetencaoRoute = PoliticaDeRetencaoRouteImport.update({
+  id: '/politica-de-retencao',
+  path: '/politica-de-retencao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDeCookiesRoute = PoliticaDeCookiesRouteImport.update({
+  id: '/politica-de-cookies',
+  path: '/politica-de-cookies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanosRoute = PlanosRouteImport.update({
@@ -53,6 +94,11 @@ const MinhaAssinaturaRoute = MinhaAssinaturaRouteImport.update({
 const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
   id: '/meus-agendamentos',
   path: '/meus-agendamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MenoresRoute = MenoresRouteImport.update({
+  id: '/menores',
+  path: '/menores',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeedRoute = FeedRouteImport.update({
@@ -115,9 +161,24 @@ const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   path: '/auth/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLgpdRoute = AdminLgpdRouteImport.update({
+  id: '/lgpd',
+  path: '/lgpd',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSecurityEventRoute = ApiPublicSecurityEventRouteImport.update({
+  id: '/api/public/security-event',
+  path: '/api/public/security-event',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicConsentRoute = ApiPublicConsentRouteImport.update({
+  id: '/api/public/consent',
+  path: '/api/public/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
@@ -125,6 +186,12 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInternalLgpdRetentionRoute =
+  ApiInternalLgpdRetentionRouteImport.update({
+    id: '/api/internal/lgpd-retention',
+    path: '/api/internal/lgpd-retention',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiInternalAsaasRecurringBillingRoute =
   ApiInternalAsaasRecurringBillingRouteImport.update({
     id: '/api/internal/asaas-recurring-billing',
@@ -134,15 +201,23 @@ const ApiInternalAsaasRecurringBillingRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
+  '/menores': typeof MenoresRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
   '/minha-assinatura': typeof MinhaAssinaturaRoute
   '/planos': typeof PlanosRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/politica-de-retencao': typeof PoliticaDeRetencaoRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/seguranca': typeof SegurancaRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
+  '/admin/lgpd': typeof AdminLgpdRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -151,20 +226,31 @@ export interface FileRoutesByFullPath {
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
+  '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
+  '/api/public/consent': typeof ApiPublicConsentRoute
+  '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
+  '/menores': typeof MenoresRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
   '/minha-assinatura': typeof MinhaAssinaturaRoute
   '/planos': typeof PlanosRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/politica-de-retencao': typeof PoliticaDeRetencaoRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/seguranca': typeof SegurancaRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
+  '/admin/lgpd': typeof AdminLgpdRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -173,21 +259,32 @@ export interface FileRoutesByTo {
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
+  '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
+  '/api/public/consent': typeof ApiPublicConsentRoute
+  '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/escolher-perfil': typeof EscolherPerfilRoute
   '/feed': typeof FeedRoute
+  '/menores': typeof MenoresRoute
   '/meus-agendamentos': typeof MeusAgendamentosRoute
   '/minha-assinatura': typeof MinhaAssinaturaRoute
   '/planos': typeof PlanosRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/politica-de-retencao': typeof PoliticaDeRetencaoRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/seguranca': typeof SegurancaRoute
   '/seja-professor': typeof SejaProfessorRoute
   '/sobre': typeof SobreRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
+  '/admin/lgpd': typeof AdminLgpdRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -196,7 +293,10 @@ export interface FileRoutesById {
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
+  '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
+  '/api/public/consent': typeof ApiPublicConsentRoute
+  '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRouteTypes {
@@ -207,11 +307,19 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escolher-perfil'
     | '/feed'
+    | '/menores'
     | '/meus-agendamentos'
     | '/minha-assinatura'
     | '/planos'
+    | '/politica-de-cookies'
+    | '/politica-de-privacidade'
+    | '/politica-de-retencao'
+    | '/privacidade'
+    | '/seguranca'
     | '/seja-professor'
     | '/sobre'
+    | '/termos-de-uso'
+    | '/admin/lgpd'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/reset-password'
@@ -220,7 +328,10 @@ export interface FileRouteTypes {
     | '/cadastro/professor'
     | '/professor/$id'
     | '/api/internal/asaas-recurring-billing'
+    | '/api/internal/lgpd-retention'
     | '/api/public/asaas-webhook'
+    | '/api/public/consent'
+    | '/api/public/security-event'
     | '/api/public/stripe-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -229,11 +340,19 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escolher-perfil'
     | '/feed'
+    | '/menores'
     | '/meus-agendamentos'
     | '/minha-assinatura'
     | '/planos'
+    | '/politica-de-cookies'
+    | '/politica-de-privacidade'
+    | '/politica-de-retencao'
+    | '/privacidade'
+    | '/seguranca'
     | '/seja-professor'
     | '/sobre'
+    | '/termos-de-uso'
+    | '/admin/lgpd'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/reset-password'
@@ -242,7 +361,10 @@ export interface FileRouteTypes {
     | '/cadastro/professor'
     | '/professor/$id'
     | '/api/internal/asaas-recurring-billing'
+    | '/api/internal/lgpd-retention'
     | '/api/public/asaas-webhook'
+    | '/api/public/consent'
+    | '/api/public/security-event'
     | '/api/public/stripe-webhook'
   id:
     | '__root__'
@@ -251,11 +373,19 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escolher-perfil'
     | '/feed'
+    | '/menores'
     | '/meus-agendamentos'
     | '/minha-assinatura'
     | '/planos'
+    | '/politica-de-cookies'
+    | '/politica-de-privacidade'
+    | '/politica-de-retencao'
+    | '/privacidade'
+    | '/seguranca'
     | '/seja-professor'
     | '/sobre'
+    | '/termos-de-uso'
+    | '/admin/lgpd'
     | '/auth/forgot-password'
     | '/auth/login'
     | '/auth/reset-password'
@@ -264,21 +394,31 @@ export interface FileRouteTypes {
     | '/cadastro/professor'
     | '/professor/$id'
     | '/api/internal/asaas-recurring-billing'
+    | '/api/internal/lgpd-retention'
     | '/api/public/asaas-webhook'
+    | '/api/public/consent'
+    | '/api/public/security-event'
     | '/api/public/stripe-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   EscolherPerfilRoute: typeof EscolherPerfilRoute
   FeedRoute: typeof FeedRoute
+  MenoresRoute: typeof MenoresRoute
   MeusAgendamentosRoute: typeof MeusAgendamentosRoute
   MinhaAssinaturaRoute: typeof MinhaAssinaturaRoute
   PlanosRoute: typeof PlanosRoute
+  PoliticaDeCookiesRoute: typeof PoliticaDeCookiesRoute
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  PoliticaDeRetencaoRoute: typeof PoliticaDeRetencaoRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  SegurancaRoute: typeof SegurancaRoute
   SejaProfessorRoute: typeof SejaProfessorRoute
   SobreRoute: typeof SobreRoute
+  TermosDeUsoRoute: typeof TermosDeUsoRoute
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
@@ -287,12 +427,22 @@ export interface RootRouteChildren {
   CadastroProfessorRoute: typeof CadastroProfessorRoute
   ProfessorIdRoute: typeof ProfessorIdRoute
   ApiInternalAsaasRecurringBillingRoute: typeof ApiInternalAsaasRecurringBillingRoute
+  ApiInternalLgpdRetentionRoute: typeof ApiInternalLgpdRetentionRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
+  ApiPublicConsentRoute: typeof ApiPublicConsentRoute
+  ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos-de-uso': {
+      id: '/termos-de-uso'
+      path: '/termos-de-uso'
+      fullPath: '/termos-de-uso'
+      preLoaderRoute: typeof TermosDeUsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sobre': {
       id: '/sobre'
       path: '/sobre'
@@ -305,6 +455,41 @@ declare module '@tanstack/react-router' {
       path: '/seja-professor'
       fullPath: '/seja-professor'
       preLoaderRoute: typeof SejaProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seguranca': {
+      id: '/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof SegurancaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-retencao': {
+      id: '/politica-de-retencao'
+      path: '/politica-de-retencao'
+      fullPath: '/politica-de-retencao'
+      preLoaderRoute: typeof PoliticaDeRetencaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-cookies': {
+      id: '/politica-de-cookies'
+      path: '/politica-de-cookies'
+      fullPath: '/politica-de-cookies'
+      preLoaderRoute: typeof PoliticaDeCookiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planos': {
@@ -326,6 +511,13 @@ declare module '@tanstack/react-router' {
       path: '/meus-agendamentos'
       fullPath: '/meus-agendamentos'
       preLoaderRoute: typeof MeusAgendamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/menores': {
+      id: '/menores'
+      path: '/menores'
+      fullPath: '/menores'
+      preLoaderRoute: typeof MenoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/feed': {
@@ -412,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/lgpd': {
+      id: '/admin/lgpd'
+      path: '/lgpd'
+      fullPath: '/admin/lgpd'
+      preLoaderRoute: typeof AdminLgpdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -419,11 +618,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/security-event': {
+      id: '/api/public/security-event'
+      path: '/api/public/security-event'
+      fullPath: '/api/public/security-event'
+      preLoaderRoute: typeof ApiPublicSecurityEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/consent': {
+      id: '/api/public/consent'
+      path: '/api/public/consent'
+      fullPath: '/api/public/consent'
+      preLoaderRoute: typeof ApiPublicConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/asaas-webhook': {
       id: '/api/public/asaas-webhook'
       path: '/api/public/asaas-webhook'
       fullPath: '/api/public/asaas-webhook'
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/lgpd-retention': {
+      id: '/api/internal/lgpd-retention'
+      path: '/api/internal/lgpd-retention'
+      fullPath: '/api/internal/lgpd-retention'
+      preLoaderRoute: typeof ApiInternalLgpdRetentionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/internal/asaas-recurring-billing': {
@@ -436,17 +656,34 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminLgpdRoute: typeof AdminLgpdRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminLgpdRoute: AdminLgpdRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   EscolherPerfilRoute: EscolherPerfilRoute,
   FeedRoute: FeedRoute,
+  MenoresRoute: MenoresRoute,
   MeusAgendamentosRoute: MeusAgendamentosRoute,
   MinhaAssinaturaRoute: MinhaAssinaturaRoute,
   PlanosRoute: PlanosRoute,
+  PoliticaDeCookiesRoute: PoliticaDeCookiesRoute,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  PoliticaDeRetencaoRoute: PoliticaDeRetencaoRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  SegurancaRoute: SegurancaRoute,
   SejaProfessorRoute: SejaProfessorRoute,
   SobreRoute: SobreRoute,
+  TermosDeUsoRoute: TermosDeUsoRoute,
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
@@ -455,7 +692,10 @@ const rootRouteChildren: RootRouteChildren = {
   CadastroProfessorRoute: CadastroProfessorRoute,
   ProfessorIdRoute: ProfessorIdRoute,
   ApiInternalAsaasRecurringBillingRoute: ApiInternalAsaasRecurringBillingRoute,
+  ApiInternalLgpdRetentionRoute: ApiInternalLgpdRetentionRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
+  ApiPublicConsentRoute: ApiPublicConsentRoute,
+  ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

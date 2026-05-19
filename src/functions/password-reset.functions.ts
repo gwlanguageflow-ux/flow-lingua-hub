@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { normalizeCpf, isValidCpf } from "@/lib/cpf";
+import {
+  writeAuditLog,
+  writeSecurityEvent,
+  writeUserSessionEvent,
+} from "@/server/compliance.server";
 
 const identitySchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
@@ -30,6 +35,12 @@ async function findUserByEmailAndCpf(email: string, cpf: string) {
     .maybeSingle();
 
   if (error || !profile) {
+    await writeSecurityEvent({
+      eventType: "auth.password_reset_identity_failure",
+      severity: "medium",
+      route: "/auth/reset-password",
+      metadata: { emailDomain: normalizedEmail.split("@")[1] ?? "desconhecido" },
+    });
     throw new Error("E-mail e CPF não conferem.");
   }
 
@@ -39,7 +50,13 @@ async function findUserByEmailAndCpf(email: string, cpf: string) {
 export const verifyPasswordResetIdentity = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => identitySchema.parse(input))
   .handler(async ({ data }) => {
-    await findUserByEmailAndCpf(data.email, data.cpf);
+    const { userId } = await findUserByEmailAndCpf(data.email, data.cpf);
+    await writeSecurityEvent({
+      userId,
+      eventType: "auth.password_reset_identity_verified",
+      severity: "low",
+      route: "/auth/reset-password",
+    });
     return { verified: true };
   });
 
@@ -54,8 +71,28 @@ export const resetPasswordWithCpf = createServerFn({ method: "POST" })
     });
 
     if (error) {
+      await writeSecurityEvent({
+        userId,
+        eventType: "auth.password_reset_failure",
+        severity: "high",
+        route: "/auth/reset-password",
+        metadata: { message: error.message },
+      });
       throw new Error("Não foi possível atualizar a senha agora.");
     }
+
+    await writeUserSessionEvent({
+      userId,
+      event: "password_reset",
+      metadata: { method: "cpf_email" },
+    });
+    await writeAuditLog({
+      actorUserId: userId,
+      action: "auth.password_reset",
+      entityType: "auth.users",
+      entityId: userId,
+      metadata: { method: "cpf_email" },
+    });
 
     return { email };
   });

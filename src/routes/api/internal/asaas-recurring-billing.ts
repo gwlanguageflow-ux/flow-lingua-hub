@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { createAsaasPixAutomaticPayment, requireAsaasConfig } from "@/server/asaas.server";
 
 type PlanInterval = Database["public"]["Enums"]["plan_interval"];
@@ -85,7 +85,7 @@ async function runRecurringPixBilling() {
       period_end: periodEnd.toISOString(),
       due_date: dateOnly(periodStart),
       invoice_url: payment.invoiceUrl ?? null,
-      payload: payment,
+      payload: payment as unknown as Json,
     });
     if (insertError) throw insertError;
     created += 1;

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -387,9 +387,18 @@ function AdminPage() {
               professores.
             </p>
           </div>
-          <Button onClick={loadDashboard} variant="outline" className="w-full rounded-lg md:w-auto">
-            Atualizar painel
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="outline" className="w-full rounded-lg md:w-auto">
+              <Link to="/admin/lgpd">Painel LGPD</Link>
+            </Button>
+            <Button
+              onClick={loadDashboard}
+              variant="outline"
+              className="w-full rounded-lg md:w-auto"
+            >
+              Atualizar painel
+            </Button>
+          </div>
         </div>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">

@@ -23,6 +23,18 @@ const schema = z.object({
   password: z.string().min(6, "Senha precisa ter ao menos 6 caracteres").max(128),
 });
 
+function emailDomain(value: string) {
+  return value.split("@")[1]?.toLowerCase() ?? "desconhecido";
+}
+
+async function logSecurityEvent(payload: Record<string, unknown>) {
+  await fetch("/api/public/security-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).catch(() => undefined);
+}
+
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,9 +74,15 @@ function LoginPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {
+      await logSecurityEvent({
+        eventType: "auth.login_failure",
+        severity: "medium",
+        route: "/auth/login",
+        metadata: { reason: error.message, emailDomain: emailDomain(parsed.data.email) },
+      });
       toast.error(
         error.message === "Invalid login credentials"
           ? "E-mail ou senha incorretos."
@@ -72,6 +90,14 @@ function LoginPage() {
       );
       return;
     }
+    await logSecurityEvent({
+      eventType: "auth.login_success",
+      severity: "info",
+      route: "/auth/login",
+      userId: data.user?.id,
+      sessionId: data.session?.access_token?.slice(0, 24),
+      metadata: { provider: "password", emailDomain: emailDomain(parsed.data.email) },
+    });
     toast.success("Bem-vindo de volta!");
   };
 
@@ -87,6 +113,12 @@ function LoginPage() {
       },
     });
     if (error) {
+      await logSecurityEvent({
+        eventType: "auth.google_login_failure",
+        severity: "medium",
+        route: "/auth/login",
+        metadata: { reason: error.message },
+      });
       toast.error("Falha no login com Google.");
       setLoading(false);
     }

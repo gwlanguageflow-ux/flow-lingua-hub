@@ -158,29 +158,8 @@ function Proof({ icon: Icon, text }: { icon: typeof ShieldCheck; text: string })
 
 function ProductCockpit() {
   return (
-    <div className="relative mx-auto w-full max-w-xl">
-      <div className="absolute -left-10 top-12 hidden w-52 rounded-xl border border-white/75 bg-white/88 p-4 shadow-warm backdrop-blur xl:block">
-        <p className="text-xs font-bold uppercase text-bronze">Progresso</p>
-        <div className="mt-4 space-y-3">
-          {[
-            ["Listening", "78%"],
-            ["Speaking", "64%"],
-            ["Writing", "71%"],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <div className="mb-1 flex justify-between text-xs text-brown">
-                <span>{label}</span>
-                <strong className="text-wine">{value}</strong>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-cream">
-                <div className="h-full rounded-full bg-bronze" style={{ width: value }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="gw-panel overflow-hidden rounded-xl backdrop-blur md:rounded-2xl">
+    <div className="relative mx-auto grid w-full max-w-3xl gap-4 xl:grid-cols-[minmax(0,1fr)_230px] xl:items-center">
+      <div className="gw-panel min-w-0 overflow-hidden rounded-xl backdrop-blur md:rounded-2xl">
         <div className="flex items-center justify-between border-b border-border bg-white/75 px-5 py-4">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-wine/45" />
@@ -236,7 +215,7 @@ function ProductCockpit() {
         </div>
       </div>
 
-      <div className="absolute -bottom-8 right-8 hidden w-60 rounded-xl border border-white/75 bg-ink p-4 text-white shadow-warm xl:block">
+      <div className="rounded-xl border border-white/75 bg-ink p-4 text-white shadow-warm">
         <div className="flex items-center gap-2">
           <MessagesSquare className="h-4 w-4 text-bronze" />
           <p className="text-sm font-semibold">Diretoria pedagógica</p>

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { recordAuthenticatedLogout } from "@/functions/privacy.functions";
 import type { Session, User } from "@supabase/supabase-js";
 
 export type AppRole = "dev" | "professor" | "aluno";
@@ -87,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    try {
+      if (user) await recordAuthenticatedLogout();
+    } catch (error) {
+      console.error("Falha ao registrar logout.", error);
+    }
     await supabase.auth.signOut();
     setRoles([]);
   };

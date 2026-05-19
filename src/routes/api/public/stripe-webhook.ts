@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getStripe } from "@/server/stripe.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
+import { writeSecurityEvent } from "@/server/compliance.server";
 
 type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
 type CheckoutSessionPayload = {
@@ -129,7 +130,15 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
       POST: async ({ request }) => {
         const sig = request.headers.get("stripe-signature");
         const secret = process.env.STRIPE_WEBHOOK_SECRET;
-        if (!sig || !secret) return new Response("Missing signature/secret", { status: 400 });
+        if (!sig || !secret) {
+          await writeSecurityEvent({
+            eventType: "stripe.webhook_missing_signature",
+            severity: "high",
+            route: "/api/public/stripe-webhook",
+            request,
+          });
+          return new Response("Missing signature/secret", { status: 400 });
+        }
 
         const body = await request.text();
         const stripe = getStripe();
@@ -139,6 +148,13 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           event = stripe.webhooks.constructEvent(body, sig, secret);
         } catch (err) {
           console.error("Webhook signature verification failed:", err);
+          await writeSecurityEvent({
+            eventType: "stripe.webhook_invalid_signature",
+            severity: "high",
+            route: "/api/public/stripe-webhook",
+            metadata: { message: err instanceof Error ? err.message : "invalid signature" },
+            request,
+          });
           return new Response("Invalid signature", { status: 401 });
         }
 
@@ -229,6 +245,13 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           }
         } catch (err) {
           console.error("Webhook handler error:", err);
+          await writeSecurityEvent({
+            eventType: "stripe.webhook_handler_error",
+            severity: "high",
+            route: "/api/public/stripe-webhook",
+            metadata: { message: err instanceof Error ? err.message : "handler error" },
+            request,
+          });
           return new Response("Handler error", { status: 500 });
         }
 
