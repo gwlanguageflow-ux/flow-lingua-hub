@@ -46,12 +46,13 @@ import {
 } from "@/components/ui/select";
 import { AvailabilityManager } from "@/components/AvailabilityManager";
 import { MeetingLinkEditor } from "@/components/MeetingLinkEditor";
+import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
 import { openLearningFile, uploadLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — GWLanguageFlow" }] }),
+  head: () => ({ meta: [{ title: "Dashboard - GWLanguageFlow" }] }),
   component: () => (
     <RequireAuth allow={["professor", "dev"]}>
       <DashboardPage />
@@ -1765,26 +1766,24 @@ function WalletPanel({
     }
 
     setSubmitting(true);
-    const { error } = await supabase.rpc("request_teacher_withdrawal", {
-      _amount: parsedAmount,
-      _pix_key_type: inferPixKeyType(pixKey),
-      _pix_key: pixKey.trim(),
-      _account_holder_name: holderName.trim(),
-      _account_holder_document: undefined,
-      _teacher_notes: undefined,
-    });
-    setSubmitting(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await requestTeacherWithdrawal({
+        data: {
+          amount: parsedAmount,
+          pixKey: pixKey.trim(),
+          accountHolderName: holderName.trim(),
+        },
+      });
+      toast.success("Saque Pix enviado para processamento.");
+      setAmount("");
+      setPixKey("");
+      setHolderName("");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel solicitar o saque.");
+    } finally {
+      setSubmitting(false);
     }
-
-    toast.success("Solicitação de saque enviada.");
-    setAmount("");
-    setPixKey("");
-    setHolderName("");
-    await onChanged();
   };
 
   return (

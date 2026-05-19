@@ -3,5 +3,11 @@
   "framework": "tanstack-start",
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev"
+  "devCommand": "npm run dev",
+  "crons": [
+    {
+      "path": "/api/internal/asaas-recurring-billing",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

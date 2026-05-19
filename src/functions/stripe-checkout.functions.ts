@@ -2,14 +2,33 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  createAsaasCustomer,
+  createAsaasPixAutomaticAuthorization,
+  requireAsaasConfig,
+} from "@/server/asaas.server";
+
+function formatDateOnly(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function asaasFrequency(interval: string) {
+  if (interval === "trimestral") return "QUARTERLY" as const;
+  if (interval === "anual") return "ANNUALLY" as const;
+  return "MONTHLY" as const;
+}
+
+function contractIdFromSubscription(subscriptionId: string) {
+  return subscriptionId.replace(/-/g, "").slice(0, 35);
+}
 
 /**
- * Cria uma Checkout Session de assinatura ou pagamento único PIX.
+ * Cria uma Checkout Session de assinatura ou autorização Pix.
  * - Cartão: cria/usa um Stripe Price recorrente e abre subscription Checkout.
- * - PIX: cria pagamento único do período (PIX no Stripe não suporta recorrência).
+ * - Pix: cria uma autorização de Pix Automático pelo Asaas.
  *
  * Em ambos os casos, registra/atualiza student_subscriptions com status pendente.
- * O webhook confirma a ativação após pagamento.
+ * O webhook confirma a ativação após pagamento/autorização.
  */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
@@ -26,12 +45,8 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const [{ supabaseAdmin }, { getStripe }] = await Promise.all([
-      import("@/integrations/supabase/client.server"),
-      import("@/server/stripe.server"),
-    ]);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
-    const stripe = getStripe();
 
     // 1. Carrega plano
     const [{ data: plan, error: pErr }, { data: teacher, error: tErr }] = await Promise.all([
@@ -51,28 +66,33 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (pErr || !plan) throw new Error("Plano não encontrado");
     if (tErr || !teacher) throw new Error("Professor não encontrado ou inativo");
 
-    // 2. Carrega/cria customer Stripe
-    const { data: existingSub } = await supabaseAdmin
-      .from("student_subscriptions")
-      .select("stripe_customer_id")
-      .eq("student_id", userId)
-      .not("stripe_customer_id", "is", null)
-      .limit(1)
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("email, full_name, cpf")
+      .eq("id", userId)
       .maybeSingle();
 
-    let customerId = existingSub?.stripe_customer_id ?? null;
-    if (!customerId) {
-      const { data: prof } = await supabaseAdmin
-        .from("profiles")
-        .select("email, full_name")
-        .eq("id", userId)
+    let stripeCustomerId: string | null = null;
+    if (data.paymentMethod === "card") {
+      const { getStripe } = await import("@/server/stripe.server");
+      const stripe = getStripe();
+      const { data: existingSub } = await supabaseAdmin
+        .from("student_subscriptions")
+        .select("stripe_customer_id")
+        .eq("student_id", userId)
+        .not("stripe_customer_id", "is", null)
+        .limit(1)
         .maybeSingle();
-      const customer = await stripe.customers.create({
-        email: prof?.email ?? undefined,
-        name: prof?.full_name ?? undefined,
-        metadata: { user_id: userId },
-      });
-      customerId = customer.id;
+
+      stripeCustomerId = existingSub?.stripe_customer_id ?? null;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: profile?.email ?? undefined,
+          name: profile?.full_name ?? undefined,
+          metadata: { user_id: userId },
+        });
+        stripeCustomerId = customer.id;
+      }
     }
 
     // 3. Calcula período
@@ -91,7 +111,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         plan_id: plan.id,
         status: "pendente",
         payment_method: data.paymentMethod,
-        stripe_customer_id: customerId,
+        stripe_customer_id: stripeCustomerId,
         terms_accepted_at: now.toISOString(),
         terms_version: "v1",
       })
@@ -106,9 +126,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     // 5. Cria Checkout Session
     let session;
     if (data.paymentMethod === "card") {
+      const { getStripe } = await import("@/server/stripe.server");
+      const stripe = getStripe();
       session = await stripe.checkout.sessions.create({
         mode: "subscription",
-        customer: customerId,
+        customer: stripeCustomerId!,
         payment_method_types: ["card"],
         line_items: [
           {
@@ -120,7 +142,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
                 interval_count: intervalCount,
               },
               product_data: {
-                name: `${plan.name} — GWLanguageFlow`,
+                name: `${plan.name} - GWLanguageFlow`,
                 description: plan.description ?? undefined,
               },
             },
@@ -145,43 +167,53 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         cancel_url: data.cancelUrl,
       });
     } else {
-      // PIX = pagamento único do período
-      session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        customer: customerId,
-        payment_method_types: ["pix"],
-        line_items: [
-          {
-            price_data: {
-              currency: "brl",
-              unit_amount: totalCents,
-              product_data: {
-                name: `${plan.name} (${plan.interval}) — GWLanguageFlow`,
-                description: "Pagamento único do período. PIX não renova automaticamente.",
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        payment_intent_data: {
-          metadata: {
-            subscription_id: sub.id,
-            plan_slug: plan.slug,
-            teacher_id: data.teacherId,
-            user_id: userId,
-            period_end: periodEnd.toISOString(),
-          },
-        },
-        metadata: {
-          subscription_id: sub.id,
-          plan_slug: plan.slug,
-          teacher_id: data.teacherId,
-          user_id: userId,
-          period_end: periodEnd.toISOString(),
-        },
-        success_url: data.successUrl,
-        cancel_url: data.cancelUrl,
+      requireAsaasConfig();
+      const cpfCnpj = profile?.cpf?.replace(/\D/g, "") ?? "";
+      if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+        throw new Error("CPF do aluno é obrigatório para ativar Pix Automático.");
+      }
+
+      const asaasCustomer = await createAsaasCustomer({
+        name: profile?.full_name ?? "Aluno GWLanguageFlow",
+        email: profile?.email ?? null,
+        cpfCnpj,
+        externalReference: `student:${userId}`,
       });
+      const contractId = contractIdFromSubscription(sub.id);
+      const authorization = await createAsaasPixAutomaticAuthorization({
+        customerId: asaasCustomer.id,
+        contractId,
+        frequency: asaasFrequency(plan.interval),
+        startDate: formatDateOnly(now),
+        value: Number(plan.price),
+        description: `GWLanguageFlow ${plan.interval}`,
+      });
+      const immediateQrCode = authorization.immediateQrCode ?? null;
+
+      await supabaseAdmin
+        .from("student_subscriptions")
+        .update({
+          asaas_customer_id: asaasCustomer.id,
+          asaas_pix_authorization_id: authorization.id,
+          asaas_pix_authorization_status: authorization.status ?? null,
+          asaas_pix_contract_id: contractId,
+          asaas_pix_payload: immediateQrCode?.payload ?? null,
+          asaas_pix_encoded_image: immediateQrCode?.encodedImage ?? null,
+          asaas_pix_expiration_date: immediateQrCode?.expirationDate ?? null,
+          asaas_pix_conciliation_id: immediateQrCode?.conciliationIdentifier ?? null,
+        })
+        .eq("id", sub.id);
+
+      return {
+        subscriptionId: sub.id,
+        pix: {
+          provider: "asaas",
+          authorizationId: authorization.id,
+          payload: immediateQrCode?.payload ?? "",
+          encodedImage: immediateQrCode?.encodedImage ?? null,
+          expirationDate: immediateQrCode?.expirationDate ?? null,
+        },
+      };
     }
 
     await supabaseAdmin

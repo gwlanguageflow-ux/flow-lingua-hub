@@ -8,6 +8,92 @@ export type Database = {
   };
   public: {
     Tables: {
+      asaas_webhook_events: {
+        Row: {
+          created_at: string;
+          event_key: string;
+          event_type: string | null;
+          id: string;
+          payload: Json;
+          processed_at: string | null;
+          processing_error: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          event_key: string;
+          event_type?: string | null;
+          id?: string;
+          payload: Json;
+          processed_at?: string | null;
+          processing_error?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          event_key?: string;
+          event_type?: string | null;
+          id?: string;
+          payload?: Json;
+          processed_at?: string | null;
+          processing_error?: string | null;
+        };
+        Relationships: [];
+      };
+      asaas_subscription_payments: {
+        Row: {
+          amount: number;
+          asaas_payment_id: string;
+          created_at: string;
+          due_date: string;
+          id: string;
+          invoice_url: string | null;
+          payment_reference: string;
+          payload: Json | null;
+          period_end: string;
+          period_start: string;
+          status: string | null;
+          subscription_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          asaas_payment_id: string;
+          created_at?: string;
+          due_date: string;
+          id?: string;
+          invoice_url?: string | null;
+          payment_reference: string;
+          payload?: Json | null;
+          period_end: string;
+          period_start: string;
+          status?: string | null;
+          subscription_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          amount?: number;
+          asaas_payment_id?: string;
+          created_at?: string;
+          due_date?: string;
+          id?: string;
+          invoice_url?: string | null;
+          payment_reference?: string;
+          payload?: Json | null;
+          period_end?: string;
+          period_start?: string;
+          status?: string | null;
+          subscription_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asaas_subscription_payments_subscription_id_fkey";
+            columns: ["subscription_id"];
+            isOneToOne: false;
+            referencedRelation: "student_subscriptions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       bookings: {
         Row: {
           created_at: string;
@@ -368,6 +454,80 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_withdrawal_requests: {
+        Row: {
+          account_holder_name: string;
+          amount: number;
+          created_at: string;
+          id: string;
+          paid_at: string | null;
+          payout_error: string | null;
+          payout_external_id: string | null;
+          payout_external_status: string | null;
+          payout_provider: string | null;
+          payout_receipt_url: string | null;
+          payout_requested_at: string | null;
+          payout_response: Json | null;
+          pix_key: string;
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          processed_at: string | null;
+          requested_by: string | null;
+          status: Database["public"]["Enums"]["teacher_withdrawal_status"];
+          updated_at: string;
+          wallet_transaction_id: string | null;
+        };
+        Insert: {
+          account_holder_name: string;
+          amount: number;
+          created_at?: string;
+          id?: string;
+          paid_at?: string | null;
+          payout_error?: string | null;
+          payout_external_id?: string | null;
+          payout_external_status?: string | null;
+          payout_provider?: string | null;
+          payout_receipt_url?: string | null;
+          payout_requested_at?: string | null;
+          payout_response?: Json | null;
+          pix_key: string;
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          processed_at?: string | null;
+          requested_by?: string | null;
+          status?: Database["public"]["Enums"]["teacher_withdrawal_status"];
+          updated_at?: string;
+          wallet_transaction_id?: string | null;
+        };
+        Update: {
+          account_holder_name?: string;
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          paid_at?: string | null;
+          payout_error?: string | null;
+          payout_external_id?: string | null;
+          payout_external_status?: string | null;
+          payout_provider?: string | null;
+          payout_receipt_url?: string | null;
+          payout_requested_at?: string | null;
+          payout_response?: Json | null;
+          pix_key?: string;
+          pix_key_type?: Database["public"]["Enums"]["pix_key_type"];
+          processed_at?: string | null;
+          requested_by?: string | null;
+          status?: Database["public"]["Enums"]["teacher_withdrawal_status"];
+          updated_at?: string;
+          wallet_transaction_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_withdrawal_requests_wallet_transaction_id_fkey";
+            columns: ["wallet_transaction_id"];
+            isOneToOne: false;
+            referencedRelation: "platform_wallet_transactions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           age: number | null;
@@ -517,6 +677,16 @@ export type Database = {
       };
       student_subscriptions: {
         Row: {
+          asaas_customer_id: string | null;
+          asaas_payment_id: string | null;
+          asaas_payment_status: string | null;
+          asaas_pix_authorization_id: string | null;
+          asaas_pix_authorization_status: string | null;
+          asaas_pix_conciliation_id: string | null;
+          asaas_pix_contract_id: string | null;
+          asaas_pix_encoded_image: string | null;
+          asaas_pix_expiration_date: string | null;
+          asaas_pix_payload: string | null;
           cancel_at_period_end: boolean;
           created_at: string;
           current_period_end: string | null;
@@ -536,6 +706,16 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          asaas_customer_id?: string | null;
+          asaas_payment_id?: string | null;
+          asaas_payment_status?: string | null;
+          asaas_pix_authorization_id?: string | null;
+          asaas_pix_authorization_status?: string | null;
+          asaas_pix_conciliation_id?: string | null;
+          asaas_pix_contract_id?: string | null;
+          asaas_pix_encoded_image?: string | null;
+          asaas_pix_expiration_date?: string | null;
+          asaas_pix_payload?: string | null;
           cancel_at_period_end?: boolean;
           created_at?: string;
           current_period_end?: string | null;
@@ -555,6 +735,16 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          asaas_customer_id?: string | null;
+          asaas_payment_id?: string | null;
+          asaas_payment_status?: string | null;
+          asaas_pix_authorization_id?: string | null;
+          asaas_pix_authorization_status?: string | null;
+          asaas_pix_conciliation_id?: string | null;
+          asaas_pix_contract_id?: string | null;
+          asaas_pix_encoded_image?: string | null;
+          asaas_pix_expiration_date?: string | null;
+          asaas_pix_payload?: string | null;
           cancel_at_period_end?: boolean;
           created_at?: string;
           current_period_end?: string | null;
@@ -1051,6 +1241,13 @@ export type Database = {
           paid_at: string | null;
           pix_key: string;
           pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          payout_error: string | null;
+          payout_external_id: string | null;
+          payout_external_status: string | null;
+          payout_provider: string | null;
+          payout_receipt_url: string | null;
+          payout_requested_at: string | null;
+          payout_response: Json | null;
           processed_at: string | null;
           requested_at: string;
           status: Database["public"]["Enums"]["teacher_withdrawal_status"];
@@ -1068,6 +1265,13 @@ export type Database = {
           paid_at?: string | null;
           pix_key: string;
           pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          payout_error?: string | null;
+          payout_external_id?: string | null;
+          payout_external_status?: string | null;
+          payout_provider?: string | null;
+          payout_receipt_url?: string | null;
+          payout_requested_at?: string | null;
+          payout_response?: Json | null;
           processed_at?: string | null;
           requested_at?: string;
           status?: Database["public"]["Enums"]["teacher_withdrawal_status"];
@@ -1085,6 +1289,13 @@ export type Database = {
           paid_at?: string | null;
           pix_key?: string;
           pix_key_type?: Database["public"]["Enums"]["pix_key_type"];
+          payout_error?: string | null;
+          payout_external_id?: string | null;
+          payout_external_status?: string | null;
+          payout_provider?: string | null;
+          payout_receipt_url?: string | null;
+          payout_requested_at?: string | null;
+          payout_response?: Json | null;
           processed_at?: string | null;
           requested_at?: string;
           status?: Database["public"]["Enums"]["teacher_withdrawal_status"];
@@ -1414,6 +1625,18 @@ export type Database = {
           _use_custom_pricing: boolean;
         };
         Returns: undefined;
+      };
+      create_teacher_withdrawal_request: {
+        Args: {
+          _account_holder_document?: string | null;
+          _account_holder_name: string;
+          _amount: number;
+          _pix_key: string;
+          _pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          _teacher_id: string;
+          _teacher_notes?: string | null;
+        };
+        Returns: string;
       };
       credit_teacher_for_completed_booking: {
         Args: { _booking_id: string };

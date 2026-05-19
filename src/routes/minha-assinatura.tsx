@@ -183,7 +183,7 @@ function Page() {
                   label="Forma de pagamento"
                   value={
                     sub.payment_method === "pix"
-                      ? "PIX"
+                      ? "Pix Automático"
                       : sub.payment_method === "card"
                         ? "Cartão (recorrente)"
                         : "—"

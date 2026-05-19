@@ -27,6 +27,8 @@ import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-passw
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
+import { Route as ApiInternalAsaasRecurringBillingRouteImport } from './routes/api/internal/asaas-recurring-billing'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -118,6 +120,17 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
+  id: '/api/public/asaas-webhook',
+  path: '/api/public/asaas-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalAsaasRecurringBillingRoute =
+  ApiInternalAsaasRecurringBillingRouteImport.update({
+    id: '/api/internal/asaas-recurring-billing',
+    path: '/api/internal/asaas-recurring-billing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -137,6 +150,8 @@ export interface FileRoutesByFullPath {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
+  '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
+  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -157,6 +172,8 @@ export interface FileRoutesByTo {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
+  '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
+  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesById {
@@ -178,6 +195,8 @@ export interface FileRoutesById {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
+  '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
+  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRouteTypes {
@@ -200,6 +219,8 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
+    | '/api/internal/asaas-recurring-billing'
+    | '/api/public/asaas-webhook'
     | '/api/public/stripe-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -220,6 +241,8 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
+    | '/api/internal/asaas-recurring-billing'
+    | '/api/public/asaas-webhook'
     | '/api/public/stripe-webhook'
   id:
     | '__root__'
@@ -240,6 +263,8 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
+    | '/api/internal/asaas-recurring-billing'
+    | '/api/public/asaas-webhook'
     | '/api/public/stripe-webhook'
   fileRoutesById: FileRoutesById
 }
@@ -261,6 +286,8 @@ export interface RootRouteChildren {
   CadastroAlunoRoute: typeof CadastroAlunoRoute
   CadastroProfessorRoute: typeof CadastroProfessorRoute
   ProfessorIdRoute: typeof ProfessorIdRoute
+  ApiInternalAsaasRecurringBillingRoute: typeof ApiInternalAsaasRecurringBillingRoute
+  ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
@@ -392,6 +419,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/asaas-webhook': {
+      id: '/api/public/asaas-webhook'
+      path: '/api/public/asaas-webhook'
+      fullPath: '/api/public/asaas-webhook'
+      preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/asaas-recurring-billing': {
+      id: '/api/internal/asaas-recurring-billing'
+      path: '/api/internal/asaas-recurring-billing'
+      fullPath: '/api/internal/asaas-recurring-billing'
+      preLoaderRoute: typeof ApiInternalAsaasRecurringBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -413,6 +454,8 @@ const rootRouteChildren: RootRouteChildren = {
   CadastroAlunoRoute: CadastroAlunoRoute,
   CadastroProfessorRoute: CadastroProfessorRoute,
   ProfessorIdRoute: ProfessorIdRoute,
+  ApiInternalAsaasRecurringBillingRoute: ApiInternalAsaasRecurringBillingRoute,
+  ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

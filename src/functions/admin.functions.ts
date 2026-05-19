@@ -3,8 +3,10 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Enums, Tables } from "@/integrations/supabase/types";
+import { createAsaasPixTransfer, requireAsaasConfig } from "@/server/asaas.server";
 
 type AppRole = Enums<"app_role">;
+type WithdrawalStatus = Enums<"teacher_withdrawal_status">;
 type TargetType = "all" | "role" | "user" | "class";
 type Profile = Tables<"profiles">;
 type UserRole = Tables<"user_roles">;
@@ -189,6 +191,12 @@ function maskPixKey(value: string, type: string) {
     return digits.length >= 4 ? `***${digits.slice(-4)}` : "Telefone configurado";
   }
   return "Chave configurada";
+}
+
+function mapTransferStatus(status: string | null | undefined): WithdrawalStatus {
+  if (status === "DONE") return "pago";
+  if (status === "CANCELLED") return "cancelado";
+  return "em_processamento";
 }
 
 function inPeriod(dateValue: string | null | undefined, start: Date, end: Date) {
@@ -411,6 +419,7 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => directorWithdrawalSchema.parse(input))
   .handler(async ({ data, context }) => {
+    requireAsaasConfig();
     const supabaseAdmin = await requireDirector(context.userId);
     const amount = toMoney(data.amount);
 
@@ -436,20 +445,104 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
     const note = data.note?.trim();
     const pixKeyType = inferPixKeyType(data.pixKey);
     const destinationLabel = `${data.accountHolderName.trim()} | ${pixKeyType.toUpperCase()} ${maskPixKey(data.pixKey, pixKeyType)}`;
-    const { error } = await supabaseAdmin.from("platform_wallet_transactions").insert({
-      transaction_type: "manual_adjustment",
-      amount: -amount,
-      gross_amount: null,
-      fee_rate: 0.1,
-      description: note
-        ? `Saque da diretoria para ${destinationLabel}: ${note}`
-        : `Saque da diretoria para ${destinationLabel}`,
-      created_by: context.userId,
-    });
+    const { data: withdrawal, error: withdrawalError } = await supabaseAdmin
+      .from("platform_withdrawal_requests")
+      .insert({
+        amount,
+        pix_key_type: pixKeyType,
+        pix_key: data.pixKey.trim(),
+        account_holder_name: data.accountHolderName.trim(),
+        requested_by: context.userId,
+        status: "pendente",
+      })
+      .select("id")
+      .single();
 
-    if (error) throw new Error(error.message);
+    if (withdrawalError || !withdrawal) {
+      throw new Error(withdrawalError?.message ?? "Nao foi possivel criar o saque da plataforma.");
+    }
 
-    return { ok: true };
+    const { data: walletTransaction, error: walletError } = await supabaseAdmin
+      .from("platform_wallet_transactions")
+      .insert({
+        transaction_type: "manual_adjustment",
+        amount: -amount,
+        gross_amount: null,
+        fee_rate: 0.1,
+        description: note
+          ? `Saque da diretoria para ${destinationLabel}: ${note}`
+          : `Saque da diretoria para ${destinationLabel}`,
+        created_by: context.userId,
+      })
+      .select("id")
+      .single();
+
+    if (walletError || !walletTransaction) {
+      await supabaseAdmin
+        .from("platform_withdrawal_requests")
+        .update({
+          status: "falhou",
+          payout_error: walletError?.message ?? "Falha ao registrar transacao da carteira.",
+        })
+        .eq("id", withdrawal.id);
+      throw new Error(walletError?.message ?? "Falha ao registrar transacao da carteira.");
+    }
+
+    await supabaseAdmin
+      .from("platform_withdrawal_requests")
+      .update({ wallet_transaction_id: walletTransaction.id })
+      .eq("id", withdrawal.id);
+
+    try {
+      const transfer = await createAsaasPixTransfer({
+        amount,
+        pixKey: data.pixKey,
+        description: `Saque plataforma GWLanguageFlow ${withdrawal.id}`,
+        externalReference: `platform-withdrawal:${withdrawal.id}`,
+      });
+      const status = mapTransferStatus(transfer.status);
+      const now = new Date().toISOString();
+
+      const { error: updateError } = await supabaseAdmin
+        .from("platform_withdrawal_requests")
+        .update({
+          status,
+          payout_provider: "asaas",
+          payout_external_id: transfer.id,
+          payout_external_status: transfer.status ?? null,
+          payout_response: transfer,
+          payout_error: null,
+          payout_requested_at: now,
+          payout_receipt_url: transfer.transactionReceiptUrl ?? null,
+          processed_at: now,
+          paid_at: status === "pago" ? now : null,
+        })
+        .eq("id", withdrawal.id);
+
+      if (updateError) throw new Error(updateError.message);
+
+      return { ok: true, provider: "asaas", transferId: transfer.id, status };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Falha ao enviar Pix pelo Asaas.";
+      await supabaseAdmin
+        .from("platform_withdrawal_requests")
+        .update({
+          status: "falhou",
+          payout_provider: "asaas",
+          payout_error: message.slice(0, 500),
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", withdrawal.id);
+      await supabaseAdmin.from("platform_wallet_transactions").insert({
+        transaction_type: "manual_adjustment",
+        amount,
+        gross_amount: null,
+        fee_rate: 0.1,
+        description: `Reversao automatica de saque da diretoria para ${destinationLabel}`,
+        created_by: context.userId,
+      });
+      throw new Error(message);
+    }
   });
 
 export const createDirectorMessage = createServerFn({ method: "POST" })
