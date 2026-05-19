@@ -1741,18 +1741,16 @@ function WalletPanel({
   onChanged: () => void | Promise<void>;
 }) {
   const [amount, setAmount] = useState("");
-  const [pixKeyType, setPixKeyType] = useState<WithdrawalRequest["pix_key_type"]>("cpf");
   const [pixKey, setPixKey] = useState("");
   const [holderName, setHolderName] = useState("");
-  const [holderDocument, setHolderDocument] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const submitWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseMoney(amount);
 
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 10) {
-      toast.error("O saque mínimo é de R$ 10,00.");
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Informe um valor maior que zero.");
       return;
     }
 
@@ -1769,10 +1767,10 @@ function WalletPanel({
     setSubmitting(true);
     const { error } = await supabase.rpc("request_teacher_withdrawal", {
       _amount: parsedAmount,
-      _pix_key_type: pixKeyType,
+      _pix_key_type: inferPixKeyType(pixKey),
       _pix_key: pixKey.trim(),
       _account_holder_name: holderName.trim(),
-      _account_holder_document: holderDocument.trim() || undefined,
+      _account_holder_document: undefined,
       _teacher_notes: undefined,
     });
     setSubmitting(false);
@@ -1786,7 +1784,6 @@ function WalletPanel({
     setAmount("");
     setPixKey("");
     setHolderName("");
-    setHolderDocument("");
     await onChanged();
   };
 
@@ -1824,12 +1821,30 @@ function WalletPanel({
           <div>
             <h3 className="font-display text-xl text-wine">Solicitar saque Pix</h3>
             <p className="text-sm text-brown-soft mt-1">
-              O professor pode solicitar saque sempre que houver saldo disponível.
+              Informe o nome completo, a chave Pix e o valor que deseja sacar.
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Valor do saque</Label>
+            <Label>Nome completo</Label>
+            <Input
+              value={holderName}
+              onChange={(e) => setHolderName(e.target.value)}
+              placeholder="Nome do titular da chave Pix"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Chave Pix</Label>
+            <Input
+              value={pixKey}
+              onChange={(e) => setPixKey(e.target.value)}
+              placeholder="CPF, e-mail, telefone ou chave aleatória"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Valor que deseja sacar</Label>
             <Input
               inputMode="decimal"
               placeholder="Ex: 150,00"
@@ -1838,51 +1853,13 @@ function WalletPanel({
             />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Tipo da chave Pix</Label>
-              <Select
-                value={pixKeyType}
-                onValueChange={(value) => setPixKeyType(value as WithdrawalRequest["pix_key_type"])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cpf">CPF</SelectItem>
-                  <SelectItem value="email">E-mail</SelectItem>
-                  <SelectItem value="telefone">Telefone</SelectItem>
-                  <SelectItem value="aleatoria">Chave aleatoria</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Chave Pix</Label>
-              <Input value={pixKey} onChange={(e) => setPixKey(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Nome do titular</Label>
-            <Input value={holderName} onChange={(e) => setHolderName(e.target.value)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>CPF/CNPJ do titular</Label>
-            <Input
-              inputMode="numeric"
-              value={holderDocument}
-              onChange={(e) => setHolderDocument(e.target.value)}
-            />
-          </div>
-
           <Button
             type="submit"
-            disabled={submitting || Number(summary.available_balance || 0) < 10}
+            disabled={submitting || Number(summary.available_balance || 0) <= 0}
             className="w-full bg-bronze text-white hover:bg-wine shadow-bronze gap-2"
           >
             <Send className="h-4 w-4" />
-            {submitting ? "Enviando..." : "Solicitar saque"}
+            {submitting ? "Sacando..." : "Sacar"}
           </Button>
         </form>
 
@@ -2036,6 +2013,15 @@ function formatMoney(value: number | string | null | undefined) {
 function parseMoney(value: string) {
   const normalized = value.replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
   return Number(normalized);
+}
+
+function inferPixKeyType(value: string): WithdrawalRequest["pix_key_type"] {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "email";
+  if (digits.length === 11) return "cpf";
+  if (digits.length >= 10 && digits.length <= 13) return "telefone";
+  return "aleatoria";
 }
 
 function transactionLabel(type: WalletTransaction["transaction_type"]) {

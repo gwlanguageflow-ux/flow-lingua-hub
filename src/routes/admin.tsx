@@ -99,13 +99,6 @@ type PlatformWalletSummary = {
   planRanking: PlatformPlanRanking[];
 };
 
-type PlatformPayoutDestination = {
-  configured: boolean;
-  holderName: string;
-  pixKeyType: string;
-  maskedPixKey: string;
-};
-
 type TargetForm = {
   targetType: TargetType;
   targetRole: AppRole;
@@ -151,13 +144,6 @@ const emptyPlatformWalletSummary: PlatformWalletSummary = {
   planRanking: [],
 };
 
-const emptyPlatformPayoutDestination: PlatformPayoutDestination = {
-  configured: false,
-  holderName: "",
-  pixKeyType: "cpf",
-  maskedPixKey: "",
-};
-
 const platformRangeLabels: Record<PlatformRange, string> = {
   "30d": "30 dias",
   "90d": "Trimestre",
@@ -190,8 +176,6 @@ function AdminPage() {
   const [platformWalletSummary, setPlatformWalletSummary] = useState<PlatformWalletSummary>(
     emptyPlatformWalletSummary,
   );
-  const [platformPayoutDestination, setPlatformPayoutDestination] =
-    useState<PlatformPayoutDestination>(emptyPlatformPayoutDestination);
   const [platformRange, setPlatformRange] = useState<PlatformRange>("30d");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [userFilter, setUserFilter] = useState<"all" | "professor" | "aluno">("all");
@@ -238,7 +222,6 @@ function AdminPage() {
       setAnonymousReports(dashboard.anonymousReports);
       setPlatformWalletTransactions(dashboard.platformWalletTransactions);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
-      setPlatformPayoutDestination(dashboard.platformPayoutDestination);
       setReportDrafts(
         Object.fromEntries(
           dashboard.anonymousReports.map((report) => [
@@ -909,7 +892,6 @@ function AdminPage() {
               <DirectorWalletPanel
                 summary={platformWalletSummary}
                 transactions={platformWalletTransactions}
-                payoutDestination={platformPayoutDestination}
                 range={platformRange}
                 onRangeChange={setPlatformRange}
                 onChanged={loadDashboard}
@@ -943,20 +925,19 @@ function AdminPage() {
 function DirectorWalletPanel({
   summary,
   transactions,
-  payoutDestination,
   range,
   onRangeChange,
   onChanged,
 }: {
   summary: PlatformWalletSummary;
   transactions: PlatformWalletTransaction[];
-  payoutDestination: PlatformPayoutDestination;
   range: PlatformRange;
   onRangeChange: Dispatch<SetStateAction<PlatformRange>>;
   onChanged: () => void | Promise<void>;
 }) {
   const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
+  const [accountHolderName, setAccountHolderName] = useState("");
+  const [pixKey, setPixKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const series = summary.ranges[range] ?? [];
   const periodFees = series.reduce((sum, item) => sum + item.platformFees, 0);
@@ -977,8 +958,8 @@ function DirectorWalletPanel({
       return;
     }
 
-    if (!payoutDestination.configured) {
-      toast.error("Configure a chave Pix da diretoria na Vercel antes de sacar.");
+    if (accountHolderName.trim().length < 2 || pixKey.trim().length < 3) {
+      toast.error("Preencha o nome completo e a chave Pix.");
       return;
     }
 
@@ -987,12 +968,15 @@ function DirectorWalletPanel({
       await requestDirectorWithdrawal({
         data: {
           amount: parsedAmount,
-          note: note.trim() || null,
+          accountHolderName: accountHolderName.trim(),
+          pixKey: pixKey.trim(),
+          note: null,
         },
       });
-      toast.success("Saque da diretoria registrado na carteira.");
+      toast.success("Saque da diretoria registrado.");
       setAmount("");
-      setNote("");
+      setAccountHolderName("");
+      setPixKey("");
       await onChanged();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível registrar o saque.");
@@ -1089,34 +1073,26 @@ function DirectorWalletPanel({
         <form onSubmit={submitWithdrawal} className="rounded-xl border border-border bg-white p-4">
           <SectionTitle icon={LineChart} title="Saque da plataforma" />
           <p className="mt-2 text-sm text-brown-soft">
-            O saque registra a retirada do saldo da diretoria e aponta o destino Pix configurado.
+            Informe o nome completo, a chave Pix e o valor que deseja sacar da carteira da
+            plataforma.
           </p>
 
-          <div className="mt-4 rounded-xl border border-bronze/30 bg-cream p-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-bronze">Destino Pix</p>
-                <p className="mt-1 text-sm font-bold text-wine">
-                  {payoutDestination.holderName || "Diretoria"}
-                </p>
-                <p className="text-sm text-brown-soft">
-                  {payoutDestination.configured
-                    ? `${payoutDestination.pixKeyType.toUpperCase()} ${payoutDestination.maskedPixKey}`
-                    : "Chave Pix pendente nas variáveis de ambiente"}
-                </p>
-              </div>
-              <Badge
-                className={`w-fit rounded-full ${
-                  payoutDestination.configured ? "bg-emerald-700" : "bg-brown-soft"
-                } text-white`}
-              >
-                {payoutDestination.configured ? "Configurado" : "Pendente"}
-              </Badge>
-            </div>
-          </div>
-
           <div className="mt-4 grid gap-3">
-            <Field label="Valor do saque">
+            <Field label="Nome completo">
+              <Input
+                value={accountHolderName}
+                onChange={(event) => setAccountHolderName(event.target.value)}
+                placeholder="Nome da titular da chave Pix"
+              />
+            </Field>
+            <Field label="Chave Pix">
+              <Input
+                value={pixKey}
+                onChange={(event) => setPixKey(event.target.value)}
+                placeholder="CPF, e-mail, telefone ou chave aleatória"
+              />
+            </Field>
+            <Field label="Valor que deseja sacar">
               <Input
                 inputMode="decimal"
                 placeholder="Ex.: 250,00"
@@ -1124,21 +1100,13 @@ function DirectorWalletPanel({
                 onChange={(event) => setAmount(event.target.value)}
               />
             </Field>
-            <Field label="Observação opcional">
-              <Textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="Ex.: Saque Pix da diretoria"
-                className="min-h-24"
-              />
-            </Field>
             <Button
               type="submit"
-              disabled={submitting || availableBalance <= 0 || !payoutDestination.configured}
+              disabled={submitting || availableBalance <= 0}
               className="rounded-lg bg-wine text-white hover:bg-bronze"
             >
               <Send className="mr-2 h-4 w-4" />
-              {submitting ? "Registrando..." : "Registrar saque"}
+              {submitting ? "Sacando..." : "Sacar"}
             </Button>
           </div>
         </form>
@@ -1350,7 +1318,6 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     anonymousReports: data?.anonymousReports ?? [],
     platformWalletTransactions: data?.platformWalletTransactions ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,
-    platformPayoutDestination: data?.platformPayoutDestination ?? emptyPlatformPayoutDestination,
   };
 }
 

@@ -17,12 +17,6 @@ type SubscriptionWithPlan = Pick<
   subscription_plans: SubscriptionPlanSummary | null;
 };
 type PlatformRange = "30d" | "90d" | "365d";
-type PlatformPayoutDestination = {
-  configured: boolean;
-  holderName: string;
-  pixKeyType: string;
-  maskedPixKey: string;
-};
 type DirectorTarget = {
   target_type: TargetType;
   target_role: AppRole | null;
@@ -70,6 +64,8 @@ const updateReportSchema = z.object({
 
 const directorWithdrawalSchema = z.object({
   amount: z.coerce.number().positive(),
+  accountHolderName: z.string().trim().min(2).max(160),
+  pixKey: z.string().trim().min(3).max(200),
   note: z.string().trim().max(500).optional().nullable(),
 });
 
@@ -172,14 +168,18 @@ function maskCpf(value: string) {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
 }
 
+function inferPixKeyType(value: string) {
+  const trimmed = value.trim();
+  const digits = onlyDigits(trimmed);
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "email";
+  if (digits.length === 11) return "cpf";
+  if (digits.length >= 10 && digits.length <= 13) return "telefone";
+  return "aleatoria";
+}
+
 function maskPixKey(value: string, type: string) {
   if (!value) return "";
   if (type === "cpf") return maskCpf(value);
-  if (type === "cnpj") {
-    const digits = onlyDigits(value);
-    if (digits.length !== 14) return "CNPJ configurado";
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/****-**`;
-  }
   if (type === "email") {
     const [name = "", domain = ""] = value.split("@");
     return `${name.slice(0, 2)}***@${domain}`;
@@ -189,19 +189,6 @@ function maskPixKey(value: string, type: string) {
     return digits.length >= 4 ? `***${digits.slice(-4)}` : "Telefone configurado";
   }
   return "Chave configurada";
-}
-
-function getPlatformPayoutDestination(): PlatformPayoutDestination {
-  const pixKey = process.env.PLATFORM_PIX_KEY?.trim() ?? "";
-  const pixKeyType = (process.env.PLATFORM_PIX_KEY_TYPE?.trim() || "cpf").toLowerCase();
-  const holderName = process.env.PLATFORM_PIX_KEY_HOLDER?.trim() || "Eloiza Gramacho Wanderley";
-
-  return {
-    configured: Boolean(pixKey),
-    holderName,
-    pixKeyType,
-    maskedPixKey: pixKey ? maskPixKey(pixKey, pixKeyType) : "",
-  };
 }
 
 function inPeriod(dateValue: string | null | undefined, start: Date, end: Date) {
@@ -417,7 +404,6 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         (roles ?? []) as UserRole[],
         subscriptionRows,
       ),
-      platformPayoutDestination: getPlatformPayoutDestination(),
     };
   });
 
@@ -427,14 +413,9 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await requireDirector(context.userId);
     const amount = toMoney(data.amount);
-    const payoutDestination = getPlatformPayoutDestination();
 
     if (amount <= 0) {
       throw new Error("Informe um valor maior que zero.");
-    }
-
-    if (!payoutDestination.configured) {
-      throw new Error("Configure a chave Pix da diretoria antes de sacar.");
     }
 
     const { data: balanceRows, error: balanceError } = await supabaseAdmin
@@ -453,7 +434,8 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
     }
 
     const note = data.note?.trim();
-    const destinationLabel = `${payoutDestination.pixKeyType.toUpperCase()} ${payoutDestination.maskedPixKey}`;
+    const pixKeyType = inferPixKeyType(data.pixKey);
+    const destinationLabel = `${data.accountHolderName.trim()} | ${pixKeyType.toUpperCase()} ${maskPixKey(data.pixKey, pixKeyType)}`;
     const { error } = await supabaseAdmin.from("platform_wallet_transactions").insert({
       transaction_type: "manual_adjustment",
       amount: -amount,
