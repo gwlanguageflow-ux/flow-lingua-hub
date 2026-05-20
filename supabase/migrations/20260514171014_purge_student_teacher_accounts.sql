@@ -1,5 +1,5 @@
 -- Remove previously created student and teacher accounts while preserving dev accounts.
--- This is a one-time data cleanup requested before reopening registration tests.
+-- This is a one-time data cleanup requested before reopening public registration.
 DO $$
 DECLARE
   _deleted_subscriptions integer := 0;

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:lgpd": "node scripts/validate-lgpd.mjs",
+    "validate:lgpd": "node scripts/validate-lgpd.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

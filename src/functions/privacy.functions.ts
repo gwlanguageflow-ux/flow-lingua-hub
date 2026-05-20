@@ -68,9 +68,7 @@ const adminActionSchema = z.object({
   reason: z.string().trim().min(3).max(500).optional().nullable(),
 });
 
-const retentionSchema = z.object({
-  dryRun: z.boolean().default(true),
-});
+const retentionSchema = z.object({});
 
 async function requireDirector(userId: string) {
   const db = getComplianceDb();
@@ -499,17 +497,17 @@ export const runPrivacyRequestAdminAction = createServerFn({ method: "POST" })
 export const runLgpdRetentionCleanup = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => retentionSchema.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     const db = await requireDirector(context.userId);
     const { data: result, error } = await db.rpc<Json>("retention_cleanup_lgpd", {
-      _dry_run: data.dryRun,
+      _dry_run: false,
     });
     if (error) throw new Error(error.message);
 
     await writeAuditLog({
       actorUserId: context.userId,
       actorRole: "dev",
-      action: data.dryRun ? "privacy.retention_dry_run" : "privacy.retention_cleanup",
+      action: "privacy.retention_cleanup",
       entityType: "data_retention_rules",
       metadata: { result },
     });

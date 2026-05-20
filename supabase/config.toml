@@ -4,13 +4,7 @@ project_id = "lvderlqrkhodaelknydl"
 site_url = "https://gwlanguageflow.com.br"
 additional_redirect_urls = [
   "https://gwlanguageflow.com.br/**",
-  "https://www.gwlanguageflow.com.br/**",
-  "https://flow-lingua-hub-gwlanguageflow-uxs-projects.vercel.app/**",
-  "https://flow-lingua-hub-git-main-gwlanguageflow-uxs-projects.vercel.app/**",
-  "http://localhost:3000/**",
-  "http://localhost:4177/**",
-  "http://localhost:8080/**",
-  "http://127.0.0.1:4177/**"
+  "https://www.gwlanguageflow.com.br/**"
 ]
 
 [auth.email]

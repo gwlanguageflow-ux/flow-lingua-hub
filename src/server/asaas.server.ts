@@ -1,4 +1,3 @@
-type AsaasEnvironment = "sandbox" | "production";
 type JsonBody = Record<string, unknown>;
 
 export type AsaasPixAddressKeyType = "CPF" | "CNPJ" | "EMAIL" | "PHONE" | "EVP";
@@ -15,10 +14,6 @@ export type AsaasTransferResponse = {
   [key: string]: unknown;
 };
 
-function getEnvironment(): AsaasEnvironment {
-  return process.env.ASAAS_ENVIRONMENT === "production" ? "production" : "sandbox";
-}
-
 export function getAsaasWebhookToken() {
   return process.env.ASAAS_WEBHOOK_TOKEN?.trim() ?? "";
 }
@@ -31,11 +26,7 @@ export function requireAsaasConfig() {
     );
   }
 
-  const baseUrl =
-    process.env.ASAAS_API_BASE_URL?.trim() ??
-    (getEnvironment() === "production"
-      ? "https://api.asaas.com/v3"
-      : "https://api-sandbox.asaas.com/v3");
+  const baseUrl = "https://api.asaas.com/v3";
 
   return { apiKey, baseUrl };
 }

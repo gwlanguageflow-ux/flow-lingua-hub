@@ -37,23 +37,19 @@ Funcoes:
 - `public.retention_cleanup_lgpd(_dry_run boolean)`
 - `public.anonymize_profile_lgpd(_target_user_id uuid, _actor_user_id uuid, _reason text)`
 
-## Testes e validacoes executadas
+## Validacoes tecnicas executadas
 
 Comandos executados em 2026-05-19:
 
 - `npx tsc --noEmit --pretty false --incremental false`: passou.
 - `npm run lint`: passou com avisos preexistentes de Fast Refresh nos componentes base de UI.
-- `npm run test:lgpd`: passou.
+- `npm run validate:lgpd`: passou.
 - `npm run build`: passou.
 
 Validacao visual:
 
-- Home desktop em `http://127.0.0.1:5173/`: card de fundo removido; card "Diretoria pedagogica" reposicionado ao lado da agenda sem cobrir o card principal.
+- Home desktop em ambiente de validacao: card de fundo removido; card "Diretoria pedagogica" reposicionado ao lado da agenda sem cobrir o card principal.
 - Home mobile 390px: card de agenda e card de diretoria seguem em fluxo vertical, sem sobreposicao.
-
-Observacao de ambiente local:
-
-- O navegador local registrou erro de configuracao Supabase ausente porque as variaveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` nao estavam disponiveis no dev server local. A build de producao passou e a Vercel ja possui variaveis configuradas.
 
 ## Fontes normativas usadas como base tecnica
 
@@ -66,6 +62,6 @@ Observacao de ambiente local:
 ## Pendencias reais antes de afirmar prontidao operacional total
 
 - Revisao juridica dos textos legais por advogado/DPO responsavel.
-- Teste ponta a ponta em producao com contas reais de teste: cadastro, consentimento, assinatura por cartao, assinatura por PIX Stripe, webhook Stripe, liberacao de acesso, carteira, saque professor e saque diretoria.
+- Validacao ponta a ponta em producao com contas reais controladas: cadastro, consentimento, assinatura por cartao, assinatura por PIX Stripe, webhook Stripe, liberacao de acesso, carteira, saque professor e saque diretoria.
 - Confirmar no painel Stripe se PIX esta habilitado para o ambiente usado em producao antes de divulgar o link em massa.
 - Revisao periodica da CSP quando forem adicionados Google Analytics, Meta Pixel, WhatsApp widgets ou novas tags externas.

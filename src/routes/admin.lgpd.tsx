@@ -167,12 +167,12 @@ function LgpdAdminPage() {
     }
   };
 
-  const runRetention = async (dryRun: boolean) => {
+  const runRetention = async () => {
     setSaving(true);
     try {
-      const result = await runLgpdRetentionCleanup({ data: { dryRun } });
+      const result = await runLgpdRetentionCleanup({ data: {} });
       setActionOutput(JSON.stringify(result, null, 2));
-      toast.success(dryRun ? "Simulação de retenção executada." : "Retenção aplicada.");
+      toast.success("Retenção aplicada.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Retenção não foi executada.");
     } finally {
@@ -354,16 +354,7 @@ function LgpdAdminPage() {
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
                       type="button"
-                      variant="outline"
-                      onClick={() => runRetention(true)}
-                      disabled={saving}
-                      className="rounded-lg"
-                    >
-                      Simular expurgo
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => runRetention(false)}
+                      onClick={runRetention}
                       disabled={saving}
                       className="rounded-lg bg-wine text-white"
                     >
