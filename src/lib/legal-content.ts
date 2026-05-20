@@ -129,7 +129,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Assinaturas e pagamentos",
         body: [
-          "Planos podem ser pagos por cartão recorrente via Stripe ou por PIX manual via Stripe. No PIX, a renovação exige novo pagamento ao fim do período contratado.",
+          "Planos são pagos por cartão recorrente via Stripe. O cartão é processado em checkout hospedado e não é armazenado pela GWLanguageFlow.",
           "Confirmações, cancelamentos, inadimplência, repasses e taxas da plataforma são registrados em banco e processados por webhooks protegidos.",
         ],
       },

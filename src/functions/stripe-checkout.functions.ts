@@ -3,6 +3,10 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+function isStripePixEnabled() {
+  return process.env.STRIPE_PIX_ENABLED === "true";
+}
+
 /**
  * Cria uma Checkout Session de assinatura ou pagamento Pix.
  * - Cartão: cria/usa um Stripe Price recorrente e abre subscription Checkout.
@@ -28,6 +32,12 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
+
+    if (data.paymentMethod === "pix" && !isStripePixEnabled()) {
+      throw new Error(
+        "Pagamento por PIX indisponivel no momento. Use cartao para ativar a assinatura.",
+      );
+    }
 
     // 1. Carrega plano
     const [{ data: plan, error: pErr }, { data: teacher, error: tErr }] = await Promise.all([

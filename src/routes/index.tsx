@@ -502,7 +502,7 @@ function FinalCTA() {
               {[
                 "Painel do aluno com agenda, materiais e atividades",
                 "Professores selecionados e acompanhamento pedagógico",
-                "Pagamento por cartão ou PIX com registro de assinatura",
+                "Pagamento por cartão com registro de assinatura",
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3 bg-wine-deep/45 p-7">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-bronze" />

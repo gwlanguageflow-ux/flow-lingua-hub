@@ -122,7 +122,7 @@ function Page() {
         data: {
           planSlug: sub.plan.slug,
           teacherId: sub.teacher_id,
-          paymentMethod: "pix",
+          paymentMethod: "card",
           termsAccepted: true,
           successUrl: `${origin}/minha-assinatura?checkout=success`,
           cancelUrl: `${origin}/minha-assinatura?checkout=cancel`,
@@ -194,8 +194,8 @@ function Page() {
                   <div>
                     <p className="font-semibold">Assinatura vencida</p>
                     <p>
-                      Seu plano por PIX precisa de um novo pagamento para reativar o agendamento. Ao
-                      confirmar o PIX, o acesso volta automaticamente.
+                      Seu plano precisa de um novo pagamento para reativar o agendamento. Ao
+                      confirmar o cartão, o acesso volta automaticamente.
                     </p>
                     <Button
                       onClick={handlePixRenewal}
@@ -203,7 +203,7 @@ function Page() {
                       className="mt-3 bg-wine text-white hover:bg-wine/90 h-9"
                     >
                       {renewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Pagar novamente com PIX
+                      Pagar novamente com cartão
                     </Button>
                   </div>
                 </div>
@@ -217,8 +217,8 @@ function Page() {
                       Sua assinatura vence em {daysUntilDue} {daysUntilDue === 1 ? "dia" : "dias"}
                     </p>
                     <p>
-                      Como o pagamento por PIX é manual, você receberá avisos diários até o
-                      vencimento. No dia do vencimento, esta tela libera o novo pagamento.
+                      Você receberá avisos diários até o vencimento. No dia do vencimento, esta tela
+                      libera o novo pagamento.
                     </p>
                   </div>
                 </div>
