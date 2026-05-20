@@ -62,6 +62,6 @@ Validacao visual:
 ## Pendencias reais antes de afirmar prontidao operacional total
 
 - Revisao juridica dos textos legais por advogado/DPO responsavel.
-- Validacao ponta a ponta em producao com contas reais controladas: cadastro, consentimento, assinatura por cartao, assinatura por PIX Stripe, webhook Stripe, liberacao de acesso, carteira, saque professor e saque diretoria.
-- Confirmar no painel Stripe se PIX esta habilitado para o ambiente usado em producao antes de divulgar o link em massa.
+- Validacao ponta a ponta em producao com contas reais controladas: cadastro, consentimento, assinatura por cartao, webhook Stripe, liberacao de acesso, carteira, saque professor e saque diretoria.
+- Confirmar no painel Stripe se a conta esta em modo live e se `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` da Vercel pertencem ao ambiente de producao antes de divulgar o link em massa.
 - Revisao periodica da CSP quando forem adicionados Google Analytics, Meta Pixel, WhatsApp widgets ou novas tags externas.

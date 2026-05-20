@@ -45,7 +45,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         title: "Dados tratados",
         body: [
           "Tratamos dados cadastrais, CPF quando necessário para identificação e recuperação de conta, e-mail, papéis de acesso, dados de perfil do professor ou aluno, agenda, mensagens, materiais, assinaturas, pagamentos, saques, logs técnicos, consentimentos e eventos de segurança.",
-          "Dados de cartão e PIX são processados pela Stripe. A plataforma não deve armazenar número completo de cartão nem dados bancários sensíveis de pagamento.",
+          "Dados de cartão são processados pela Stripe. A plataforma não deve armazenar número completo de cartão nem dados bancários sensíveis de pagamento.",
         ],
       },
       {
@@ -58,7 +58,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Compartilhamento",
         body: [
-          "Compartilhamos dados com Supabase para autenticação, banco e armazenamento; Vercel para hospedagem; Stripe para pagamentos por cartão e PIX; provedores de payout somente quando houver saque; e Google somente quando o usuário escolhe login com Google ou usa links externos de reunião.",
+          "Compartilhamos dados com Supabase para autenticação, banco e armazenamento; Vercel para hospedagem; Stripe para pagamentos por cartão; provedores de payout somente quando houver saque; e Google somente quando o usuário escolhe login com Google ou usa links externos de reunião.",
           "Não há Meta Pixel ou Google Analytics carregados nesta versão. Caso sejam ativados, eles devem permanecer bloqueados até o consentimento correspondente.",
         ],
       },

@@ -3,17 +3,10 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-function isStripePixEnabled() {
-  return process.env.STRIPE_PIX_ENABLED === "true";
-}
-
 /**
- * Cria uma Checkout Session de assinatura ou pagamento Pix.
- * - Cartão: cria/usa um Stripe Price recorrente e abre subscription Checkout.
- * - Pix: abre Stripe Checkout em pagamento único. A renovação é manual por ciclo.
- *
- * Em ambos os casos, registra/atualiza student_subscriptions com status pendente.
- * O webhook confirma a ativação após pagamento.
+ * Cria uma Checkout Session de assinatura recorrente por cartao.
+ * Registra/atualiza student_subscriptions com status pendente.
+ * O webhook confirma a ativacao apos pagamento.
  */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
@@ -22,7 +15,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .object({
         planSlug: z.string().min(1).max(60),
         teacherId: z.string().uuid(),
-        paymentMethod: z.enum(["card", "pix"]),
+        paymentMethod: z.literal("card"),
         termsAccepted: z.literal(true),
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
@@ -32,12 +25,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
-
-    if (data.paymentMethod === "pix" && !isStripePixEnabled()) {
-      throw new Error(
-        "Pagamento por PIX indisponivel no momento. Use cartao para ativar a assinatura.",
-      );
-    }
 
     // 1. Carrega plano
     const [{ data: plan, error: pErr }, { data: teacher, error: tErr }] = await Promise.all([
@@ -122,62 +109,34 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       period_end: periodEnd.toISOString(),
     };
 
-    let session;
-    if (data.paymentMethod === "card") {
-      session = await stripe.checkout.sessions.create({
-        mode: "subscription",
-        customer: stripeCustomerId!,
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "brl",
-              unit_amount: totalCents,
-              recurring: {
-                interval: intervalMap[plan.interval as keyof typeof intervalMap],
-                interval_count: intervalCount,
-              },
-              product_data: {
-                name: `${plan.name} - GWLanguageFlow`,
-                description: plan.description ?? undefined,
-              },
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: stripeCustomerId!,
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "brl",
+            unit_amount: totalCents,
+            recurring: {
+              interval: intervalMap[plan.interval as keyof typeof intervalMap],
+              interval_count: intervalCount,
             },
-            quantity: 1,
-          },
-        ],
-        metadata: checkoutMetadata,
-        subscription_data: {
-          metadata: checkoutMetadata,
-        },
-        success_url: data.successUrl,
-        cancel_url: data.cancelUrl,
-      });
-    } else {
-      session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        customer: stripeCustomerId!,
-        payment_method_types: ["pix"],
-        line_items: [
-          {
-            price_data: {
-              currency: "brl",
-              unit_amount: totalCents,
-              product_data: {
-                name: `${plan.name} - GWLanguageFlow`,
-                description: `${plan.interval} pago por PIX manual`,
-              },
+            product_data: {
+              name: `${plan.name} - GWLanguageFlow`,
+              description: plan.description ?? undefined,
             },
-            quantity: 1,
           },
-        ],
-        metadata: checkoutMetadata,
-        payment_intent_data: {
-          metadata: checkoutMetadata,
+          quantity: 1,
         },
-        success_url: data.successUrl,
-        cancel_url: data.cancelUrl,
-      });
-    }
+      ],
+      metadata: checkoutMetadata,
+      subscription_data: {
+        metadata: checkoutMetadata,
+      },
+      success_url: data.successUrl,
+      cancel_url: data.cancelUrl,
+    });
 
     await supabaseAdmin
       .from("student_subscriptions")

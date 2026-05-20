@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   CreditCard,
   Loader2,
-  QrCode,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -69,14 +68,11 @@ const comparisonRows = [
   ["Pagamento", "Cartão recorrente com checkout seguro"],
 ];
 
-const STRIPE_PIX_ENABLED = import.meta.env.VITE_STRIPE_PIX_ENABLED === "true";
-
 function PlansPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan | null>(null);
-  const [method, setMethod] = useState<"card" | "pix">("card");
   const [terms, setTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
@@ -126,7 +122,7 @@ function PlansPage() {
         data: {
           planSlug: selected.slug,
           teacherId,
-          paymentMethod: STRIPE_PIX_ENABLED ? method : "card",
+          paymentMethod: "card",
           termsAccepted: true,
           successUrl: `${origin}/meus-agendamentos?checkout=success&professor=${teacherId}`,
           cancelUrl: `${origin}/planos?checkout=cancel&professor=${teacherId}`,
@@ -264,8 +260,6 @@ function PlansPage() {
 
         <CheckoutDialog
           selected={selected}
-          method={method}
-          setMethod={setMethod}
           terms={terms}
           setTerms={setTerms}
           loading={loading}
@@ -365,8 +359,6 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
 function CheckoutDialog({
   selected,
-  method,
-  setMethod,
   terms,
   setTerms,
   loading,
@@ -374,16 +366,12 @@ function CheckoutDialog({
   onCheckout,
 }: {
   selected: Plan | null;
-  method: "card" | "pix";
-  setMethod: (method: "card" | "pix") => void;
   terms: boolean;
   setTerms: (terms: boolean) => void;
   loading: boolean;
   onClose: () => void;
   onCheckout: () => void;
 }) {
-  const effectiveMethod = STRIPE_PIX_ENABLED ? method : "card";
-
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg rounded-xl">
@@ -396,36 +384,15 @@ function CheckoutDialog({
         <div className="space-y-5 pt-2">
           <div>
             <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
-            <RadioGroup
-              value={method}
-              onValueChange={(value) => setMethod(value as "card" | "pix")}
-              className={`mt-3 grid gap-3 ${STRIPE_PIX_ENABLED ? "grid-cols-2" : "grid-cols-1"}`}
-            >
-              <label
-                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
-                  method === "card" ? "border-bronze bg-cream" : "border-border bg-white"
-                }`}
-              >
+            <RadioGroup value="card" className="mt-3 grid grid-cols-1 gap-3">
+              <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-bronze bg-cream p-4 transition">
                 <RadioGroupItem value="card" />
                 <CreditCard className="h-4 w-4 text-bronze" />
                 <span className="text-sm font-semibold">Cartão</span>
               </label>
-              {STRIPE_PIX_ENABLED ? (
-                <label
-                  className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
-                    method === "pix" ? "border-bronze bg-cream" : "border-border bg-white"
-                  }`}
-                >
-                  <RadioGroupItem value="pix" />
-                  <QrCode className="h-4 w-4 text-bronze" />
-                  <span className="text-sm font-semibold">PIX</span>
-                </label>
-              ) : null}
             </RadioGroup>
             <p className="mt-2 text-xs leading-5 text-brown-soft">
-              {effectiveMethod === "card"
-                ? "Cobrança recorrente automática no cartão."
-                : "Pagamento por PIX avulso. O acesso será liberado até o fim do período contratado e você será avisado antes da renovação."}
+              Cobrança recorrente automática no cartão.
             </p>
           </div>
 
@@ -453,9 +420,7 @@ function CheckoutDialog({
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Pagamento</dt>
-                <dd className="font-semibold text-wine">
-                  {effectiveMethod === "card" ? "Cartão recorrente" : "PIX manual"}
-                </dd>
+                <dd className="font-semibold text-wine">Cartão recorrente</dd>
               </div>
             </dl>
             <div className="mt-4 max-h-28 space-y-2 overflow-y-auto border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">
