@@ -45,7 +45,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         title: "Dados tratados",
         body: [
           "Tratamos dados cadastrais, CPF quando necessário para identificação e recuperação de conta, e-mail, papéis de acesso, dados de perfil do professor ou aluno, agenda, mensagens, materiais, assinaturas, pagamentos, saques, logs técnicos, consentimentos e eventos de segurança.",
-          "Dados de cartão são processados pela Stripe; dados de Pix e transferências são processados pela Asaas. A plataforma não deve armazenar número completo de cartão.",
+          "Dados de cartão e PIX são processados pela Stripe. A plataforma não deve armazenar número completo de cartão nem dados bancários sensíveis de pagamento.",
         ],
       },
       {
@@ -58,7 +58,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Compartilhamento",
         body: [
-          "Compartilhamos dados com Supabase para autenticação, banco e armazenamento; Vercel para hospedagem; Stripe para pagamentos por cartão; Asaas para Pix, Pix Automático e transferências; e Google somente quando o usuário escolhe login com Google ou usa links externos de reunião.",
+          "Compartilhamos dados com Supabase para autenticação, banco e armazenamento; Vercel para hospedagem; Stripe para pagamentos por cartão e PIX; provedores de payout somente quando houver saque; e Google somente quando o usuário escolhe login com Google ou usa links externos de reunião.",
           "Não há Meta Pixel ou Google Analytics carregados nesta versão. Caso sejam ativados, eles devem permanecer bloqueados até o consentimento correspondente.",
         ],
       },
@@ -129,7 +129,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Assinaturas e pagamentos",
         body: [
-          "Planos podem ser pagos por cartão via Stripe ou Pix/Pix Automático via Asaas, conforme disponibilidade operacional da conta de pagamento.",
+          "Planos podem ser pagos por cartão recorrente via Stripe ou por PIX manual via Stripe. No PIX, a renovação exige novo pagamento ao fim do período contratado.",
           "Confirmações, cancelamentos, inadimplência, repasses e taxas da plataforma são registrados em banco e processados por webhooks protegidos.",
         ],
       },
@@ -143,7 +143,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Limitações",
         body: [
-          "A plataforma depende de serviços externos como Supabase, Vercel, Stripe, Asaas e provedores de conexão. Instabilidades desses serviços podem afetar disponibilidade.",
+          "A plataforma depende de serviços externos como Supabase, Vercel, Stripe e provedores de conexão. Instabilidades desses serviços podem afetar disponibilidade.",
           "Mudanças relevantes nas regras devem ser versionadas e apresentadas de forma clara aos usuários.",
         ],
       },
@@ -194,7 +194,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         title: "Controles técnicos",
         body: [
           "A plataforma usa Supabase Auth, Row Level Security, funções server-side para operações sensíveis, variáveis de ambiente na Vercel e chaves secretas apenas no servidor.",
-          "Webhooks de Stripe e Asaas validam assinatura ou token, e endpoints internos exigem autorização.",
+          "Webhooks de pagamento validam assinatura ou token, e endpoints internos exigem autorização.",
         ],
       },
       {

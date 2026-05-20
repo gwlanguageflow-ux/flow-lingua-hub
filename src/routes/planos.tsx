@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import {
   BadgeCheck,
   CheckCircle2,
-  Copy,
   CreditCard,
   Loader2,
   QrCode,
@@ -63,25 +62,16 @@ interface SelectedTeacher {
   avatar_url: string | null;
 }
 
-type PixCheckout = {
-  provider: string;
-  authorizationId: string;
-  payload: string;
-  encodedImage: string | null;
-  expirationDate: string | null;
-};
-
 const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
   ["Acompanhamento", "Direção pedagógica e histórico do aluno"],
-  ["Pagamento", "Cartão recorrente; Pix Automático conforme liberação do Asaas"],
+  ["Pagamento", "Cartão recorrente ou PIX manual por ciclo"],
 ];
 
 function PlansPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const pixAutomaticEnabled = import.meta.env.VITE_ASAAS_PIX_AUTOMATIC_ENABLED === "true";
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan | null>(null);
   const [method, setMethod] = useState<"card" | "pix">("card");
@@ -89,7 +79,6 @@ function PlansPage() {
   const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [teacher, setTeacher] = useState<SelectedTeacher | null>(null);
-  const [pixCheckout, setPixCheckout] = useState<PixCheckout | null>(null);
 
   useEffect(() => {
     const professor = new URLSearchParams(window.location.search).get("professor");
@@ -127,11 +116,6 @@ function PlansPage() {
       toast.error("Você precisa aceitar o Termo de Adesão e Contrato.");
       return;
     }
-    if (method === "pix" && !pixAutomaticEnabled) {
-      setMethod("card");
-      toast.error("Pix Automático ainda está em liberação no Asaas. Use cartão por enquanto.");
-      return;
-    }
 
     setLoading(true);
     try {
@@ -147,11 +131,6 @@ function PlansPage() {
         },
       });
       if ("url" in res && res.url) window.location.href = res.url;
-      if ("pix" in res && res.pix) {
-        setPixCheckout(res.pix);
-        setSelected(null);
-        toast.success("Pix Automático gerado. Confirme pelo QR Code.");
-      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao iniciar checkout");
     } finally {
@@ -185,13 +164,7 @@ function PlansPage() {
                   </p>
                   <div className="mt-5 grid gap-3">
                     <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" dark />
-                    <PlanSignal
-                      icon={WalletCards}
-                      label={
-                        pixAutomaticEnabled ? "Cartão ou PIX" : "Cartão ativo; PIX em liberação"
-                      }
-                      dark
-                    />
+                    <PlanSignal icon={WalletCards} label="Cartão ou PIX manual" dark />
                     <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" dark />
                   </div>
                 </div>
@@ -200,10 +173,7 @@ function PlansPage() {
 
             <div className="mx-auto mt-6 hidden max-w-4xl gap-3 md:grid md:grid-cols-3">
               <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" />
-              <PlanSignal
-                icon={WalletCards}
-                label={pixAutomaticEnabled ? "Cartão ou PIX" : "Cartão ativo; PIX em liberação"}
-              />
+              <PlanSignal icon={WalletCards} label="Cartão ou PIX manual" />
               <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" />
             </div>
 
@@ -297,11 +267,9 @@ function PlansPage() {
           terms={terms}
           setTerms={setTerms}
           loading={loading}
-          pixAutomaticEnabled={pixAutomaticEnabled}
           onClose={() => setSelected(null)}
           onCheckout={handleCheckout}
         />
-        <PixAutomaticDialog pix={pixCheckout} onClose={() => setPixCheckout(null)} />
       </main>
       <SiteFooter />
     </div>
@@ -400,7 +368,6 @@ function CheckoutDialog({
   terms,
   setTerms,
   loading,
-  pixAutomaticEnabled,
   onClose,
   onCheckout,
 }: {
@@ -410,7 +377,6 @@ function CheckoutDialog({
   terms: boolean;
   setTerms: (terms: boolean) => void;
   loading: boolean;
-  pixAutomaticEnabled: boolean;
   onClose: () => void;
   onCheckout: () => void;
 }) {
@@ -428,10 +394,7 @@ function CheckoutDialog({
             <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
             <RadioGroup
               value={method}
-              onValueChange={(value) => {
-                if (value === "pix" && !pixAutomaticEnabled) return;
-                setMethod(value as "card" | "pix");
-              }}
+              onValueChange={(value) => setMethod(value as "card" | "pix")}
               className="mt-3 grid grid-cols-2 gap-3"
             >
               <label
@@ -444,21 +407,19 @@ function CheckoutDialog({
                 <span className="text-sm font-semibold">Cartão</span>
               </label>
               <label
-                className={`flex items-center gap-2 rounded-2xl border p-4 transition ${
-                  pixAutomaticEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-60"
-                } ${method === "pix" ? "border-bronze bg-cream" : "border-border bg-white"}`}
+                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
+                  method === "pix" ? "border-bronze bg-cream" : "border-border bg-white"
+                }`}
               >
-                <RadioGroupItem value="pix" disabled={!pixAutomaticEnabled} />
+                <RadioGroupItem value="pix" />
                 <QrCode className="h-4 w-4 text-bronze" />
                 <span className="text-sm font-semibold">PIX</span>
               </label>
             </RadioGroup>
             <p className="mt-2 text-xs leading-5 text-brown-soft">
-              {!pixAutomaticEnabled
-                ? "Pix Automático está aguardando liberação do Asaas. Por enquanto, finalize pelo cartão."
-                : method === "card"
-                  ? "Cobrança recorrente automática no cartão."
-                  : "Pix Automático autoriza a cobrança recorrente pelo seu banco."}
+              {method === "card"
+                ? "Cobrança recorrente automática no cartão."
+                : "Pagamento por PIX avulso. O acesso será liberado até o fim do período contratado e você será avisado antes da renovação."}
             </p>
           </div>
 
@@ -487,7 +448,7 @@ function CheckoutDialog({
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Pagamento</dt>
                 <dd className="font-semibold text-wine">
-                  {method === "card" ? "Cartão recorrente" : "Pix Automático"}
+                  {method === "card" ? "Cartão recorrente" : "PIX manual"}
                 </dd>
               </div>
             </dl>
@@ -523,72 +484,6 @@ function CheckoutDialog({
           >
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Pagar e ativar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function PixAutomaticDialog({ pix, onClose }: { pix: PixCheckout | null; onClose: () => void }) {
-  const copyPayload = async () => {
-    if (!pix?.payload) return;
-    await navigator.clipboard.writeText(pix.payload);
-    toast.success("Codigo Pix copiado.");
-  };
-
-  const expiresAt = pix?.expirationDate
-    ? new Date(pix.expirationDate).toLocaleString("pt-BR")
-    : null;
-
-  return (
-    <Dialog open={!!pix} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md rounded-xl">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl text-wine">
-            Ativar Pix Automático
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="rounded-xl border border-bronze/30 bg-cream p-4 text-sm leading-6 text-brown">
-            Leia o QR Code no app do seu banco para autorizar a recorrência automática da
-            assinatura. Quando o pagamento for confirmado, seu acesso será liberado automaticamente.
-          </div>
-
-          {pix?.encodedImage ? (
-            <img
-              src={`data:image/png;base64,${pix.encodedImage}`}
-              alt="QR Code Pix Automático"
-              className="mx-auto h-56 w-56 rounded-lg border border-border bg-white p-3"
-            />
-          ) : (
-            <div className="flex h-56 items-center justify-center rounded-lg border border-border bg-white text-sm text-brown-soft">
-              QR Code indisponível. Use o código Pix abaixo.
-            </div>
-          )}
-
-          {expiresAt ? (
-            <p className="text-center text-xs font-semibold text-brown-soft">
-              Válido até {expiresAt}
-            </p>
-          ) : null}
-
-          <div className="rounded-xl border border-border bg-white p-3">
-            <p className="text-xs font-bold uppercase text-bronze">Pix copia e cola</p>
-            <p className="mt-2 max-h-24 overflow-y-auto break-all text-xs leading-5 text-brown-soft">
-              {pix?.payload || "Código Pix aguardando retorno do provedor."}
-            </p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={copyPayload}
-            disabled={!pix?.payload}
-            className="h-11 w-full rounded-lg bg-bronze text-white shadow-bronze hover:bg-wine"
-          >
-            <Copy className="mr-2 h-4 w-4" />
-            Copiar código Pix
           </Button>
         </DialogFooter>
       </DialogContent>

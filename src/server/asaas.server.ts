@@ -15,48 +15,8 @@ export type AsaasTransferResponse = {
   [key: string]: unknown;
 };
 
-export type AsaasCustomerResponse = {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  cpfCnpj?: string | null;
-  [key: string]: unknown;
-};
-
-export type AsaasPixAutomaticAuthorizationResponse = {
-  id: string;
-  status?: string | null;
-  customerId?: string | null;
-  immediateQrCode?: {
-    payload?: string | null;
-    encodedImage?: string | null;
-    expirationDate?: string | null;
-    conciliationIdentifier?: string | null;
-    [key: string]: unknown;
-  } | null;
-  [key: string]: unknown;
-};
-
-export type AsaasPaymentResponse = {
-  id: string;
-  status?: string | null;
-  value?: number | null;
-  dueDate?: string | null;
-  invoiceUrl?: string | null;
-  externalReference?: string | null;
-  [key: string]: unknown;
-};
-
 function getEnvironment(): AsaasEnvironment {
   return process.env.ASAAS_ENVIRONMENT === "production" ? "production" : "sandbox";
-}
-
-export function isAsaasConfigured() {
-  return Boolean(process.env.ASAAS_API_KEY?.trim());
-}
-
-export function isAsaasPixAutomaticEnabled() {
-  return process.env.ASAAS_PIX_AUTOMATIC_ENABLED === "true";
 }
 
 export function getAsaasWebhookToken() {
@@ -67,7 +27,7 @@ export function requireAsaasConfig() {
   const apiKey = process.env.ASAAS_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(
-      "Asaas nao configurado. Adicione ASAAS_API_KEY na Vercel antes de usar Pix automatico ou saque Pix automatico.",
+      "Asaas nao configurado. Adicione ASAAS_API_KEY na Vercel antes de usar saque Pix automatico.",
     );
   }
 
@@ -151,82 +111,5 @@ export async function createAsaasPixTransfer(input: {
   return asaasRequest<AsaasTransferResponse>("/transfers", {
     method: "POST",
     body: JSON.stringify(body),
-  });
-}
-
-export async function findAsaasCustomerByExternalReference(externalReference: string) {
-  const params = new URLSearchParams({ externalReference, limit: "1" });
-  const response = await asaasRequest<{ data?: AsaasCustomerResponse[] }>(`/customers?${params}`, {
-    method: "GET",
-  });
-  return response.data?.[0] ?? null;
-}
-
-export async function createAsaasCustomer(input: {
-  name: string;
-  cpfCnpj: string;
-  email?: string | null;
-  externalReference: string;
-}) {
-  const existing = await findAsaasCustomerByExternalReference(input.externalReference);
-  if (existing?.id) return existing;
-
-  return asaasRequest<AsaasCustomerResponse>("/customers", {
-    method: "POST",
-    body: JSON.stringify({
-      name: input.name,
-      cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
-      email: input.email ?? undefined,
-      externalReference: input.externalReference,
-      notificationDisabled: true,
-    }),
-  });
-}
-
-export async function createAsaasPixAutomaticAuthorization(input: {
-  customerId: string;
-  contractId: string;
-  frequency: "MONTHLY" | "QUARTERLY" | "ANNUALLY";
-  startDate: string;
-  finishDate?: string | null;
-  value: number;
-  description: string;
-}) {
-  return asaasRequest<AsaasPixAutomaticAuthorizationResponse>("/pix/automatic/authorizations", {
-    method: "POST",
-    body: JSON.stringify({
-      customerId: input.customerId,
-      contractId: input.contractId,
-      frequency: input.frequency,
-      startDate: input.startDate,
-      finishDate: input.finishDate ?? undefined,
-      value: Number(input.value.toFixed(2)),
-      description: input.description.slice(0, 35),
-      immediateQrCode: {
-        paymentCreationMode: "SUBSCRIPTION",
-      },
-    }),
-  });
-}
-
-export async function createAsaasPixAutomaticPayment(input: {
-  customerId: string;
-  authorizationId: string;
-  value: number;
-  dueDate: string;
-  description: string;
-  externalReference: string;
-}) {
-  return asaasRequest<AsaasPaymentResponse>("/payments", {
-    method: "POST",
-    body: JSON.stringify({
-      customer: input.customerId,
-      billingType: "PIX",
-      value: Number(input.value.toFixed(2)),
-      dueDate: input.dueDate,
-      description: input.description.slice(0, 500),
-      externalReference: input.externalReference.slice(0, 255),
-      pixAutomaticAuthorizationId: input.authorizationId,
-    }),
   });
 }

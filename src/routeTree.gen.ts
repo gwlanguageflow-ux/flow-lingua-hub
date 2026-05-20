@@ -38,8 +38,8 @@ import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/
 import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
 import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
+import { Route as ApiInternalStripePixRenewalMonitorRouteImport } from './routes/api/internal/stripe-pix-renewal-monitor'
 import { Route as ApiInternalLgpdRetentionRouteImport } from './routes/api/internal/lgpd-retention'
-import { Route as ApiInternalAsaasRecurringBillingRouteImport } from './routes/api/internal/asaas-recurring-billing'
 
 const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
   id: '/termos-de-uso',
@@ -186,16 +186,16 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInternalStripePixRenewalMonitorRoute =
+  ApiInternalStripePixRenewalMonitorRouteImport.update({
+    id: '/api/internal/stripe-pix-renewal-monitor',
+    path: '/api/internal/stripe-pix-renewal-monitor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiInternalLgpdRetentionRoute =
   ApiInternalLgpdRetentionRouteImport.update({
     id: '/api/internal/lgpd-retention',
     path: '/api/internal/lgpd-retention',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiInternalAsaasRecurringBillingRoute =
-  ApiInternalAsaasRecurringBillingRouteImport.update({
-    id: '/api/internal/asaas-recurring-billing',
-    path: '/api/internal/asaas-recurring-billing',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -225,8 +225,8 @@ export interface FileRoutesByFullPath {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
-  '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
+  '/api/internal/stripe-pix-renewal-monitor': typeof ApiInternalStripePixRenewalMonitorRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -258,8 +258,8 @@ export interface FileRoutesByTo {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
-  '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
+  '/api/internal/stripe-pix-renewal-monitor': typeof ApiInternalStripePixRenewalMonitorRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -292,8 +292,8 @@ export interface FileRoutesById {
   '/cadastro/aluno': typeof CadastroAlunoRoute
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
-  '/api/internal/asaas-recurring-billing': typeof ApiInternalAsaasRecurringBillingRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
+  '/api/internal/stripe-pix-renewal-monitor': typeof ApiInternalStripePixRenewalMonitorRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -327,8 +327,8 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
-    | '/api/internal/asaas-recurring-billing'
     | '/api/internal/lgpd-retention'
+    | '/api/internal/stripe-pix-renewal-monitor'
     | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -360,8 +360,8 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
-    | '/api/internal/asaas-recurring-billing'
     | '/api/internal/lgpd-retention'
+    | '/api/internal/stripe-pix-renewal-monitor'
     | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -393,8 +393,8 @@ export interface FileRouteTypes {
     | '/cadastro/aluno'
     | '/cadastro/professor'
     | '/professor/$id'
-    | '/api/internal/asaas-recurring-billing'
     | '/api/internal/lgpd-retention'
+    | '/api/internal/stripe-pix-renewal-monitor'
     | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -426,8 +426,8 @@ export interface RootRouteChildren {
   CadastroAlunoRoute: typeof CadastroAlunoRoute
   CadastroProfessorRoute: typeof CadastroProfessorRoute
   ProfessorIdRoute: typeof ProfessorIdRoute
-  ApiInternalAsaasRecurringBillingRoute: typeof ApiInternalAsaasRecurringBillingRoute
   ApiInternalLgpdRetentionRoute: typeof ApiInternalLgpdRetentionRoute
+  ApiInternalStripePixRenewalMonitorRoute: typeof ApiInternalStripePixRenewalMonitorRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicConsentRoute: typeof ApiPublicConsentRoute
   ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
@@ -639,18 +639,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/internal/stripe-pix-renewal-monitor': {
+      id: '/api/internal/stripe-pix-renewal-monitor'
+      path: '/api/internal/stripe-pix-renewal-monitor'
+      fullPath: '/api/internal/stripe-pix-renewal-monitor'
+      preLoaderRoute: typeof ApiInternalStripePixRenewalMonitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/internal/lgpd-retention': {
       id: '/api/internal/lgpd-retention'
       path: '/api/internal/lgpd-retention'
       fullPath: '/api/internal/lgpd-retention'
       preLoaderRoute: typeof ApiInternalLgpdRetentionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/asaas-recurring-billing': {
-      id: '/api/internal/asaas-recurring-billing'
-      path: '/api/internal/asaas-recurring-billing'
-      fullPath: '/api/internal/asaas-recurring-billing'
-      preLoaderRoute: typeof ApiInternalAsaasRecurringBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -691,8 +691,9 @@ const rootRouteChildren: RootRouteChildren = {
   CadastroAlunoRoute: CadastroAlunoRoute,
   CadastroProfessorRoute: CadastroProfessorRoute,
   ProfessorIdRoute: ProfessorIdRoute,
-  ApiInternalAsaasRecurringBillingRoute: ApiInternalAsaasRecurringBillingRoute,
   ApiInternalLgpdRetentionRoute: ApiInternalLgpdRetentionRoute,
+  ApiInternalStripePixRenewalMonitorRoute:
+    ApiInternalStripePixRenewalMonitorRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicConsentRoute: ApiPublicConsentRoute,
   ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,

@@ -9,14 +9,14 @@ Escopo: estrutura tecnica de privacidade, consentimento, governanca, seguranca e
 ## Implementado
 
 - Mapa de dados pessoais em `docs/lgpd-data-map.md`, cobrindo cadastro, autenticacao, pagamentos, mensagens, aulas, materiais, logs, consentimentos, diretorias e terceiros.
-- Registro de terceiros em `docs/third-party-processors.md`, incluindo Supabase, Stripe, Asaas, Vercel, Registro.br e possiveis tags futuras.
+- Registro de terceiros em `docs/third-party-processors.md`, incluindo Supabase, Stripe, Vercel, Registro.br, provedor de payout quando habilitado e possiveis tags futuras.
 - Banner real de cookies com categorias necessarios, analiticos, marketing, preferencias e terceiros.
 - Bloqueio de scripts nao essenciais por padrao via `ConsentScript`; nao ha Google Analytics, Meta Pixel, `gtag` ou `fbq` carregando diretamente antes do consentimento.
 - Central do usuario em `/privacidade` com visualizacao de dados, exportacao tecnica, solicitacao LGPD, revogacao de consentimento e protocolos.
 - Painel protegido da Diretoria em `/admin/lgpd` com solicitacoes, status, resposta administrativa, exportacao, anonimizacao, logs e retencao.
 - Paginas legais versionadas: `/politica-de-privacidade`, `/politica-de-cookies`, `/termos-de-uso`, `/politica-de-retencao`, `/seguranca` e `/menores`.
 - Migration Supabase `20260519120000_lgpd_compliance_controls.sql` com tabelas, indices, RLS, policies, funcoes de anonimizacao e rotina de retencao.
-- Logs tecnicos para consentimento, login, falha de login, logout, senha, webhooks Stripe/Asaas, acesso admin, solicitacoes LGPD, exportacao, anonimizacao e retencao.
+- Logs tecnicos para consentimento, login, falha de login, logout, senha, webhooks de pagamento, acesso admin, solicitacoes LGPD, exportacao, anonimizacao e retencao.
 - Headers de seguranca no `vercel.json`, incluindo CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy e Permissions-Policy.
 - Cron semanal de retencao LGPD em `/api/internal/lgpd-retention`.
 
@@ -66,6 +66,6 @@ Observacao de ambiente local:
 ## Pendencias reais antes de afirmar prontidao operacional total
 
 - Revisao juridica dos textos legais por advogado/DPO responsavel.
-- Teste ponta a ponta em producao com contas reais de teste: cadastro, consentimento, assinatura, webhook Stripe/Asaas, liberacao de acesso, carteira, saque professor e saque diretoria.
-- Ativacao operacional do Pix Automatico no Asaas quando a conta liberar a funcionalidade.
+- Teste ponta a ponta em producao com contas reais de teste: cadastro, consentimento, assinatura por cartao, assinatura por PIX Stripe, webhook Stripe, liberacao de acesso, carteira, saque professor e saque diretoria.
+- Confirmar no painel Stripe se PIX esta habilitado para o ambiente usado em producao antes de divulgar o link em massa.
 - Revisao periodica da CSP quando forem adicionados Google Analytics, Meta Pixel, WhatsApp widgets ou novas tags externas.

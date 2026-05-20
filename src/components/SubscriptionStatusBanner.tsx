@@ -3,17 +3,34 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
-type SubInfo = Pick<Tables<"student_subscriptions">, "status" | "current_period_end"> & {
+type SubInfo = Pick<
+  Tables<"student_subscriptions">,
+  "status" | "payment_method" | "current_period_end"
+> & {
   subscription_plans: { name: string } | null;
 };
 
-/**
- * Banner de status de assinatura para alunos.
- * Mostra apenas se o aluno NÃO tem assinatura ativa, ou está inadimplente.
- */
+const dayMs = 24 * 60 * 60 * 1000;
+
+function pixRenewalState(sub: SubInfo | null) {
+  if (!sub || sub.payment_method !== "pix" || !sub.current_period_end) {
+    return { isExpired: false, isDueSoon: false, daysLeft: null as number | null };
+  }
+
+  const periodEnd = new Date(sub.current_period_end);
+  const diff = periodEnd.getTime() - Date.now();
+  const daysLeft = Math.max(1, Math.ceil(diff / dayMs));
+
+  return {
+    isExpired: diff <= 0,
+    isDueSoon: diff > 0 && daysLeft <= 5,
+    daysLeft,
+  };
+}
+
 export function SubscriptionStatusBanner() {
   const { user, roles } = useAuth();
   const [sub, setSub] = useState<SubInfo | null | undefined>(undefined);
@@ -22,7 +39,7 @@ export function SubscriptionStatusBanner() {
     if (!user || !roles.includes("aluno")) return;
     supabase
       .from("student_subscriptions")
-      .select("status, current_period_end, subscription_plans(name)")
+      .select("status, payment_method, current_period_end, subscription_plans(name)")
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -32,29 +49,49 @@ export function SubscriptionStatusBanner() {
 
   if (!user || !roles.includes("aluno") || sub === undefined) return null;
 
-  if (sub?.status === "ativa") {
+  const pixState = pixRenewalState(sub);
+  const isOverdue = sub?.status === "inadimplente" || pixState.isExpired;
+
+  if (sub?.status === "ativa" && !pixState.isExpired) {
     return (
-      <div className="bg-bronze/10 border border-bronze/30 rounded-2xl p-4 flex items-center gap-3 mb-6">
-        <CheckCircle2 className="h-5 w-5 text-bronze flex-shrink-0" />
-        <div className="flex-1 text-sm">
-          <p className="font-semibold text-wine">
-            Assinatura ativa — {sub.subscription_plans?.name}
-          </p>
-          {sub.current_period_end && (
-            <p className="text-brown-soft text-xs">
-              Válida até {new Date(sub.current_period_end).toLocaleDateString("pt-BR")}
+      <div className="mb-6 rounded-2xl border border-bronze/30 bg-bronze/10 p-4">
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-bronze" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-wine">
+              Assinatura ativa — {sub.subscription_plans?.name}
             </p>
-          )}
+            {sub.current_period_end && (
+              <p className="text-xs text-brown-soft">
+                {sub.payment_method === "pix" ? "Válida até" : "Próxima cobrança em"}{" "}
+                {new Date(sub.current_period_end).toLocaleDateString("pt-BR")}
+              </p>
+            )}
+          </div>
         </div>
+
+        {pixState.isDueSoon && (
+          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center">
+            <Clock className="h-5 w-5 flex-shrink-0" />
+            <p className="flex-1">
+              Seu PIX vence em {pixState.daysLeft} {pixState.daysLeft === 1 ? "dia" : "dias"}. No
+              vencimento, renove em Minha assinatura para manter o agendamento liberado.
+            </p>
+            <Link to="/minha-assinatura">
+              <Button size="sm" variant="outline" className="border-amber-300 text-wine">
+                Ver assinatura
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
 
-  const isOverdue = sub?.status === "inadimplente";
   return (
     <div
-      className={`rounded-2xl p-4 flex flex-col md:flex-row md:items-center gap-3 mb-6 border ${
-        isOverdue ? "bg-destructive/10 border-destructive/40" : "bg-cream border-bronze/30"
+      className={`mb-6 flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center ${
+        isOverdue ? "border-destructive/40 bg-destructive/10" : "border-bronze/30 bg-cream"
       }`}
     >
       <AlertCircle
@@ -62,15 +99,15 @@ export function SubscriptionStatusBanner() {
       />
       <div className="flex-1 text-sm">
         <p className="font-semibold text-wine">
-          {isOverdue ? "Assinatura inadimplente" : "Você ainda não tem assinatura ativa"}
+          {isOverdue ? "Assinatura vencida" : "Você ainda não tem assinatura ativa"}
         </p>
-        <p className="text-brown-soft text-xs mt-0.5">
+        <p className="mt-0.5 text-xs text-brown-soft">
           {isOverdue
             ? "Regularize o pagamento para voltar a agendar aulas."
             : "Assine um plano para liberar o agendamento de aulas."}
         </p>
       </div>
-      <Link to="/planos">
+      <Link to={isOverdue ? "/minha-assinatura" : "/planos"}>
         <Button className="bg-bronze text-white hover:bg-wine">
           {isOverdue ? "Regularizar" : "Ver planos"}
         </Button>

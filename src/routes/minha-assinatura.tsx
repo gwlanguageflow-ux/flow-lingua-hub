@@ -7,6 +7,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { createSubscriptionCheckout } from "@/functions/stripe-checkout.functions";
+import { toast } from "sonner";
 import {
   CalendarClock,
   CreditCard,
@@ -29,6 +31,7 @@ interface SubRow {
   id: string;
   status: string;
   payment_method: "card" | "pix" | null;
+  teacher_id: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
@@ -37,6 +40,7 @@ interface SubRow {
   created_at: string;
   plan: {
     name: string;
+    slug: string;
     price: number;
     interval: string;
     description: string | null;
@@ -70,13 +74,14 @@ function Page() {
   const navigate = useNavigate();
   const [sub, setSub] = useState<SubRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [renewing, setRenewing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, price, interval, description, features)",
+        "id, status, payment_method, teacher_id, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features)",
       )
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
@@ -87,6 +92,49 @@ function Page() {
         setLoading(false);
       });
   }, [user]);
+
+  const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
+  const isPixManual = sub?.payment_method === "pix";
+  const isExpiredByDate = !!periodEnd && isPixManual && periodEnd <= new Date();
+  const needsPixRenewal =
+    !!sub && isPixManual && (sub.status === "inadimplente" || isExpiredByDate);
+  const daysUntilDue =
+    periodEnd && isPixManual ? Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000) : null;
+  const isPixDueSoon =
+    !!sub &&
+    isPixManual &&
+    sub.status === "ativa" &&
+    !isExpiredByDate &&
+    daysUntilDue !== null &&
+    daysUntilDue <= 5;
+  const displayedStatus = needsPixRenewal ? "inadimplente" : sub?.status;
+
+  const handlePixRenewal = async () => {
+    if (!sub?.plan?.slug || !sub.teacher_id) {
+      toast.error("Não foi possível identificar o plano e professor desta assinatura.");
+      return;
+    }
+
+    setRenewing(true);
+    try {
+      const origin = window.location.origin;
+      const res = await createSubscriptionCheckout({
+        data: {
+          planSlug: sub.plan.slug,
+          teacherId: sub.teacher_id,
+          paymentMethod: "pix",
+          termsAccepted: true,
+          successUrl: `${origin}/minha-assinatura?checkout=success`,
+          cancelUrl: `${origin}/minha-assinatura?checkout=cancel`,
+        },
+      });
+
+      if ("url" in res && res.url) window.location.href = res.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível iniciar o pagamento.");
+      setRenewing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -133,12 +181,50 @@ function Page() {
                     <p className="text-sm text-brown mt-1">{sub.plan.description}</p>
                   )}
                 </div>
-                <Badge className={STATUS_META[sub.status]?.cls ?? "bg-zinc-100 text-zinc-700"}>
-                  {STATUS_META[sub.status]?.label ?? sub.status}
+                <Badge
+                  className={STATUS_META[displayedStatus ?? ""]?.cls ?? "bg-zinc-100 text-zinc-700"}
+                >
+                  {STATUS_META[displayedStatus ?? ""]?.label ?? displayedStatus}
                 </Badge>
               </div>
 
-              {sub.status === "inadimplente" && (
+              {needsPixRenewal && (
+                <div className="mt-5 flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-800">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold">Assinatura vencida</p>
+                    <p>
+                      Seu plano por PIX precisa de um novo pagamento para reativar o agendamento. Ao
+                      confirmar o PIX, o acesso volta automaticamente.
+                    </p>
+                    <Button
+                      onClick={handlePixRenewal}
+                      disabled={renewing}
+                      className="mt-3 bg-wine text-white hover:bg-wine/90 h-9"
+                    >
+                      {renewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Pagar novamente com PIX
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isPixDueSoon && (
+                <div className="mt-5 flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold">
+                      Sua assinatura vence em {daysUntilDue} {daysUntilDue === 1 ? "dia" : "dias"}
+                    </p>
+                    <p>
+                      Como o pagamento por PIX é manual, você receberá avisos diários até o
+                      vencimento. No dia do vencimento, esta tela libera o novo pagamento.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {sub.status === "inadimplente" && !needsPixRenewal && (
                 <div className="mt-5 flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-800">
                   <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
@@ -183,7 +269,7 @@ function Page() {
                   label="Forma de pagamento"
                   value={
                     sub.payment_method === "pix"
-                      ? "Pix Automático"
+                      ? "PIX manual"
                       : sub.payment_method === "card"
                         ? "Cartão (recorrente)"
                         : "—"
