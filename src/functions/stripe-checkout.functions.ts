@@ -1,7 +1,52 @@
 import { createServerFn } from "@tanstack/react-start";
+import type Stripe from "stripe";
 import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+type StripeProfile = {
+  email?: string | null;
+  full_name?: string | null;
+};
+
+function isMissingStripeCustomer(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybeStripeError = error as { code?: string; message?: string; param?: string };
+  return (
+    maybeStripeError.code === "resource_missing" &&
+    (maybeStripeError.param === "customer" ||
+      maybeStripeError.message?.toLowerCase().includes("no such customer"))
+  );
+}
+
+async function createStripeCustomer(stripe: Stripe, userId: string, profile: StripeProfile | null) {
+  const customer = await stripe.customers.create({
+    email: profile?.email ?? undefined,
+    name: profile?.full_name ?? undefined,
+    metadata: { user_id: userId },
+  });
+  return customer.id;
+}
+
+async function getUsableStripeCustomerId(input: {
+  stripe: Stripe;
+  existingCustomerId: string | null | undefined;
+  userId: string;
+  profile: StripeProfile | null;
+}) {
+  if (input.existingCustomerId) {
+    try {
+      const customer = await input.stripe.customers.retrieve(input.existingCustomerId);
+      if (!("deleted" in customer && customer.deleted)) {
+        return customer.id;
+      }
+    } catch (error) {
+      if (!isMissingStripeCustomer(error)) throw error;
+    }
+  }
+
+  return createStripeCustomer(input.stripe, input.userId, input.profile);
+}
 
 /**
  * Cria uma Checkout Session de assinatura recorrente por cartao.
@@ -58,18 +103,16 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .select("stripe_customer_id")
       .eq("student_id", userId)
       .not("stripe_customer_id", "is", null)
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    stripeCustomerId = existingSub?.stripe_customer_id ?? null;
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: profile?.email ?? undefined,
-        name: profile?.full_name ?? undefined,
-        metadata: { user_id: userId },
-      });
-      stripeCustomerId = customer.id;
-    }
+    stripeCustomerId = await getUsableStripeCustomerId({
+      stripe,
+      existingCustomerId: existingSub?.stripe_customer_id,
+      userId,
+      profile,
+    });
 
     // 3. Calcula período
     const now = new Date();
