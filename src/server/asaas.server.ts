@@ -14,15 +14,32 @@ export type AsaasTransferResponse = {
   [key: string]: unknown;
 };
 
+function readSecretEnv(...names: string[]) {
+  for (const name of names) {
+    const direct = process.env[name]?.trim();
+    if (direct) return direct;
+  }
+
+  const normalizedNames = new Set(names.map((name) => name.trim().toUpperCase()));
+  for (const [key, value] of Object.entries(process.env)) {
+    if (normalizedNames.has(key.trim().toUpperCase())) {
+      const secret = value?.trim();
+      if (secret) return secret;
+    }
+  }
+
+  return "";
+}
+
 export function getAsaasWebhookToken() {
-  return process.env.ASAAS_WEBHOOK_TOKEN?.trim() ?? "";
+  return readSecretEnv("ASAAS_WEBHOOK_TOKEN", "ASAAS_WEBHOOK_SECRET");
 }
 
 export function requireAsaasConfig() {
-  const apiKey = process.env.ASAAS_API_KEY?.trim();
+  const apiKey = readSecretEnv("ASAAS_API_KEY", "ASAAS_ACCESS_TOKEN", "ASAAS_API_TOKEN");
   if (!apiKey) {
     throw new Error(
-      "Asaas nao configurado. Adicione ASAAS_API_KEY na Vercel antes de usar saque Pix automatico.",
+      "Asaas nao configurado. A variavel ASAAS_API_KEY esta ausente ou vazia no runtime da Vercel.",
     );
   }
 
