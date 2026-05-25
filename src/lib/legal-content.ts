@@ -45,7 +45,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         title: "Dados tratados",
         body: [
           "Tratamos dados cadastrais, CPF quando necessário para identificação e recuperação de conta, e-mail, papéis de acesso, dados de perfil do professor ou aluno, agenda, mensagens, materiais, assinaturas, pagamentos, saques, logs técnicos, consentimentos e eventos de segurança.",
-          "Dados de cartão são processados pela Stripe. A plataforma não deve armazenar número completo de cartão nem dados bancários sensíveis de pagamento.",
+          "Dados de cartao e Pix sao processados pela ValidaPay. A plataforma nao deve armazenar numero completo de cartao nem dados bancarios sensiveis de pagamento.",
         ],
       },
       {
@@ -58,7 +58,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Compartilhamento",
         body: [
-          "Compartilhamos dados com Supabase para autenticação, banco e armazenamento; Vercel para hospedagem; Stripe para pagamentos por cartão; provedores de payout somente quando houver saque; e Google somente quando o usuário escolhe login com Google ou usa links externos de reunião.",
+          "Compartilhamos dados com Supabase para autenticacao, banco e armazenamento; Vercel para hospedagem; ValidaPay para pagamentos, Pix, assinaturas e saques; e Google somente quando o usuario escolhe login com Google ou usa links externos de reuniao.",
           "Não há Meta Pixel ou Google Analytics carregados nesta versão. Caso sejam ativados, eles devem permanecer bloqueados até o consentimento correspondente.",
         ],
       },
@@ -129,7 +129,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Assinaturas e pagamentos",
         body: [
-          "Planos são pagos por cartão recorrente via Stripe. O cartão é processado em checkout hospedado e não é armazenado pela GWLanguageFlow.",
+          "Planos sao pagos por checkout hospedado ValidaPay, com cartao ou Pix conforme disponibilidade operacional. O cartao e processado pelo provedor e nao e armazenado pela GWLanguageFlow.",
           "Confirmações, cancelamentos, inadimplência, repasses e taxas da plataforma são registrados em banco e processados por webhooks protegidos.",
         ],
       },
@@ -143,7 +143,7 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
       {
         title: "Limitações",
         body: [
-          "A plataforma depende de serviços externos como Supabase, Vercel, Stripe e provedores de conexão. Instabilidades desses serviços podem afetar disponibilidade.",
+          "A plataforma depende de servicos externos como Supabase, Vercel, ValidaPay e provedores de conexao. Instabilidades desses servicos podem afetar disponibilidade.",
           "Mudanças relevantes nas regras devem ser versionadas e apresentadas de forma clara aos usuários.",
         ],
       },

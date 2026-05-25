@@ -1,7 +1,7 @@
 # Relatorio tecnico LGPD - GWLanguageFlow
 
-Versao: 2026.05.19
-Data da verificacao: 2026-05-19
+Versao: 2026.05.25
+Data da verificacao: 2026-05-25
 Escopo: estrutura tecnica de privacidade, consentimento, governanca, seguranca e retencao aplicada ao SaaS GWLanguageFlow.
 
 > Observacao: este relatorio descreve controles tecnicos implementados. Ele nao substitui revisao juridica formal nem garante conformidade legal absoluta.
@@ -9,7 +9,7 @@ Escopo: estrutura tecnica de privacidade, consentimento, governanca, seguranca e
 ## Implementado
 
 - Mapa de dados pessoais em `docs/lgpd-data-map.md`, cobrindo cadastro, autenticacao, pagamentos, mensagens, aulas, materiais, logs, consentimentos, diretorias e terceiros.
-- Registro de terceiros em `docs/third-party-processors.md`, incluindo Supabase, Stripe, Vercel, Registro.br, provedor de payout quando habilitado e possiveis tags futuras.
+- Registro de terceiros em `docs/third-party-processors.md`, incluindo Supabase, ValidaPay, Vercel, Registro.br, provedores legados mantidos para rastreabilidade e possiveis tags futuras.
 - Banner real de cookies com categorias necessarios, analiticos, marketing, preferencias e terceiros.
 - Bloqueio de scripts nao essenciais por padrao via `ConsentScript`; nao ha Google Analytics, Meta Pixel, `gtag` ou `fbq` carregando diretamente antes do consentimento.
 - Central do usuario em `/privacidade` com visualizacao de dados, exportacao tecnica, solicitacao LGPD, revogacao de consentimento e protocolos.
@@ -62,6 +62,6 @@ Validacao visual:
 ## Pendencias reais antes de afirmar prontidao operacional total
 
 - Revisao juridica dos textos legais por advogado/DPO responsavel.
-- Validacao ponta a ponta em producao com contas reais controladas: cadastro, consentimento, assinatura por cartao, webhook Stripe, liberacao de acesso, carteira, saque professor e saque diretoria.
-- Confirmar no painel Stripe se a conta esta em modo live e se `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` da Vercel pertencem ao ambiente de producao antes de divulgar o link em massa.
+- Validacao ponta a ponta em producao com contas reais controladas: cadastro, consentimento, assinatura por cartao/Pix, webhook ValidaPay, liberacao de acesso, carteira, saque professor e saque diretoria.
+- Confirmar no painel ValidaPay se `VALIDAPAY_CLIENT_ID`, `VALIDAPAY_CLIENT_SECRET` e `VALIDAPAY_WEBHOOK_TOKEN` da Vercel pertencem ao ambiente de producao antes de divulgar o link em massa.
 - Revisao periodica da CSP quando forem adicionados Google Analytics, Meta Pixel, WhatsApp widgets ou novas tags externas.

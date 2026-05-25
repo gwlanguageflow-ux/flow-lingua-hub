@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CreditCard,
   Loader2,
+  QrCode,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -26,7 +27,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
-import { createSubscriptionCheckout } from "@/functions/stripe-checkout.functions";
+import { createSubscriptionCheckout } from "@/functions/validapay-checkout.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/planos")({
@@ -65,7 +66,7 @@ const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
   ["Acompanhamento", "Direção pedagógica e histórico do aluno"],
-  ["Pagamento", "Cartão recorrente com checkout seguro"],
+  ["Pagamento", "Cartão ou Pix com checkout seguro"],
 ];
 
 function PlansPage() {
@@ -74,6 +75,7 @@ function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan | null>(null);
   const [terms, setTerms] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">("card");
   const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [teacher, setTeacher] = useState<SelectedTeacher | null>(null);
@@ -122,7 +124,7 @@ function PlansPage() {
         data: {
           planSlug: selected.slug,
           teacherId,
-          paymentMethod: "card",
+          paymentMethod,
           termsAccepted: true,
           successUrl: `${origin}/meus-agendamentos?checkout=success&professor=${teacherId}`,
           cancelUrl: `${origin}/planos?checkout=cancel&professor=${teacherId}`,
@@ -219,6 +221,7 @@ function PlansPage() {
                     onSelect={() => {
                       setSelected(plan);
                       setTerms(false);
+                      setPaymentMethod("card");
                     }}
                   />
                 ))}
@@ -262,6 +265,8 @@ function PlansPage() {
           selected={selected}
           terms={terms}
           setTerms={setTerms}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
           loading={loading}
           onClose={() => setSelected(null)}
           onCheckout={handleCheckout}
@@ -361,6 +366,8 @@ function CheckoutDialog({
   selected,
   terms,
   setTerms,
+  paymentMethod,
+  setPaymentMethod,
   loading,
   onClose,
   onCheckout,
@@ -368,6 +375,8 @@ function CheckoutDialog({
   selected: Plan | null;
   terms: boolean;
   setTerms: (terms: boolean) => void;
+  paymentMethod: "card" | "pix";
+  setPaymentMethod: (method: "card" | "pix") => void;
   loading: boolean;
   onClose: () => void;
   onCheckout: () => void;
@@ -384,15 +393,34 @@ function CheckoutDialog({
         <div className="space-y-5 pt-2">
           <div>
             <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
-            <RadioGroup value="card" className="mt-3 grid grid-cols-1 gap-3">
-              <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-bronze bg-cream p-4 transition">
+            <RadioGroup
+              value={paymentMethod}
+              onValueChange={(value) => setPaymentMethod(value === "pix" ? "pix" : "card")}
+              className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+              <label
+                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
+                  paymentMethod === "card" ? "border-bronze bg-cream" : "border-border bg-white"
+                }`}
+              >
                 <RadioGroupItem value="card" />
                 <CreditCard className="h-4 w-4 text-bronze" />
                 <span className="text-sm font-semibold">Cartão</span>
               </label>
+              <label
+                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
+                  paymentMethod === "pix" ? "border-bronze bg-cream" : "border-border bg-white"
+                }`}
+              >
+                <RadioGroupItem value="pix" />
+                <QrCode className="h-4 w-4 text-bronze" />
+                <span className="text-sm font-semibold">Pix</span>
+              </label>
             </RadioGroup>
             <p className="mt-2 text-xs leading-5 text-brown-soft">
-              Cobrança recorrente automática no cartão.
+              {paymentMethod === "card"
+                ? "Cobrança pelo checkout ValidaPay."
+                : "Pix pelo checkout ValidaPay. A confirmação libera o acesso automaticamente."}
             </p>
           </div>
 
@@ -420,7 +448,9 @@ function CheckoutDialog({
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Pagamento</dt>
-                <dd className="font-semibold text-wine">Cartão recorrente</dd>
+                <dd className="font-semibold text-wine">
+                  {paymentMethod === "card" ? "Cartão" : "Pix"}
+                </dd>
               </div>
             </dl>
             <div className="mt-4 max-h-28 space-y-2 overflow-y-auto border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">

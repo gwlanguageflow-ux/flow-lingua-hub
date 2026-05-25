@@ -3,7 +3,11 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Enums, Json, Tables } from "@/integrations/supabase/types";
-import { createAsaasPixTransfer, requireAsaasConfig } from "@/server/asaas.server";
+import {
+  createValidapayPixWithdrawal,
+  mapValidapayWithdrawalStatus,
+  requireValidapayConfig,
+} from "@/server/validapay.server";
 
 type AppRole = Enums<"app_role">;
 type WithdrawalStatus = Enums<"teacher_withdrawal_status">;
@@ -191,12 +195,6 @@ function maskPixKey(value: string, type: string) {
     return digits.length >= 4 ? `***${digits.slice(-4)}` : "Telefone configurado";
   }
   return "Chave configurada";
-}
-
-function mapTransferStatus(status: string | null | undefined): WithdrawalStatus {
-  if (status === "DONE") return "pago";
-  if (status === "CANCELLED") return "cancelado";
-  return "em_processamento";
 }
 
 function inPeriod(dateValue: string | null | undefined, start: Date, end: Date) {
@@ -419,7 +417,7 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => directorWithdrawalSchema.parse(input))
   .handler(async ({ data, context }) => {
-    requireAsaasConfig();
+    requireValidapayConfig();
     const supabaseAdmin = await requireDirector(context.userId);
     const amount = toMoney(data.amount);
 
@@ -494,26 +492,24 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
       .eq("id", withdrawal.id);
 
     try {
-      const transfer = await createAsaasPixTransfer({
+      const transfer = await createValidapayPixWithdrawal({
         amount,
         pixKey: data.pixKey,
-        description: `Saque plataforma GWLanguageFlow ${withdrawal.id}`,
-        externalReference: `platform-withdrawal:${withdrawal.id}`,
       });
-      const status = mapTransferStatus(transfer.status);
+      const status = mapValidapayWithdrawalStatus(transfer.status) as WithdrawalStatus;
       const now = new Date().toISOString();
 
       const { error: updateError } = await supabaseAdmin
         .from("platform_withdrawal_requests")
         .update({
           status,
-          payout_provider: "asaas",
-          payout_external_id: transfer.id,
+          payout_provider: "validapay",
+          payout_external_id: transfer.withdrawalId,
           payout_external_status: transfer.status ?? null,
           payout_response: transfer as unknown as Json,
           payout_error: null,
           payout_requested_at: now,
-          payout_receipt_url: transfer.transactionReceiptUrl ?? null,
+          payout_receipt_url: transfer.receiptUrl ?? null,
           processed_at: now,
           paid_at: status === "pago" ? now : null,
         })
@@ -521,14 +517,14 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
 
       if (updateError) throw new Error(updateError.message);
 
-      return { ok: true, provider: "asaas", transferId: transfer.id, status };
+      return { ok: true, provider: "validapay", transferId: transfer.withdrawalId, status };
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Falha ao enviar Pix pelo Asaas.";
+      const message = err instanceof Error ? err.message : "Falha ao enviar Pix pela ValidaPay.";
       await supabaseAdmin
         .from("platform_withdrawal_requests")
         .update({
           status: "falhou",
-          payout_provider: "asaas",
+          payout_provider: "validapay",
           payout_error: message.slice(0, 500),
           processed_at: new Date().toISOString(),
         })
@@ -538,7 +534,7 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
         amount,
         gross_amount: null,
         fee_rate: 0.1,
-        description: `Reversao automatica de saque da diretoria para ${destinationLabel}`,
+        description: `Reversão automática de saque da diretoria para ${destinationLabel}`,
         created_by: context.userId,
       });
       throw new Error(message);

@@ -4,7 +4,11 @@ import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
-import { createAsaasPixTransfer, requireAsaasConfig } from "@/server/asaas.server";
+import {
+  createValidapayPixWithdrawal,
+  mapValidapayWithdrawalStatus,
+  requireValidapayConfig,
+} from "@/server/validapay.server";
 
 type PixKeyType = Database["public"]["Enums"]["pix_key_type"];
 type WithdrawalStatus = Database["public"]["Enums"]["teacher_withdrawal_status"];
@@ -32,12 +36,6 @@ function inferPixKeyType(value: string): PixKeyType {
   return "aleatoria";
 }
 
-function mapTransferStatus(status: string | null | undefined): WithdrawalStatus {
-  if (status === "DONE") return "pago";
-  if (status === "CANCELLED") return "cancelado";
-  return "em_processamento";
-}
-
 async function reverseTeacherWithdrawalHold(input: {
   teacherId: string;
   withdrawalId: string;
@@ -45,32 +43,46 @@ async function reverseTeacherWithdrawalHold(input: {
   userId: string;
   reason: string;
 }) {
-  await supabaseAdmin
+  const { error: updateError } = await supabaseAdmin
     .from("teacher_withdrawal_requests")
     .update({
       status: "falhou",
-      payout_provider: "asaas",
+      payout_provider: "validapay",
       payout_error: input.reason.slice(0, 500),
       processed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.withdrawalId);
 
-  await supabaseAdmin.from("teacher_wallet_transactions").insert({
+  if (updateError) throw new Error(updateError.message);
+
+  const { data: existingReversal, error: reversalLookupError } = await supabaseAdmin
+    .from("teacher_wallet_transactions")
+    .select("id")
+    .eq("withdrawal_request_id", input.withdrawalId)
+    .eq("transaction_type", "withdrawal_reversal")
+    .maybeSingle();
+
+  if (reversalLookupError) throw new Error(reversalLookupError.message);
+  if (existingReversal) return;
+
+  const { error: reversalError } = await supabaseAdmin.from("teacher_wallet_transactions").insert({
     teacher_id: input.teacherId,
     withdrawal_request_id: input.withdrawalId,
     transaction_type: "withdrawal_reversal",
     amount: input.amount,
-    description: "Reversao automatica de saque Pix nao enviado",
+    description: "Reversão automática de saque Pix não enviado",
     created_by: input.userId,
   });
+
+  if (reversalError) throw new Error(reversalError.message);
 }
 
 export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => teacherWithdrawalSchema.parse(input))
   .handler(async ({ data, context }) => {
-    requireAsaasConfig();
+    requireValidapayConfig();
 
     const amount = toMoney(data.amount);
     if (amount <= 0) throw new Error("Informe um valor maior que zero.");
@@ -93,26 +105,24 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
     }
 
     try {
-      const transfer = await createAsaasPixTransfer({
+      const transfer = await createValidapayPixWithdrawal({
         amount,
         pixKey: data.pixKey,
-        description: `Saque professor GWLanguageFlow ${withdrawalId}`,
-        externalReference: `teacher-withdrawal:${withdrawalId}`,
       });
-      const status = mapTransferStatus(transfer.status);
+      const status = mapValidapayWithdrawalStatus(transfer.status) as WithdrawalStatus;
       const now = new Date().toISOString();
 
       const { error: updateError } = await supabaseAdmin
         .from("teacher_withdrawal_requests")
         .update({
           status,
-          payout_provider: "asaas",
-          payout_external_id: transfer.id,
+          payout_provider: "validapay",
+          payout_external_id: transfer.withdrawalId,
           payout_external_status: transfer.status ?? null,
           payout_response: transfer as unknown as Json,
           payout_error: null,
           payout_requested_at: now,
-          payout_receipt_url: transfer.transactionReceiptUrl ?? null,
+          payout_receipt_url: transfer.receiptUrl ?? null,
           processed_at: now,
           paid_at: status === "pago" ? now : null,
         })
@@ -123,12 +133,15 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
       return {
         ok: true,
         withdrawalId,
-        provider: "asaas",
-        transferId: transfer.id,
+        provider: "validapay",
+        transferId: transfer.withdrawalId,
         status,
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Falha ao enviar Pix pelo Asaas.";
+      const rawMessage = err instanceof Error ? err.message : "Falha ao enviar Pix pela ValidaPay.";
+      const message = /saldo insuficiente/i.test(rawMessage)
+        ? "Saque não enviado: o saldo da conta ValidaPay da plataforma é insuficiente. O saldo da carteira do professor permanece disponível."
+        : rawMessage;
       await reverseTeacherWithdrawalHold({
         teacherId: context.userId,
         withdrawalId,

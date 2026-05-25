@@ -34,6 +34,7 @@ import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-passw
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as AdminLgpdRouteImport } from './routes/admin.lgpd'
+import { Route as ApiPublicValidapayWebhookRouteImport } from './routes/api/public/validapay-webhook'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
 import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
@@ -166,6 +167,12 @@ const AdminLgpdRoute = AdminLgpdRouteImport.update({
   path: '/lgpd',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicValidapayWebhookRoute =
+  ApiPublicValidapayWebhookRouteImport.update({
+    id: '/api/public/validapay-webhook',
+    path: '/api/public/validapay-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -231,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -264,6 +272,7 @@ export interface FileRoutesByTo {
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -298,6 +307,7 @@ export interface FileRoutesById {
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/api/public/consent'
     | '/api/public/security-event'
     | '/api/public/stripe-webhook'
+    | '/api/public/validapay-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -366,6 +377,7 @@ export interface FileRouteTypes {
     | '/api/public/consent'
     | '/api/public/security-event'
     | '/api/public/stripe-webhook'
+    | '/api/public/validapay-webhook'
   id:
     | '__root__'
     | '/'
@@ -399,6 +411,7 @@ export interface FileRouteTypes {
     | '/api/public/consent'
     | '/api/public/security-event'
     | '/api/public/stripe-webhook'
+    | '/api/public/validapay-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -432,6 +445,7 @@ export interface RootRouteChildren {
   ApiPublicConsentRoute: typeof ApiPublicConsentRoute
   ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
+  ApiPublicValidapayWebhookRoute: typeof ApiPublicValidapayWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -611,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLgpdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/validapay-webhook': {
+      id: '/api/public/validapay-webhook'
+      path: '/api/public/validapay-webhook'
+      fullPath: '/api/public/validapay-webhook'
+      preLoaderRoute: typeof ApiPublicValidapayWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -698,6 +719,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicConsentRoute: ApiPublicConsentRoute,
   ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
+  ApiPublicValidapayWebhookRoute: ApiPublicValidapayWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

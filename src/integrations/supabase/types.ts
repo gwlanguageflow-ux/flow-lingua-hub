@@ -8,6 +8,39 @@ export type Database = {
   };
   public: {
     Tables: {
+      validapay_webhook_events: {
+        Row: {
+          created_at: string;
+          event_id: string | null;
+          event_type: string;
+          id: string;
+          payload: Json;
+          processed_at: string | null;
+          processing_error: string | null;
+          provider_reference: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          event_id?: string | null;
+          event_type: string;
+          id?: string;
+          payload: Json;
+          processed_at?: string | null;
+          processing_error?: string | null;
+          provider_reference?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          event_id?: string | null;
+          event_type?: string;
+          id?: string;
+          payload?: Json;
+          processed_at?: string | null;
+          processing_error?: string | null;
+          provider_reference?: string | null;
+        };
+        Relationships: [];
+      };
       asaas_webhook_events: {
         Row: {
           created_at: string;
@@ -704,6 +737,13 @@ export type Database = {
           terms_accepted_at: string;
           terms_version: string;
           updated_at: string;
+          validapay_charge_id: string | null;
+          validapay_checkout_session_id: string | null;
+          validapay_customer_id: string | null;
+          validapay_payment_id: string | null;
+          validapay_payment_status: string | null;
+          validapay_payload: Json | null;
+          validapay_subscription_id: string | null;
         };
         Insert: {
           asaas_customer_id?: string | null;
@@ -733,6 +773,13 @@ export type Database = {
           terms_accepted_at: string;
           terms_version?: string;
           updated_at?: string;
+          validapay_charge_id?: string | null;
+          validapay_checkout_session_id?: string | null;
+          validapay_customer_id?: string | null;
+          validapay_payment_id?: string | null;
+          validapay_payment_status?: string | null;
+          validapay_payload?: Json | null;
+          validapay_subscription_id?: string | null;
         };
         Update: {
           asaas_customer_id?: string | null;
@@ -762,6 +809,13 @@ export type Database = {
           terms_accepted_at?: string;
           terms_version?: string;
           updated_at?: string;
+          validapay_charge_id?: string | null;
+          validapay_checkout_session_id?: string | null;
+          validapay_customer_id?: string | null;
+          validapay_payment_id?: string | null;
+          validapay_payment_status?: string | null;
+          validapay_payload?: Json | null;
+          validapay_subscription_id?: string | null;
         };
         Relationships: [
           {
@@ -796,6 +850,8 @@ export type Database = {
           sort_order: number;
           stripe_price_id_card: string | null;
           updated_at: string;
+          validapay_price_id: string | null;
+          validapay_product_id: string | null;
         };
         Insert: {
           created_at?: string;
@@ -812,6 +868,8 @@ export type Database = {
           sort_order?: number;
           stripe_price_id_card?: string | null;
           updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
         };
         Update: {
           created_at?: string;
@@ -828,6 +886,8 @@ export type Database = {
           sort_order?: number;
           stripe_price_id_card?: string | null;
           updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
         };
         Relationships: [];
       };

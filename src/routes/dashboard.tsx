@@ -1745,6 +1745,11 @@ function WalletPanel({
   const [pixKey, setPixKey] = useState("");
   const [holderName, setHolderName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const financialTransactions = transactions.filter(
+    (item) =>
+      item.transaction_type !== "withdrawal_hold" &&
+      item.transaction_type !== "withdrawal_reversal",
+  );
 
   const submitWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1867,11 +1872,11 @@ function WalletPanel({
             <History className="h-5 w-5 text-bronze" />
             <h3 className="font-display text-xl text-wine">Historico financeiro</h3>
           </div>
-          {transactions.length === 0 ? (
-            <Empty msg="Nenhum movimento na carteira ainda." />
+          {financialTransactions.length === 0 ? (
+            <Empty msg="Nenhum credito financeiro na carteira ainda." />
           ) : (
             <div className="space-y-3">
-              {transactions.map((item) => (
+              {financialTransactions.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-start justify-between gap-4 border-b border-border pb-3 last:border-b-0 last:pb-0"
@@ -1931,9 +1936,16 @@ function WalletPanel({
                       {pixTypeLabel(item.pix_key_type)} | {maskPixKey(item.pix_key)}
                     </td>
                     <td className="py-3 pr-3">
-                      <span className="rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${withdrawalStatusClass(item.status)}`}
+                      >
                         {withdrawalStatusLabel(item.status)}
                       </span>
+                      {item.payout_error ? (
+                        <p className="mt-1 max-w-[280px] text-[11px] leading-snug text-brown-soft">
+                          {item.payout_error}
+                        </p>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -2052,6 +2064,17 @@ function withdrawalStatusLabel(status: WithdrawalRequest["status"]) {
     cancelado: "Cancelado",
   };
   return labels[status] ?? status;
+}
+
+function withdrawalStatusClass(status: WithdrawalRequest["status"]) {
+  const classes: Record<WithdrawalRequest["status"], string> = {
+    pendente: "bg-amber-100 text-amber-800",
+    em_processamento: "bg-bronze/15 text-bronze",
+    pago: "bg-emerald-100 text-emerald-700",
+    falhou: "bg-red-100 text-red-700",
+    cancelado: "bg-zinc-100 text-zinc-700",
+  };
+  return classes[status] ?? "bg-bronze/15 text-bronze";
 }
 
 function requestStatusLabel(status: string) {

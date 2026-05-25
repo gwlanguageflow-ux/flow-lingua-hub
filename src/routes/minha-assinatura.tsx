@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createSubscriptionCheckout } from "@/functions/stripe-checkout.functions";
+import { createSubscriptionCheckout } from "@/functions/validapay-checkout.functions";
 import { toast } from "sonner";
 import {
   CalendarClock,
@@ -122,7 +122,7 @@ function Page() {
         data: {
           planSlug: sub.plan.slug,
           teacherId: sub.teacher_id,
-          paymentMethod: "card",
+          paymentMethod: "pix",
           termsAccepted: true,
           successUrl: `${origin}/minha-assinatura?checkout=success`,
           cancelUrl: `${origin}/minha-assinatura?checkout=cancel`,
@@ -195,7 +195,7 @@ function Page() {
                     <p className="font-semibold">Assinatura vencida</p>
                     <p>
                       Seu plano precisa de um novo pagamento para reativar o agendamento. Ao
-                      confirmar o cartão, o acesso volta automaticamente.
+                      confirmar o pagamento, o acesso volta automaticamente.
                     </p>
                     <Button
                       onClick={handlePixRenewal}
@@ -203,7 +203,7 @@ function Page() {
                       className="mt-3 bg-wine text-white hover:bg-wine/90 h-9"
                     >
                       {renewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Pagar novamente com cartão
+                      Pagar novamente
                     </Button>
                   </div>
                 </div>
@@ -269,9 +269,9 @@ function Page() {
                   label="Forma de pagamento"
                   value={
                     sub.payment_method === "pix"
-                      ? "PIX manual"
+                      ? "Pix"
                       : sub.payment_method === "card"
-                        ? "Cartão (recorrente)"
+                        ? "Cartão"
                         : "—"
                   }
                 />
