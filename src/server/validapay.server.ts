@@ -83,8 +83,8 @@ function getValidapayBases(environment = getValidapayEnvironment()) {
   };
 }
 
-export function getValidapayWebhookToken() {
-  return readSecretEnv("VALIDAPAY_WEBHOOK_TOKEN", "VALIDAPAY_WEBHOOK_SECRET");
+export function getValidapayWebhookSecret() {
+  return readSecretEnv("VALIDAPAY_WEBHOOK_SECRET", "VALIDAPAY_WEBHOOK_TOKEN");
 }
 
 export function requireValidapayConfig() {

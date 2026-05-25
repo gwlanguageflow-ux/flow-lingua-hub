@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { writeSecurityEvent } from "@/server/compliance.server";
-import { getValidapayWebhookToken } from "@/server/validapay.server";
+import { getValidapayWebhookSecret } from "@/server/validapay.server";
 
 type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
 type ValidapayWebhookPayload = {
@@ -228,31 +228,91 @@ async function markSubscriptionStatus(subscriptionId: string | null, status: Sub
   if (error) throw error;
 }
 
+function parseSignatureHeader(value: string | null) {
+  if (!value) return null;
+  const parts: Record<string, string> = {};
+  for (const part of value.split(",")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key) parts[key] = rest.join("=");
+  }
+
+  if (!parts.t || !parts.v1) return null;
+  return { timestamp: parts.t, signature: parts.v1 };
+}
+
+async function verifyValidapaySignature({
+  rawBody,
+  secret,
+  signatureHeader,
+}: {
+  rawBody: string;
+  secret: string;
+  signatureHeader: string | null;
+}) {
+  const parsed = parseSignatureHeader(signatureHeader);
+  if (!parsed) return false;
+
+  const timestamp = Number(parsed.timestamp);
+  if (!Number.isFinite(timestamp)) return false;
+
+  const timestampMs = timestamp > 9_999_999_999 ? timestamp : timestamp * 1000;
+  if (Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) return false;
+
+  const { createHmac, timingSafeEqual } = await import("node:crypto");
+  const expectedSignature = createHmac("sha256", secret)
+    .update(`${parsed.timestamp}.${rawBody}`)
+    .digest("hex");
+
+  try {
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+    const receivedBuffer = Buffer.from(parsed.signature, "hex");
+    if (expectedBuffer.length !== receivedBuffer.length) return false;
+    return timingSafeEqual(expectedBuffer, receivedBuffer);
+  } catch {
+    return false;
+  }
+}
+
+async function verifyWebhookRequest(request: Request, rawBody: string) {
+  const configuredSecret = getValidapayWebhookSecret();
+  if (!configuredSecret) return false;
+
+  const isSigned = await verifyValidapaySignature({
+    rawBody,
+    secret: configuredSecret,
+    signatureHeader: request.headers.get("x-webhook-signature"),
+  });
+  if (isSigned) return true;
+
+  const requestUrl = new URL(request.url);
+  const receivedToken =
+    request.headers.get("x-validapay-token") ??
+    request.headers.get("x-webhook-token") ??
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    requestUrl.searchParams.get("token");
+
+  return receivedToken === configuredSecret;
+}
+
 export const Route = createFileRoute("/api/public/validapay-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const configuredToken = getValidapayWebhookToken();
-        const requestUrl = new URL(request.url);
-        const receivedToken =
-          request.headers.get("x-validapay-token") ??
-          request.headers.get("x-webhook-token") ??
-          request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-          requestUrl.searchParams.get("token");
+        const rawBody = await request.text();
 
-        if (!configuredToken || receivedToken !== configuredToken) {
+        if (!(await verifyWebhookRequest(request, rawBody))) {
           await writeSecurityEvent({
-            eventType: "validapay.webhook_invalid_token",
+            eventType: "validapay.webhook_invalid_signature",
             severity: "high",
             route: "/api/public/validapay-webhook",
             request,
           });
-          return new Response("Invalid webhook token", { status: 401 });
+          return new Response("Invalid webhook signature", { status: 401 });
         }
 
         let payload: ValidapayWebhookPayload;
         try {
-          payload = (await request.json()) as ValidapayWebhookPayload;
+          payload = JSON.parse(rawBody) as ValidapayWebhookPayload;
         } catch (error) {
           await writeSecurityEvent({
             eventType: "validapay.webhook_invalid_json",

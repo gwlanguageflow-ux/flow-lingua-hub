@@ -63,5 +63,5 @@ Validacao visual:
 
 - Revisao juridica dos textos legais por advogado/DPO responsavel.
 - Validacao ponta a ponta em producao com contas reais controladas: cadastro, consentimento, assinatura por cartao/Pix, webhook ValidaPay, liberacao de acesso, carteira, saque professor e saque diretoria.
-- Confirmar no painel ValidaPay se `VALIDAPAY_CLIENT_ID`, `VALIDAPAY_CLIENT_SECRET` e `VALIDAPAY_WEBHOOK_TOKEN` da Vercel pertencem ao ambiente de producao antes de divulgar o link em massa.
+- Confirmar no painel ValidaPay se `VALIDAPAY_CLIENT_ID`, `VALIDAPAY_CLIENT_SECRET` e `VALIDAPAY_WEBHOOK_SECRET` da Vercel pertencem ao ambiente de producao antes de divulgar o link em massa.
 - Revisao periodica da CSP quando forem adicionados Google Analytics, Meta Pixel, WhatsApp widgets ou novas tags externas.
