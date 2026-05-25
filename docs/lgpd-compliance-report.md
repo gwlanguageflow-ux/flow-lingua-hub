@@ -9,7 +9,7 @@ Escopo: estrutura tecnica de privacidade, consentimento, governanca, seguranca e
 ## Implementado
 
 - Mapa de dados pessoais em `docs/lgpd-data-map.md`, cobrindo cadastro, autenticacao, pagamentos, mensagens, aulas, materiais, logs, consentimentos, diretorias e terceiros.
-- Registro de terceiros em `docs/third-party-processors.md`, incluindo Supabase, ValidaPay, Vercel, Registro.br, provedores legados mantidos para rastreabilidade e possiveis tags futuras.
+- Registro de terceiros em `docs/third-party-processors.md`, incluindo Supabase, ValidaPay, Vercel, Registro.br, provedores legados desativados e possiveis tags futuras.
 - Banner real de cookies com categorias necessarios, analiticos, marketing, preferencias e terceiros.
 - Bloqueio de scripts nao essenciais por padrao via `ConsentScript`; nao ha Google Analytics, Meta Pixel, `gtag` ou `fbq` carregando diretamente antes do consentimento.
 - Central do usuario em `/privacidade` com visualizacao de dados, exportacao tecnica, solicitacao LGPD, revogacao de consentimento e protocolos.

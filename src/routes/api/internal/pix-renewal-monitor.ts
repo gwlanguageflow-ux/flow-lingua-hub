@@ -176,7 +176,7 @@ async function runPixRenewalMonitor() {
   };
 }
 
-export const Route = createFileRoute("/api/internal/stripe-pix-renewal-monitor")({
+export const Route = createFileRoute("/api/internal/pix-renewal-monitor")({
   server: {
     handlers: {
       GET: async ({ request }) => {

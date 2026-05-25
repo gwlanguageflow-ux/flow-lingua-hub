@@ -39,7 +39,7 @@ import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/
 import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
 import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
-import { Route as ApiInternalStripePixRenewalMonitorRouteImport } from './routes/api/internal/stripe-pix-renewal-monitor'
+import { Route as ApiInternalPixRenewalMonitorRouteImport } from './routes/api/internal/pix-renewal-monitor'
 import { Route as ApiInternalLgpdRetentionRouteImport } from './routes/api/internal/lgpd-retention'
 
 const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
@@ -193,10 +193,10 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiInternalStripePixRenewalMonitorRoute =
-  ApiInternalStripePixRenewalMonitorRouteImport.update({
-    id: '/api/internal/stripe-pix-renewal-monitor',
-    path: '/api/internal/stripe-pix-renewal-monitor',
+const ApiInternalPixRenewalMonitorRoute =
+  ApiInternalPixRenewalMonitorRouteImport.update({
+    id: '/api/internal/pix-renewal-monitor',
+    path: '/api/internal/pix-renewal-monitor',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiInternalLgpdRetentionRoute =
@@ -233,7 +233,7 @@ export interface FileRoutesByFullPath {
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
-  '/api/internal/stripe-pix-renewal-monitor': typeof ApiInternalStripePixRenewalMonitorRoute
+  '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -267,7 +267,7 @@ export interface FileRoutesByTo {
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
-  '/api/internal/stripe-pix-renewal-monitor': typeof ApiInternalStripePixRenewalMonitorRoute
+  '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -302,7 +302,7 @@ export interface FileRoutesById {
   '/cadastro/professor': typeof CadastroProfessorRoute
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
-  '/api/internal/stripe-pix-renewal-monitor': typeof ApiInternalStripePixRenewalMonitorRoute
+  '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -338,7 +338,7 @@ export interface FileRouteTypes {
     | '/cadastro/professor'
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
-    | '/api/internal/stripe-pix-renewal-monitor'
+    | '/api/internal/pix-renewal-monitor'
     | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -372,7 +372,7 @@ export interface FileRouteTypes {
     | '/cadastro/professor'
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
-    | '/api/internal/stripe-pix-renewal-monitor'
+    | '/api/internal/pix-renewal-monitor'
     | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -406,7 +406,7 @@ export interface FileRouteTypes {
     | '/cadastro/professor'
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
-    | '/api/internal/stripe-pix-renewal-monitor'
+    | '/api/internal/pix-renewal-monitor'
     | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -440,7 +440,7 @@ export interface RootRouteChildren {
   CadastroProfessorRoute: typeof CadastroProfessorRoute
   ProfessorIdRoute: typeof ProfessorIdRoute
   ApiInternalLgpdRetentionRoute: typeof ApiInternalLgpdRetentionRoute
-  ApiInternalStripePixRenewalMonitorRoute: typeof ApiInternalStripePixRenewalMonitorRoute
+  ApiInternalPixRenewalMonitorRoute: typeof ApiInternalPixRenewalMonitorRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicConsentRoute: typeof ApiPublicConsentRoute
   ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
@@ -660,11 +660,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/internal/stripe-pix-renewal-monitor': {
-      id: '/api/internal/stripe-pix-renewal-monitor'
-      path: '/api/internal/stripe-pix-renewal-monitor'
-      fullPath: '/api/internal/stripe-pix-renewal-monitor'
-      preLoaderRoute: typeof ApiInternalStripePixRenewalMonitorRouteImport
+    '/api/internal/pix-renewal-monitor': {
+      id: '/api/internal/pix-renewal-monitor'
+      path: '/api/internal/pix-renewal-monitor'
+      fullPath: '/api/internal/pix-renewal-monitor'
+      preLoaderRoute: typeof ApiInternalPixRenewalMonitorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/internal/lgpd-retention': {
@@ -713,8 +713,7 @@ const rootRouteChildren: RootRouteChildren = {
   CadastroProfessorRoute: CadastroProfessorRoute,
   ProfessorIdRoute: ProfessorIdRoute,
   ApiInternalLgpdRetentionRoute: ApiInternalLgpdRetentionRoute,
-  ApiInternalStripePixRenewalMonitorRoute:
-    ApiInternalStripePixRenewalMonitorRoute,
+  ApiInternalPixRenewalMonitorRoute: ApiInternalPixRenewalMonitorRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicConsentRoute: ApiPublicConsentRoute,
   ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,
