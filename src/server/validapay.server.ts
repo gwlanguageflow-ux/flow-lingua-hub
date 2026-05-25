@@ -65,7 +65,11 @@ function readSecretEnv(...names: string[]) {
 }
 
 function getValidapayEnvironment(): ValidapayEnvironment {
-  const value = readSecretEnv("VALIDAPAY_ENVIRONMENT", "VALIDAPAY_AMBIENTE").toLowerCase();
+  const value = readSecretEnv(
+    "VALIDAPAY_ENVIRONMENT",
+    "VALIDAPAY_AMBIENTE",
+    "VALIDAPAY_IRONMENT",
+  ).toLowerCase();
   return value === "sandbox" ? "sandbox" : "production";
 }
 
@@ -88,8 +92,12 @@ export function getValidapayWebhookSecret() {
 }
 
 export function requireValidapayConfig() {
-  const clientId = readSecretEnv("VALIDAPAY_CLIENT_ID");
-  const clientSecret = readSecretEnv("VALIDAPAY_CLIENT_SECRET");
+  const clientId = readSecretEnv(
+    "VALIDAPAY_CLIENT_ID",
+    "VALIDAPAY_CLIENTE_ID",
+    "ID_DO_CLIENTE_VALIDAPAY",
+  );
+  const clientSecret = readSecretEnv("VALIDAPAY_CLIENT_SECRET", "VALIDAPAY_CLIENTE_SECRET");
 
   if (!clientId || !clientSecret) {
     throw new Error(
