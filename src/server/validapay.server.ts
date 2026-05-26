@@ -91,6 +91,23 @@ export function getValidapayWebhookSecret() {
   return readSecretEnv("VALIDAPAY_WEBHOOK_SECRET", "VALIDAPAY_WEBHOOK_TOKEN");
 }
 
+export const VALIDAPAY_WAITING_BALANCE_MESSAGE =
+  "Saque registrado. A ValidaPay ainda nao liberou saldo suficiente na conta da plataforma; o envio Pix sera tentado automaticamente assim que houver saldo disponivel.";
+
+export function isValidapayInsufficientBalanceError(error: unknown) {
+  const message = (error instanceof Error ? error.message : String(error ?? ""))
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return (
+    /(saldo|balance|funds|fundos|disponivel)[\s\S]*(insuficiente|insufficient|not enough)/i.test(
+      message,
+    ) ||
+    /(insuficiente|insufficient|not enough)[\s\S]*(saldo|balance|funds|fundos|disponivel)/i.test(
+      message,
+    )
+  );
+}
+
 export function requireValidapayConfig() {
   const clientId = readSecretEnv(
     "VALIDAPAY_CLIENT_ID",

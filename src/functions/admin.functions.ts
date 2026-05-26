@@ -5,8 +5,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Enums, Json, Tables } from "@/integrations/supabase/types";
 import {
   createValidapayPixWithdrawal,
+  isValidapayInsufficientBalanceError,
   mapValidapayWithdrawalStatus,
   requireValidapayConfig,
+  VALIDAPAY_WAITING_BALANCE_MESSAGE,
 } from "@/server/validapay.server";
 
 type AppRole = Enums<"app_role">;
@@ -520,6 +522,28 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
       return { ok: true, provider: "validapay", transferId: transfer.withdrawalId, status };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Falha ao enviar Pix pela ValidaPay.";
+      if (isValidapayInsufficientBalanceError(err)) {
+        const now = new Date().toISOString();
+        await supabaseAdmin
+          .from("platform_withdrawal_requests")
+          .update({
+            status: "em_processamento",
+            payout_provider: "validapay",
+            payout_error: VALIDAPAY_WAITING_BALANCE_MESSAGE,
+            payout_requested_at: now,
+            processed_at: null,
+          })
+          .eq("id", withdrawal.id);
+
+        return {
+          ok: true,
+          queued: true,
+          provider: "validapay",
+          status: "em_processamento" as WithdrawalStatus,
+          message: VALIDAPAY_WAITING_BALANCE_MESSAGE,
+        };
+      }
+
       await supabaseAdmin
         .from("platform_withdrawal_requests")
         .update({

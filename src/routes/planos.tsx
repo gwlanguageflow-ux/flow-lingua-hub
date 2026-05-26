@@ -383,7 +383,7 @@ function CheckoutDialog({
 }) {
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg rounded-xl">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-wine">
             Finalizar assinatura — {selected?.name}
@@ -477,7 +477,7 @@ function CheckoutDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="sticky -bottom-4 -mx-4 border-t border-border bg-background/95 p-4 shadow-[0_-16px_30px_rgba(43,20,15,0.08)] backdrop-blur sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           <Button
             onClick={onCheckout}
             disabled={loading || !terms}

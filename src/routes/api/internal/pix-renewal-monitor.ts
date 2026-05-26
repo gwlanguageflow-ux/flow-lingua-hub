@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { runValidapayPayoutRetry } from "@/server/validapay-payout-retry.server";
 
 type PixSubscription = {
   id: string;
@@ -182,7 +183,11 @@ export const Route = createFileRoute("/api/internal/pix-renewal-monitor")({
       GET: async ({ request }) => {
         if (!verifyCron(request)) return new Response("Unauthorized", { status: 401 });
         try {
-          const result = await runPixRenewalMonitor();
+          const [pixRenewal, payoutRetry] = await Promise.all([
+            runPixRenewalMonitor(),
+            runValidapayPayoutRetry(),
+          ]);
+          const result = { pixRenewal, payoutRetry };
           return new Response(JSON.stringify(result), {
             status: 200,
             headers: { "Content-Type": "application/json" },

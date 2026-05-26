@@ -6,8 +6,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import {
   createValidapayPixWithdrawal,
+  isValidapayInsufficientBalanceError,
   mapValidapayWithdrawalStatus,
   requireValidapayConfig,
+  VALIDAPAY_WAITING_BALANCE_MESSAGE,
 } from "@/server/validapay.server";
 
 type PixKeyType = Database["public"]["Enums"]["pix_key_type"];
@@ -139,9 +141,33 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
       };
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : "Falha ao enviar Pix pela ValidaPay.";
-      const message = /saldo insuficiente/i.test(rawMessage)
-        ? "Saque não enviado: o saldo da conta ValidaPay da plataforma é insuficiente. O saldo da carteira do professor permanece disponível."
-        : rawMessage;
+      if (isValidapayInsufficientBalanceError(err)) {
+        const now = new Date().toISOString();
+        const { error: queueError } = await supabaseAdmin
+          .from("teacher_withdrawal_requests")
+          .update({
+            status: "em_processamento",
+            payout_provider: "validapay",
+            payout_error: VALIDAPAY_WAITING_BALANCE_MESSAGE,
+            payout_requested_at: now,
+            processed_at: null,
+            updated_at: now,
+          })
+          .eq("id", withdrawalId);
+
+        if (queueError) throw new Error(queueError.message);
+
+        return {
+          ok: true,
+          queued: true,
+          withdrawalId,
+          provider: "validapay",
+          status: "em_processamento" as WithdrawalStatus,
+          message: VALIDAPAY_WAITING_BALANCE_MESSAGE,
+        };
+      }
+
+      const message = rawMessage;
       await reverseTeacherWithdrawalHold({
         teacherId: context.userId,
         withdrawalId,

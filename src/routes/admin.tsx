@@ -980,7 +980,7 @@ function DirectorWalletPanel({
 
     setSubmitting(true);
     try {
-      await requestDirectorWithdrawal({
+      const result = await requestDirectorWithdrawal({
         data: {
           amount: parsedAmount,
           accountHolderName: accountHolderName.trim(),
@@ -988,7 +988,11 @@ function DirectorWalletPanel({
           note: null,
         },
       });
-      toast.success("Saque da diretoria registrado.");
+      toast.success(
+        result.queued
+          ? "Saque da diretoria registrado. O Pix sera enviado automaticamente quando a ValidaPay liberar saldo."
+          : "Saque da diretoria registrado.",
+      );
       setAmount("");
       setAccountHolderName("");
       setPixKey("");
