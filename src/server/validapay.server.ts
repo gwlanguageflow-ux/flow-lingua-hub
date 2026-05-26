@@ -280,6 +280,12 @@ export function validapayPaymentMethod(method: "card" | "pix") {
   return method === "card" ? "creditcard" : "pix";
 }
 
+export function validapayAllowedPaymentMethods(preferredMethod: "card" | "pix") {
+  const preferred = validapayPaymentMethod(preferredMethod);
+  const fallback = preferredMethod === "card" ? "pix" : "creditcard";
+  return [preferred, fallback];
+}
+
 export function validapayRecurrenceType(interval: "mensal" | "trimestral" | "anual") {
   if (interval === "anual") return "YEARLY";
   return "MONTHLY";
@@ -324,11 +330,13 @@ export async function createValidapayCheckoutSession(input: {
   priceId: string;
   paymentMethod: "card" | "pix";
   customer: {
+    name?: string | null;
     email?: string | null;
     documentNumber?: string | null;
   };
 }) {
   const customer: JsonBody = {};
+  if (input.customer.name) customer.name = input.customer.name;
   if (input.customer.email) customer.email = input.customer.email;
   if (input.customer.documentNumber) {
     customer.documentNumber = input.customer.documentNumber.replace(/\D/g, "");
@@ -336,7 +344,7 @@ export async function createValidapayCheckoutSession(input: {
 
   const body: JsonBody = {
     priceId: input.priceId,
-    allowedPaymentMethods: [validapayPaymentMethod(input.paymentMethod)],
+    allowedPaymentMethods: validapayAllowedPaymentMethods(input.paymentMethod),
   };
   if (Object.keys(customer).length) body.customer = customer;
 

@@ -254,14 +254,16 @@ async function findPendingSubscription(payload: ValidapayWebhookPayload) {
 
   const method = paymentMethodFromPayload(payload.paymentMethod);
   const amount = Number(payload.amount);
-  const match = (subscriptions ?? []).find((subscription) => {
+  const sameAmountSubscriptions = (subscriptions ?? []).filter((subscription) => {
     const plan = subscription.subscription_plans as { price?: number } | null;
-    const sameAmount = Math.abs(Number(plan?.price ?? 0) - amount) < 0.01;
-    const sameMethod = !method || subscription.payment_method === method;
-    return sameAmount && sameMethod;
+    return Math.abs(Number(plan?.price ?? 0) - amount) < 0.01;
   });
 
-  return match?.id ?? null;
+  const exactMethodMatch = sameAmountSubscriptions.find(
+    (subscription) => !method || subscription.payment_method === method,
+  );
+
+  return exactMethodMatch?.id ?? sameAmountSubscriptions[0]?.id ?? null;
 }
 
 async function updateSubscriptionFromPayload(
@@ -271,6 +273,7 @@ async function updateSubscriptionFromPayload(
   const reference = paymentReference(payload);
   const start = periodStart(payload);
   const end = await getSubscriptionPeriodEnd(subscriptionId, start);
+  const method = paymentMethodFromPayload(payload.paymentMethod);
 
   await activatePaidSubscription({
     _subscription_id: subscriptionId,
@@ -288,6 +291,7 @@ async function updateSubscriptionFromPayload(
       validapay_payment_status: normalizeProviderEvent(payload.event),
       validapay_payload: payload as Json,
       validapay_subscription_id: payload.subscriptionId ?? null,
+      ...(method ? { payment_method: method } : {}),
     })
     .eq("id", subscriptionId);
 

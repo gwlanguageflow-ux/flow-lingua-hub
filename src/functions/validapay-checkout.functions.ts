@@ -157,6 +157,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const checkoutInput = {
       paymentMethod: data.paymentMethod,
       customer: {
+        name: profile?.full_name,
         email: profile?.email,
         documentNumber: cleanDocument(profile?.cpf),
       },
