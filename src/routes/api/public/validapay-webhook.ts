@@ -89,6 +89,45 @@ function paymentReference(payload: ValidapayWebhookPayload) {
   );
 }
 
+function normalizeProviderEvent(event: string | null | undefined) {
+  const normalized = (event ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".");
+
+  if (
+    /(payment|pagamento|cobranca)/.test(normalized) &&
+    /(success|approved|aprovad|paid|confirmad|recebid)/.test(normalized)
+  ) {
+    return "payment.success";
+  }
+
+  if (
+    /(payment|pagamento|cobranca)/.test(normalized) &&
+    /(fail|failed|recusad|rejected|cancelad|negad)/.test(normalized)
+  ) {
+    return "payment.failed";
+  }
+
+  if (
+    /(subscription|assinatura)/.test(normalized) &&
+    /(active|ativad|created|criad)/.test(normalized)
+  ) {
+    return "subscription.activated";
+  }
+
+  if (/(subscription|assinatura)/.test(normalized) && /(renew|renovad)/.test(normalized)) {
+    return "subscription.renewed";
+  }
+
+  if (/(subscription|assinatura)/.test(normalized) && /(cancel|cancelad)/.test(normalized)) {
+    return "subscription.canceled";
+  }
+
+  return normalized || "unknown";
+}
+
 async function activatePaidSubscription(args: ActivateSubscriptionArgs) {
   const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", args);
   if (!error) return;
@@ -108,6 +147,40 @@ async function activatePaidSubscription(args: ActivateSubscriptionArgs) {
     legacyArgs,
   );
   if (legacyError) throw legacyError;
+}
+
+function addPlanInterval(startIso: string, interval: string | null | undefined) {
+  const end = new Date(startIso);
+  if (!Number.isFinite(end.getTime())) return null;
+
+  if (interval === "trimestral") {
+    end.setMonth(end.getMonth() + 3);
+  } else if (interval === "anual") {
+    end.setFullYear(end.getFullYear() + 1);
+  } else {
+    end.setMonth(end.getMonth() + 1);
+  }
+
+  return end.toISOString();
+}
+
+async function getSubscriptionPeriodEnd(subscriptionId: string, startIso: string) {
+  const { data: subscription, error: subscriptionError } = await supabaseAdmin
+    .from("student_subscriptions")
+    .select("plan_id")
+    .eq("id", subscriptionId)
+    .maybeSingle();
+  if (subscriptionError) throw subscriptionError;
+  if (!subscription?.plan_id) return null;
+
+  const { data: plan, error: planError } = await supabaseAdmin
+    .from("subscription_plans")
+    .select("interval")
+    .eq("id", subscription.plan_id)
+    .maybeSingle();
+  if (planError) throw planError;
+
+  return addPlanInterval(startIso, plan?.interval);
 }
 
 async function findPendingSubscription(payload: ValidapayWebhookPayload) {
@@ -196,11 +269,13 @@ async function updateSubscriptionFromPayload(
   payload: ValidapayWebhookPayload,
 ) {
   const reference = paymentReference(payload);
+  const start = periodStart(payload);
+  const end = await getSubscriptionPeriodEnd(subscriptionId, start);
+
   await activatePaidSubscription({
     _subscription_id: subscriptionId,
-    _stripe_subscription_id: null,
-    _period_start: periodStart(payload),
-    _period_end: null,
+    _period_start: start,
+    _period_end: end,
     _payment_reference: reference,
   });
 
@@ -210,7 +285,7 @@ async function updateSubscriptionFromPayload(
       validapay_charge_id: payload.chargeId ?? null,
       validapay_customer_id: payload.customerId ?? null,
       validapay_payment_id: payload.paymentId ?? null,
-      validapay_payment_status: payload.event ?? "payment.success",
+      validapay_payment_status: normalizeProviderEvent(payload.event),
       validapay_payload: payload as Json,
       validapay_subscription_id: payload.subscriptionId ?? null,
     })
@@ -324,7 +399,7 @@ export const Route = createFileRoute("/api/public/validapay-webhook")({
           return new Response("Invalid JSON", { status: 400 });
         }
 
-        const eventType = payload.event ?? "unknown";
+        const eventType = normalizeProviderEvent(payload.event);
         const providerReference = paymentReference(payload);
         const eventId = pickStringDeep(payload, ["eventId", "webhookEventId"]) ?? providerReference;
 

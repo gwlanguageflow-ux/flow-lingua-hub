@@ -41,92 +41,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      asaas_webhook_events: {
-        Row: {
-          created_at: string;
-          event_key: string;
-          event_type: string | null;
-          id: string;
-          payload: Json;
-          processed_at: string | null;
-          processing_error: string | null;
-        };
-        Insert: {
-          created_at?: string;
-          event_key: string;
-          event_type?: string | null;
-          id?: string;
-          payload: Json;
-          processed_at?: string | null;
-          processing_error?: string | null;
-        };
-        Update: {
-          created_at?: string;
-          event_key?: string;
-          event_type?: string | null;
-          id?: string;
-          payload?: Json;
-          processed_at?: string | null;
-          processing_error?: string | null;
-        };
-        Relationships: [];
-      };
-      asaas_subscription_payments: {
-        Row: {
-          amount: number;
-          asaas_payment_id: string;
-          created_at: string;
-          due_date: string;
-          id: string;
-          invoice_url: string | null;
-          payment_reference: string;
-          payload: Json | null;
-          period_end: string;
-          period_start: string;
-          status: string | null;
-          subscription_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          amount: number;
-          asaas_payment_id: string;
-          created_at?: string;
-          due_date: string;
-          id?: string;
-          invoice_url?: string | null;
-          payment_reference: string;
-          payload?: Json | null;
-          period_end: string;
-          period_start: string;
-          status?: string | null;
-          subscription_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          amount?: number;
-          asaas_payment_id?: string;
-          created_at?: string;
-          due_date?: string;
-          id?: string;
-          invoice_url?: string | null;
-          payment_reference?: string;
-          payload?: Json | null;
-          period_end?: string;
-          period_start?: string;
-          status?: string | null;
-          subscription_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "asaas_subscription_payments_subscription_id_fkey";
-            columns: ["subscription_id"];
-            isOneToOne: false;
-            referencedRelation: "student_subscriptions";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       bookings: {
         Row: {
           created_at: string;
@@ -710,16 +624,6 @@ export type Database = {
       };
       student_subscriptions: {
         Row: {
-          asaas_customer_id: string | null;
-          asaas_payment_id: string | null;
-          asaas_payment_status: string | null;
-          asaas_pix_authorization_id: string | null;
-          asaas_pix_authorization_status: string | null;
-          asaas_pix_conciliation_id: string | null;
-          asaas_pix_contract_id: string | null;
-          asaas_pix_encoded_image: string | null;
-          asaas_pix_expiration_date: string | null;
-          asaas_pix_payload: string | null;
           cancel_at_period_end: boolean;
           created_at: string;
           current_period_end: string | null;
@@ -729,9 +633,6 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"] | null;
           plan_id: string;
           status: Database["public"]["Enums"]["subscription_status"];
-          stripe_checkout_session_id: string | null;
-          stripe_customer_id: string | null;
-          stripe_subscription_id: string | null;
           student_id: string;
           teacher_id: string | null;
           terms_accepted_at: string;
@@ -746,16 +647,6 @@ export type Database = {
           validapay_subscription_id: string | null;
         };
         Insert: {
-          asaas_customer_id?: string | null;
-          asaas_payment_id?: string | null;
-          asaas_payment_status?: string | null;
-          asaas_pix_authorization_id?: string | null;
-          asaas_pix_authorization_status?: string | null;
-          asaas_pix_conciliation_id?: string | null;
-          asaas_pix_contract_id?: string | null;
-          asaas_pix_encoded_image?: string | null;
-          asaas_pix_expiration_date?: string | null;
-          asaas_pix_payload?: string | null;
           cancel_at_period_end?: boolean;
           created_at?: string;
           current_period_end?: string | null;
@@ -765,9 +656,6 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"] | null;
           plan_id: string;
           status?: Database["public"]["Enums"]["subscription_status"];
-          stripe_checkout_session_id?: string | null;
-          stripe_customer_id?: string | null;
-          stripe_subscription_id?: string | null;
           student_id: string;
           teacher_id?: string | null;
           terms_accepted_at: string;
@@ -782,16 +670,6 @@ export type Database = {
           validapay_subscription_id?: string | null;
         };
         Update: {
-          asaas_customer_id?: string | null;
-          asaas_payment_id?: string | null;
-          asaas_payment_status?: string | null;
-          asaas_pix_authorization_id?: string | null;
-          asaas_pix_authorization_status?: string | null;
-          asaas_pix_conciliation_id?: string | null;
-          asaas_pix_contract_id?: string | null;
-          asaas_pix_encoded_image?: string | null;
-          asaas_pix_expiration_date?: string | null;
-          asaas_pix_payload?: string | null;
           cancel_at_period_end?: boolean;
           created_at?: string;
           current_period_end?: string | null;
@@ -801,9 +679,6 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"] | null;
           plan_id?: string;
           status?: Database["public"]["Enums"]["subscription_status"];
-          stripe_checkout_session_id?: string | null;
-          stripe_customer_id?: string | null;
-          stripe_subscription_id?: string | null;
           student_id?: string;
           teacher_id?: string | null;
           terms_accepted_at?: string;
@@ -848,7 +723,6 @@ export type Database = {
           price: number;
           slug: string;
           sort_order: number;
-          stripe_price_id_card: string | null;
           updated_at: string;
           validapay_price_id: string | null;
           validapay_product_id: string | null;
@@ -866,7 +740,6 @@ export type Database = {
           price: number;
           slug: string;
           sort_order?: number;
-          stripe_price_id_card?: string | null;
           updated_at?: string;
           validapay_price_id?: string | null;
           validapay_product_id?: string | null;
@@ -884,7 +757,6 @@ export type Database = {
           price?: number;
           slug?: string;
           sort_order?: number;
-          stripe_price_id_card?: string | null;
           updated_at?: string;
           validapay_price_id?: string | null;
           validapay_product_id?: string | null;
@@ -1646,7 +1518,6 @@ export type Database = {
           _period_end?: string | null;
           _period_start?: string;
           _payment_reference?: string | null;
-          _stripe_subscription_id?: string | null;
           _subscription_id: string;
         };
         Returns: {

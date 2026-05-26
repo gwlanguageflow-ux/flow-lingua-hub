@@ -35,10 +35,8 @@ import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as AdminLgpdRouteImport } from './routes/admin.lgpd'
 import { Route as ApiPublicValidapayWebhookRouteImport } from './routes/api/public/validapay-webhook'
-import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
 import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
-import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
 import { Route as ApiInternalPixRenewalMonitorRouteImport } from './routes/api/internal/pix-renewal-monitor'
 import { Route as ApiInternalLgpdRetentionRouteImport } from './routes/api/internal/lgpd-retention'
 
@@ -173,11 +171,6 @@ const ApiPublicValidapayWebhookRoute =
     path: '/api/public/validapay-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
-  id: '/api/public/stripe-webhook',
-  path: '/api/public/stripe-webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicSecurityEventRoute = ApiPublicSecurityEventRouteImport.update({
   id: '/api/public/security-event',
   path: '/api/public/security-event',
@@ -186,11 +179,6 @@ const ApiPublicSecurityEventRoute = ApiPublicSecurityEventRouteImport.update({
 const ApiPublicConsentRoute = ApiPublicConsentRouteImport.update({
   id: '/api/public/consent',
   path: '/api/public/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
-  id: '/api/public/asaas-webhook',
-  path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiInternalPixRenewalMonitorRoute =
@@ -234,10 +222,8 @@ export interface FileRoutesByFullPath {
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
-  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
-  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -268,10 +254,8 @@ export interface FileRoutesByTo {
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
-  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
-  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
 }
 export interface FileRoutesById {
@@ -303,10 +287,8 @@ export interface FileRoutesById {
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
-  '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
-  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
 }
 export interface FileRouteTypes {
@@ -339,10 +321,8 @@ export interface FileRouteTypes {
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
     | '/api/internal/pix-renewal-monitor'
-    | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
-    | '/api/public/stripe-webhook'
     | '/api/public/validapay-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -373,10 +353,8 @@ export interface FileRouteTypes {
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
     | '/api/internal/pix-renewal-monitor'
-    | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
-    | '/api/public/stripe-webhook'
     | '/api/public/validapay-webhook'
   id:
     | '__root__'
@@ -407,10 +385,8 @@ export interface FileRouteTypes {
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
     | '/api/internal/pix-renewal-monitor'
-    | '/api/public/asaas-webhook'
     | '/api/public/consent'
     | '/api/public/security-event'
-    | '/api/public/stripe-webhook'
     | '/api/public/validapay-webhook'
   fileRoutesById: FileRoutesById
 }
@@ -441,10 +417,8 @@ export interface RootRouteChildren {
   ProfessorIdRoute: typeof ProfessorIdRoute
   ApiInternalLgpdRetentionRoute: typeof ApiInternalLgpdRetentionRoute
   ApiInternalPixRenewalMonitorRoute: typeof ApiInternalPixRenewalMonitorRoute
-  ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicConsentRoute: typeof ApiPublicConsentRoute
   ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
-  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicValidapayWebhookRoute: typeof ApiPublicValidapayWebhookRoute
 }
 
@@ -632,13 +606,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicValidapayWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/stripe-webhook': {
-      id: '/api/public/stripe-webhook'
-      path: '/api/public/stripe-webhook'
-      fullPath: '/api/public/stripe-webhook'
-      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/security-event': {
       id: '/api/public/security-event'
       path: '/api/public/security-event'
@@ -651,13 +618,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/consent'
       fullPath: '/api/public/consent'
       preLoaderRoute: typeof ApiPublicConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/asaas-webhook': {
-      id: '/api/public/asaas-webhook'
-      path: '/api/public/asaas-webhook'
-      fullPath: '/api/public/asaas-webhook'
-      preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/internal/pix-renewal-monitor': {
@@ -714,10 +674,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfessorIdRoute: ProfessorIdRoute,
   ApiInternalLgpdRetentionRoute: ApiInternalLgpdRetentionRoute,
   ApiInternalPixRenewalMonitorRoute: ApiInternalPixRenewalMonitorRoute,
-  ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicConsentRoute: ApiPublicConsentRoute,
   ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,
-  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicValidapayWebhookRoute: ApiPublicValidapayWebhookRoute,
 }
 export const routeTree = rootRouteImport
