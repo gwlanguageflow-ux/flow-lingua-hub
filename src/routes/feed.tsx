@@ -279,33 +279,44 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       transition={{ delay: index * 0.04 }}
       className="gw-app-card group overflow-hidden rounded-xl transition hover:-translate-y-1 hover:shadow-warm"
     >
-      <div className="relative h-48 bg-gradient-warm">
-        {teacher.avatar_url ? (
-          <img
-            src={teacher.avatar_url}
-            alt={teacher.full_name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-white font-display text-5xl">
-            {teacher.full_name.charAt(0)}
-          </div>
-        )}
+      <div
+        className="gw-profile-banner relative h-36 bg-cover bg-center"
+        style={
+          teacher.avatar_url
+            ? {
+                backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.78), rgba(114, 47, 55, 0.55), rgba(205, 127, 50, 0.28)), url(${teacher.avatar_url})`,
+              }
+            : undefined
+        }
+      >
         {teacher.rating && (
-          <div className="absolute right-3 top-3 flex items-center gap-1 rounded-lg bg-background/95 px-2.5 py-1 shadow-soft backdrop-blur">
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-lg bg-background/95 px-2.5 py-1 shadow-soft backdrop-blur">
             <Star className="h-3.5 w-3.5 fill-bronze text-bronze" />
             <span className="text-xs font-semibold text-wine">{teacher.rating.toFixed(1)}</span>
           </div>
         )}
       </div>
-      <div className="space-y-3 p-5">
-        <div>
-          <h3 className="font-display text-lg font-bold text-wine truncate">{teacher.full_name}</h3>
-          <p className="mt-1 flex items-center gap-1 text-xs text-brown-soft">
-            <Languages className="h-3.5 w-3.5 text-bronze" />
-            {teacher.languages_taught.slice(0, 3).join(" · ") || "Idioma a confirmar"}
-          </p>
+      <div className="space-y-3 p-5 pt-0">
+        <div className="-mt-11 flex items-end gap-3">
+          <div className="gw-avatar-frame z-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
+            {teacher.avatar_url ? (
+              <img
+                src={teacher.avatar_url}
+                alt={teacher.full_name}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <span className="text-2xl font-bold text-wine">{teacher.full_name.charAt(0)}</span>
+            )}
+          </div>
+          <div className="min-w-0 pb-1">
+            <h3 className="truncate text-lg font-bold text-wine">{teacher.full_name}</h3>
+            <p className="mt-1 flex items-center gap-1 text-xs text-brown-soft">
+              <Languages className="h-3.5 w-3.5 text-bronze" />
+              {teacher.languages_taught.slice(0, 3).join(" · ") || "Idioma a confirmar"}
+            </p>
+          </div>
         </div>
         <p className="text-sm text-brown line-clamp-2 min-h-[2.5rem]">
           {teacher.bio || "Professor apaixonado por idiomas."}

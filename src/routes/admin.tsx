@@ -562,13 +562,16 @@ function AdminPage() {
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold">
-                                  {profileDisplayName(profile)}
-                                </p>
-                                <p className="truncate text-xs text-brown-soft">
-                                  {profile.email ?? "Sem e-mail"}
-                                </p>
+                              <div className="flex min-w-0 items-center gap-3">
+                                <ProfileAvatar profile={profile} size="sm" />
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-bold">
+                                    {profileDisplayName(profile)}
+                                  </p>
+                                  <p className="truncate text-xs text-brown-soft">
+                                    {profile.email ?? "Sem e-mail"}
+                                  </p>
+                                </div>
                               </div>
                               <div className="flex shrink-0 flex-wrap justify-end gap-1">
                                 {userRoles.map((role) => (
@@ -589,19 +592,22 @@ function AdminPage() {
                   {selectedUser ? (
                     <>
                       <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <h2 className="font-display text-2xl font-bold text-wine">
-                            {profileDisplayName(selectedUser)}
-                          </h2>
-                          <p className="text-sm text-brown-soft">
-                            {selectedUser.email ?? "Sem e-mail cadastrado"}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {selectedRoles.map((role) => (
-                              <Badge key={role} className="rounded-full bg-wine text-white">
-                                {roleLabels[role]}
-                              </Badge>
-                            ))}
+                        <div className="flex min-w-0 items-start gap-4">
+                          <ProfileAvatar profile={selectedUser} />
+                          <div className="min-w-0">
+                            <h2 className="text-2xl font-bold text-wine">
+                              {profileDisplayName(selectedUser)}
+                            </h2>
+                            <p className="text-sm text-brown-soft">
+                              {selectedUser.email ?? "Sem e-mail cadastrado"}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {selectedRoles.map((role) => (
+                                <Badge key={role} className="rounded-full bg-wine text-white">
+                                  {roleLabels[role]}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
                         </div>
                         <div className="rounded-xl border border-border bg-cream px-4 py-3 text-sm text-brown">
@@ -1543,6 +1549,33 @@ function EmptyState({ text }: { text: string }) {
     <p className="rounded-xl border border-dashed border-border bg-background p-6 text-center text-sm text-brown-soft">
       {text}
     </p>
+  );
+}
+
+function ProfileAvatar({
+  profile,
+  size = "md",
+}: {
+  profile: Pick<Profile, "full_name" | "email" | "id" | "avatar_url">;
+  size?: "sm" | "md";
+}) {
+  const classes = size === "sm" ? "h-10 w-10 rounded-xl text-sm" : "h-16 w-16 rounded-2xl text-xl";
+
+  return (
+    <div
+      className={`gw-avatar-frame flex shrink-0 items-center justify-center overflow-hidden ${classes}`}
+    >
+      {profile.avatar_url ? (
+        <img
+          src={profile.avatar_url}
+          alt={profileDisplayName(profile)}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <span className="font-bold text-wine">{profileDisplayName(profile).charAt(0)}</span>
+      )}
+    </div>
   );
 }
 

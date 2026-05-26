@@ -188,10 +188,19 @@ function TeacherProfilePage() {
       <SiteHeader />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
         <div className="gw-app-card overflow-hidden rounded-xl">
-          <div className="h-40 md:h-52 bg-gradient-warm" />
+          <div
+            className="gw-profile-banner h-44 bg-cover bg-center md:h-60"
+            style={
+              teacher.avatar_url
+                ? {
+                    backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.84), rgba(114, 47, 55, 0.58), rgba(205, 127, 50, 0.32)), url(${teacher.avatar_url})`,
+                  }
+                : undefined
+            }
+          />
           <div className="px-6 md:px-10 pb-8 -mt-16 md:-mt-20">
             <div className="flex flex-col md:flex-row md:items-end gap-5 md:gap-8">
-              <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-xl border-4 border-background bg-cream shadow-warm md:h-40 md:w-40">
+              <div className="gw-avatar-frame flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl md:h-40 md:w-40">
                 {teacher.avatar_url ? (
                   <img
                     src={teacher.avatar_url}
