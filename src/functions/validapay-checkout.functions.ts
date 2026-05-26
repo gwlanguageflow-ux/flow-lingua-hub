@@ -18,19 +18,18 @@ type ValidapayProfile = {
   cpf?: string | null;
 };
 
+type ValidapayPlanPrice = {
+  productId: string | null;
+  priceId: string;
+  reusedCachedPrice: boolean;
+};
+
 function cleanDocument(value: string | null | undefined) {
   const digits = value?.replace(/\D/g, "") ?? "";
   return digits.length === 11 || digits.length === 14 ? digits : undefined;
 }
 
-async function ensureValidapayPriceId(plan: Plan) {
-  if (plan.validapay_price_id) {
-    return {
-      productId: plan.validapay_product_id,
-      priceId: plan.validapay_price_id,
-    };
-  }
-
+async function createAndStoreValidapayPrice(plan: Plan): Promise<ValidapayPlanPrice> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const product = await createValidapayProduct({
     name: plan.name,
@@ -54,7 +53,23 @@ async function ensureValidapayPriceId(plan: Plan) {
   return {
     productId: product.productId,
     priceId,
+    reusedCachedPrice: false,
   };
+}
+
+async function ensureValidapayPriceId(
+  plan: Plan,
+  options: { refresh?: boolean } = {},
+): Promise<ValidapayPlanPrice> {
+  if (plan.validapay_price_id && !options.refresh) {
+    return {
+      productId: plan.validapay_product_id,
+      priceId: plan.validapay_price_id,
+      reusedCachedPrice: true,
+    };
+  }
+
+  return createAndStoreValidapayPrice(plan);
 }
 
 function getPeriodEnd(interval: Plan["interval"]) {
@@ -64,6 +79,13 @@ function getPeriodEnd(interval: Plan["interval"]) {
   else if (interval === "trimestral") periodEnd.setMonth(periodEnd.getMonth() + 3);
   else periodEnd.setFullYear(periodEnd.getFullYear() + 1);
   return { now, periodEnd };
+}
+
+function shouldRefreshValidapayPrice(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /checkout|price|pre[cç]o|produto|product|invalid|inv[aá]lido|not found|nao encontrado|n[aã]o encontrado|processar pagamento/i.test(
+    message,
+  );
 }
 
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
@@ -112,7 +134,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .maybeSingle<ValidapayProfile>();
 
     const { now, periodEnd } = getPeriodEnd(plan.interval);
-    const { priceId } = await ensureValidapayPriceId(plan);
+    const price = await ensureValidapayPriceId(plan);
 
     const { data: sub, error: subError } = await supabaseAdmin
       .from("student_subscriptions")
@@ -132,14 +154,42 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       throw new Error(subError?.message ?? "Falha ao criar assinatura.");
     }
 
-    const session = await createValidapayCheckoutSession({
-      priceId,
+    const checkoutInput = {
       paymentMethod: data.paymentMethod,
       customer: {
         email: profile?.email,
         documentNumber: cleanDocument(profile?.cpf),
       },
-    });
+    };
+
+    let session;
+    let priceId = price.priceId;
+    try {
+      session = await createValidapayCheckoutSession({
+        priceId,
+        ...checkoutInput,
+      });
+    } catch (error) {
+      console.error("ValidaPay checkout session failed", {
+        planId: plan.id,
+        planSlug: plan.slug,
+        priceId,
+        paymentMethod: data.paymentMethod,
+        reusedCachedPrice: price.reusedCachedPrice,
+        message: error instanceof Error ? error.message : String(error),
+      });
+
+      if (!price.reusedCachedPrice || !shouldRefreshValidapayPrice(error)) {
+        throw error;
+      }
+
+      const refreshedPrice = await ensureValidapayPriceId(plan, { refresh: true });
+      priceId = refreshedPrice.priceId;
+      session = await createValidapayCheckoutSession({
+        priceId,
+        ...checkoutInput,
+      });
+    }
 
     const { error: updateError } = await supabaseAdmin
       .from("student_subscriptions")

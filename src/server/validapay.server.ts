@@ -166,15 +166,61 @@ async function parseValidapayResponse<T>(response: Response, context: string) {
   }
 
   if (!response.ok) {
-    const errorBody = body as { error?: { message?: string; code?: string }; message?: string };
-    const message =
-      errorBody?.error?.message ??
-      errorBody?.message ??
-      `${context} retornou HTTP ${response.status}`;
+    const message = extractValidapayError(body, `${context} retornou HTTP ${response.status}`);
     throw new Error(message);
   }
 
   return body as T;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function extractArrayErrors(value: unknown) {
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((entry) => {
+      const item = asRecord(entry);
+      if (!item) return typeof entry === "string" ? entry : "";
+      return firstText(item.message, item.error, item.description, item.detail, item.code);
+    })
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function extractValidapayError(body: unknown, fallback: string) {
+  const data = asRecord(body);
+  if (!data) return fallback;
+
+  const error = asRecord(data.error);
+  const details = asRecord(data.details);
+  const message = firstText(
+    data.message,
+    data.error_description,
+    data.description,
+    data.detail,
+    error?.message,
+    error?.description,
+    error?.code,
+    details?.message,
+    details?.description,
+    details?.code,
+    extractArrayErrors(data.errors),
+    extractArrayErrors(data.details),
+    data.raw,
+  );
+
+  return message || fallback;
 }
 
 async function validapayRequest<T>(path: string, scope: string, init: RequestInit = {}) {
