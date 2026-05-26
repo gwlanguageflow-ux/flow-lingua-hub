@@ -18,6 +18,7 @@ import {
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
+import directorHeroFallback from "@/assets/hero-student.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -107,8 +108,8 @@ function Hero() {
               um fluxo organizado.
             </p>
             <p className="mt-4 max-w-xl text-sm leading-7 text-brown-soft sm:text-base md:mt-5 md:leading-8">
-              A experiência foi redesenhada para parecer produto: clara no mobile, densa o bastante
-              para operação e elegante para receber alunos, professores e diretoria.
+              Estude com professores selecionados, acompanhamento de perto e uma rotina clara para
+              evoluir com confiança em cada aula.
             </p>
 
             <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap md:mt-8">
@@ -157,10 +158,12 @@ function Proof({ icon: Icon, text }: { icon: typeof ShieldCheck; text: string })
 }
 
 function ProductCockpit() {
+  const nextLesson = schedule[0];
+
   return (
-    <div className="relative mx-auto grid w-full max-w-3xl gap-4 xl:grid-cols-[minmax(0,1fr)_230px] xl:items-center">
-      <div className="gw-panel min-w-0 overflow-hidden rounded-xl backdrop-blur md:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-border bg-white/75 px-5 py-4">
+    <div className="relative mx-auto w-full max-w-3xl">
+      <div className="gw-director-card gw-panel min-w-0 overflow-hidden rounded-2xl backdrop-blur">
+        <div className="flex items-center justify-between border-b border-border bg-white/78 px-5 py-4">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-wine/45" />
             <span className="h-2.5 w-2.5 rounded-full bg-bronze/60" />
@@ -169,56 +172,71 @@ function ProductCockpit() {
           <span className="font-mono text-xs text-brown-soft">painel.gwlanguageflow</span>
         </div>
 
-        <div className="bg-white/94 p-6">
-          <div className="flex items-start justify-between gap-5">
-            <div>
-              <p className="text-xs font-bold uppercase text-bronze">Sua agenda</p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-wine">Próximas aulas</h2>
-            </div>
-            <div className="rounded-lg bg-wine px-3 py-1 text-xs font-semibold text-white">
-              B2 em evolução
-            </div>
-          </div>
+        <div className="relative grid min-h-[520px] overflow-hidden bg-ink text-white md:min-h-[560px]">
+          <img
+            src={directorHeroFallback}
+            alt="Acompanhamento pedagógico da jornada do aluno"
+            className="absolute inset-0 h-full w-full object-cover object-[50%_35%]"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/28 to-ink/10" />
+          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(43,20,15,0.72)_0%,rgba(43,20,15,0.1)_52%,rgba(43,20,15,0.42)_100%)]" />
 
-          <div className="mt-5 space-y-3">
-            {schedule.map((item) => (
-              <div
-                key={item.title}
-                className="grid grid-cols-[64px_1fr_auto] items-center gap-3 rounded-xl border border-border bg-cream/45 p-3 md:grid-cols-[72px_1fr_auto] md:gap-4 md:p-4"
-              >
-                <div className="text-center">
-                  <p className="text-xs font-semibold uppercase text-brown-soft">{item.day}</p>
-                  <p className="font-display text-xl font-bold text-wine">{item.time}</p>
+          <div className="relative z-10 flex min-h-full flex-col justify-between p-5 md:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-bronze">
+                  Sua agenda
+                </p>
+                <h2 className="mt-2 max-w-[260px] font-display text-3xl font-bold leading-tight text-white md:text-4xl">
+                  Próxima aula com acompanhamento real.
+                </h2>
+              </div>
+              <div className="rounded-lg bg-white/92 px-3 py-1 text-xs font-bold text-wine shadow-soft">
+                B2 em evolução
+              </div>
+            </div>
+
+            <div className="gw-next-lesson-panel max-w-xl rounded-2xl border border-white/24 bg-white/90 p-4 text-wine backdrop-blur md:p-5">
+              <div className="grid grid-cols-[76px_1fr_auto] items-center gap-3 md:grid-cols-[88px_1fr_auto] md:gap-4">
+                <div className="rounded-xl bg-cream px-3 py-4 text-center">
+                  <p className="text-xs font-bold uppercase text-brown-soft">{nextLesson.day}</p>
+                  <p className="font-display text-2xl font-bold text-wine">{nextLesson.time}</p>
                 </div>
-                <div className="border-l border-border pl-4">
-                  <p className="font-semibold text-wine">{item.title}</p>
-                  <p className="text-xs text-brown-soft">{item.teacher} · Aula online · 60min</p>
-                  <p className="mt-1 text-xs font-semibold text-bronze">{item.status}</p>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze">
+                    Próxima aula
+                  </p>
+                  <p className="mt-1 font-semibold leading-snug text-wine">{nextLesson.title}</p>
+                  <p className="mt-1 text-xs text-brown-soft">
+                    {nextLesson.teacher} · Aula online · 60min
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-bronze">{nextLesson.status}</p>
                 </div>
                 <CheckCircle2 className="h-5 w-5 text-bronze" />
               </div>
-            ))}
-          </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-5">
-            {[
-              ["8", "aulas/mês"],
-              ["12d", "sequência"],
-              ["4", "materiais"],
-            ].map(([value, label]) => (
-              <div key={label} className="rounded-xl bg-white p-3 text-center shadow-soft">
-                <p className="font-display text-2xl font-bold text-wine">{value}</p>
-                <p className="text-xs uppercase text-brown-soft">{label}</p>
+              <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4">
+                {[
+                  ["8", "aulas/mês"],
+                  ["12d", "sequência"],
+                  ["4", "materiais"],
+                ].map(([value, label]) => (
+                  <div key={label} className="rounded-xl bg-white/86 p-3 text-center shadow-soft">
+                    <p className="font-display text-2xl font-bold text-wine">{value}</p>
+                    <p className="text-[0.68rem] uppercase text-brown-soft">{label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/75 bg-ink p-4 text-white shadow-warm">
+      <div className="gw-director-message absolute right-3 top-20 z-20 max-w-[230px] rounded-2xl border border-white/16 bg-ink p-4 text-white shadow-warm sm:right-5 md:-right-5 md:top-24">
         <div className="flex items-center gap-2">
           <MessagesSquare className="h-4 w-4 text-bronze" />
-          <p className="text-sm font-semibold">Diretoria pedagógica</p>
+          <p className="text-sm font-semibold">Mensagem da diretora</p>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-white/70">
           Revisão da semana liberada. Ajuste de speaking recomendado antes da próxima aula.
