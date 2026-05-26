@@ -18,7 +18,7 @@ import {
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
-import directorHeroFallback from "@/assets/hero-student.jpg";
+import directorHero from "@/assets/director-eloiza.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -172,15 +172,22 @@ function ProductCockpit() {
           <span className="font-mono text-xs text-brown-soft">painel.gwlanguageflow</span>
         </div>
 
-        <div className="relative grid min-h-[520px] overflow-hidden bg-ink text-white md:min-h-[560px]">
+        <div className="relative grid min-h-[560px] overflow-hidden bg-ink text-white md:min-h-[600px]">
           <img
-            src={directorHeroFallback}
-            alt="Acompanhamento pedagógico da jornada do aluno"
-            className="absolute inset-0 h-full w-full object-cover object-[50%_35%]"
+            src={directorHero}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-105 object-cover object-[48%_38%] opacity-55 blur-[2px]"
             loading="eager"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/28 to-ink/10" />
-          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(43,20,15,0.72)_0%,rgba(43,20,15,0.1)_52%,rgba(43,20,15,0.42)_100%)]" />
+          <img
+            src={directorHero}
+            alt="Eloiza Gramacho, diretora pedagógica da GWLanguageFlow"
+            className="absolute bottom-0 right-0 z-[1] h-[104%] max-w-none object-contain object-bottom md:h-[108%] md:right-4"
+            loading="eager"
+          />
+          <div className="absolute inset-0 z-[2] bg-gradient-to-t from-ink via-ink/24 to-ink/16" />
+          <div className="absolute inset-0 z-[3] bg-[linear-gradient(108deg,rgba(43,20,15,0.82)_0%,rgba(43,20,15,0.46)_38%,rgba(43,20,15,0.08)_72%,rgba(43,20,15,0.34)_100%)]" />
 
           <div className="relative z-10 flex min-h-full flex-col justify-between p-5 md:p-7">
             <div className="flex items-start justify-between gap-4">
