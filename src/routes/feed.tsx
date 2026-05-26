@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { LANGUAGES, LEVELS } from "@/lib/constants";
+import { LEVELS, sortLanguagesByCatalog } from "@/lib/constants";
 import {
   BookOpenCheck,
   CalendarCheck,
@@ -43,12 +44,14 @@ interface TeacherCard {
 }
 
 function FeedPage() {
+  const { user } = useAuth();
   const [teachers, setTeachers] = useState<TeacherCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [language, setLanguage] = useState<string>("all");
   const [level, setLevel] = useState<string>("all");
   const [maxPrice, setMaxPrice] = useState<string>("");
+  const [preferredLanguage, setPreferredLanguage] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -102,6 +105,42 @@ function FeedPage() {
       setLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("idioma") ?? params.get("language");
+
+    if (requested) {
+      setPreferredLanguage(requested);
+      return;
+    }
+
+    if (!user) return;
+
+    supabase
+      .from("student_profiles")
+      .select("desired_language")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.desired_language) setPreferredLanguage(data.desired_language);
+      });
+  }, [user]);
+
+  const availableLanguages = useMemo(
+    () => sortLanguagesByCatalog(teachers.flatMap((teacher) => teacher.languages_taught)),
+    [teachers],
+  );
+
+  useEffect(() => {
+    if (!preferredLanguage || availableLanguages.length === 0) return;
+
+    const match = availableLanguages.find(
+      (item) => item.toLocaleLowerCase("pt-BR") === preferredLanguage.toLocaleLowerCase("pt-BR"),
+    );
+
+    if (match) setLanguage(match);
+  }, [availableLanguages, preferredLanguage]);
 
   const filtered = useMemo(() => {
     return teachers.filter((t) => {
@@ -175,7 +214,7 @@ function FeedPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os idiomas</SelectItem>
-                {LANGUAGES.map((l) => (
+                {availableLanguages.map((l) => (
                   <SelectItem key={l} value={l}>
                     {l}
                   </SelectItem>

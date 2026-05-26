@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LANGUAGES, LEVELS } from "@/lib/constants";
+import { LEVELS, sortLanguagesByCatalog } from "@/lib/constants";
 import { formatCpf, isValidCpf, normalizeCpf } from "@/lib/cpf";
 import { uploadAvatar } from "@/lib/upload";
 import { toast } from "sonner";
@@ -40,7 +40,6 @@ const schema = z.object({
 
 function Page() {
   const { user, roles, refreshRoles } = useAuth();
-  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [cpf, setCpf] = useState("");
   const [age, setAge] = useState<string>("");
@@ -50,6 +49,8 @@ function Page() {
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [languagesLoading, setLanguagesLoading] = useState(true);
 
   // Se aluno já tem perfil completo, vai direto para o feed
   useEffect(() => {
@@ -57,12 +58,15 @@ function Page() {
     if (roles.includes("aluno")) {
       supabase
         .from("student_profiles")
-        .select("id")
+        .select("id, desired_language")
         .eq("id", user.id)
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
-            navigate({ to: "/feed" });
+            const query = data.desired_language
+              ? `?idioma=${encodeURIComponent(data.desired_language)}`
+              : "";
+            window.location.assign(`/feed${query}`);
           } else {
             setChecking(false);
           }
@@ -70,7 +74,29 @@ function Page() {
     } else {
       setChecking(false);
     }
-  }, [user, roles, navigate]);
+  }, [user, roles]);
+
+  useEffect(() => {
+    let active = true;
+
+    supabase
+      .from("teacher_profiles")
+      .select("languages_taught")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        if (!active) return;
+
+        const languages = sortLanguagesByCatalog(
+          (data ?? []).flatMap((teacher) => teacher.languages_taught ?? []),
+        );
+        setAvailableLanguages(languages);
+        setLanguagesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -95,6 +121,18 @@ function Page() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (languagesLoading) {
+      toast.error("Aguarde carregar os idiomas disponíveis.");
+      return;
+    }
+    if (!availableLanguages.length) {
+      toast.error("Ainda não há professores ativos para cadastro de alunos.");
+      return;
+    }
+    if (desiredLanguage && !availableLanguages.includes(desiredLanguage)) {
+      toast.error("Escolha um idioma com professor ativo na plataforma.");
+      return;
+    }
     const parsed = schema.safeParse({ fullName, cpf, age, desiredLanguage, level });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -122,7 +160,7 @@ function Page() {
     await refreshRoles();
 
     toast.success("Perfil criado! Conheça nossos professores.");
-    navigate({ to: "/feed" });
+    window.location.assign(`/feed?idioma=${encodeURIComponent(parsed.data.desiredLanguage)}`);
   };
 
   if (checking) {
@@ -202,18 +240,29 @@ function Page() {
             </div>
             <div className="space-y-2">
               <Label>Idioma que deseja aprender</Label>
-              <Select value={desiredLanguage} onValueChange={setDesiredLanguage}>
+              <Select
+                value={desiredLanguage}
+                onValueChange={setDesiredLanguage}
+                disabled={languagesLoading || availableLanguages.length === 0}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Escolha" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LANGUAGES.map((l) => (
+                  {availableLanguages.map((l) => (
                     <SelectItem key={l} value={l}>
                       {l}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs leading-5 text-brown-soft">
+                {languagesLoading
+                  ? "Carregando idiomas com professores ativos..."
+                  : availableLanguages.length
+                    ? "Mostramos apenas idiomas com professor ativo disponível."
+                    : "No momento não há professores ativos para novos alunos."}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Nível de compreensão</Label>
