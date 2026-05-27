@@ -985,6 +985,44 @@ export type Database = {
         };
         Relationships: [];
       };
+      teacher_payout_profiles: {
+        Row: {
+          account_holder_document: string | null;
+          account_holder_name: string;
+          created_at: string;
+          pix_key: string;
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          teacher_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          account_holder_document?: string | null;
+          account_holder_name: string;
+          created_at?: string;
+          pix_key: string;
+          pix_key_type: Database["public"]["Enums"]["pix_key_type"];
+          teacher_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          account_holder_document?: string | null;
+          account_holder_name?: string;
+          created_at?: string;
+          pix_key?: string;
+          pix_key_type?: Database["public"]["Enums"]["pix_key_type"];
+          teacher_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "teacher_payout_profiles_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: true;
+            referencedRelation: "teacher_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       teacher_secretariat_messages: {
         Row: {
           body: string;

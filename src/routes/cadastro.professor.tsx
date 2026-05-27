@@ -17,6 +17,7 @@ import { formatCpf, isValidCpf, normalizeCpf } from "@/lib/cpf";
 import { uploadAvatar } from "@/lib/upload";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/cadastro/professor")({
   head: () => ({ meta: [{ title: "Cadastro de Professor — GWLanguageFlow" }] }),
@@ -37,6 +38,20 @@ const PRICE_FIELDS = [
   { key: "plan_anual", label: "Plano Anual Advanced (12x)" },
 ] as const;
 type PriceKey = (typeof PRICE_FIELDS)[number]["key"];
+type PixKeyType = Database["public"]["Enums"]["pix_key_type"];
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function inferPixKeyType(value: string): PixKeyType {
+  const trimmed = value.trim();
+  const digits = onlyDigits(trimmed);
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "email";
+  if (digits.length === 11) return "cpf";
+  if (digits.length >= 10 && digits.length <= 13) return "telefone";
+  return "aleatoria";
+}
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
@@ -51,6 +66,11 @@ const schema = z.object({
   levelsTaught: z.array(z.string()).min(1, "Selecione ao menos um nível"),
   useCustomPricing: z.boolean(),
   customPrices: z.record(z.string(), z.number().min(0).max(100000)),
+  withdrawalPixKey: z
+    .string()
+    .trim()
+    .min(3, "Informe uma chave Pix para saque")
+    .max(200, "Chave Pix muito longa"),
 });
 
 function Page() {
@@ -73,6 +93,7 @@ function Page() {
   const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [withdrawalPixKey, setWithdrawalPixKey] = useState("");
 
   // Se professor já tem perfil completo, vai direto para o dashboard
   useEffect(() => {
@@ -85,7 +106,12 @@ function Page() {
           .eq("id", user.id)
           .maybeSingle(),
         supabase.from("teacher_profiles").select("*").eq("id", user.id).maybeSingle(),
-      ]).then(([{ data: profile }, { data: teacherProfile }]) => {
+        supabase
+          .from("teacher_payout_profiles")
+          .select("pix_key")
+          .eq("teacher_id", user.id)
+          .maybeSingle(),
+      ]).then(([{ data: profile }, { data: teacherProfile }, { data: payoutProfile }]) => {
         if (profile) {
           setFullName(profile.full_name || "");
           if (profile.cpf) setCpf(formatCpf(profile.cpf));
@@ -107,6 +133,7 @@ function Page() {
             Object.fromEntries(Object.entries(prices).map(([key, value]) => [key, String(value)])),
           );
         }
+        if (payoutProfile?.pix_key) setWithdrawalPixKey(payoutProfile.pix_key);
         setChecking(false);
       });
     } else {
@@ -169,6 +196,7 @@ function Page() {
       levelsTaught,
       useCustomPricing,
       customPrices: numericPrices,
+      withdrawalPixKey,
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
@@ -207,6 +235,24 @@ function Page() {
       setLoading(false);
       return;
     }
+
+    const { error: payoutError } = await supabase.from("teacher_payout_profiles").upsert(
+      {
+        teacher_id: user.id,
+        pix_key: d.withdrawalPixKey.trim(),
+        pix_key_type: inferPixKeyType(d.withdrawalPixKey),
+        account_holder_name: d.fullName.trim(),
+        account_holder_document: normalizeCpf(d.cpf),
+      },
+      { onConflict: "teacher_id" },
+    );
+
+    if (payoutError) {
+      toast.error(`Perfil salvo, mas a chave Pix nao foi registrada: ${payoutError.message}`);
+      setLoading(false);
+      return;
+    }
+
     await refreshRoles();
 
     toast.success(existingProfile ? "Perfil atualizado!" : "Perfil de professor criado!");
@@ -293,6 +339,22 @@ function Page() {
                   required
                 />
               </div>
+            </div>
+          </Section>
+
+          <Section title="Dados de saque">
+            <div className="space-y-2">
+              <Label>Chave Pix para saque</Label>
+              <Input
+                value={withdrawalPixKey}
+                onChange={(e) => setWithdrawalPixKey(e.target.value)}
+                placeholder="CPF, e-mail, telefone ou chave aleatoria"
+                required
+              />
+              <p className="text-xs leading-5 text-brown-soft">
+                Essa chave fica protegida e sera usada para preencher automaticamente a mensagem de
+                saque enviada para a diretoria.
+              </p>
             </div>
           </Section>
 

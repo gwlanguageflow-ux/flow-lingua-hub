@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { uploadTeacherPostImage } from "@/lib/upload";
+import { getProfileAvatarUrl, getProfileBannerUrl } from "@/lib/profile-media";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/professor/$id")({
@@ -38,6 +39,7 @@ interface TeacherFull {
   id: string;
   full_name: string;
   avatar_url: string | null;
+  email: string | null;
   age: number | null;
   bio: string | null;
   experiences: string | null;
@@ -92,7 +94,7 @@ function TeacherProfilePage() {
         .maybeSingle();
       const { data: prof } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, age")
+        .select("full_name, avatar_url, age, email")
         .eq("id", id)
         .maybeSingle();
       if (!tp || !prof) {
@@ -103,6 +105,7 @@ function TeacherProfilePage() {
         id,
         full_name: prof.full_name,
         avatar_url: prof.avatar_url,
+        email: prof.email,
         age: prof.age,
         bio: tp.bio,
         experiences: tp.experiences,
@@ -182,6 +185,8 @@ function TeacherProfilePage() {
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : null;
   const isOwner = user?.id === id;
+  const avatarUrl = getProfileAvatarUrl(teacher);
+  const bannerUrl = getProfileBannerUrl(teacher);
 
   return (
     <div className="gw-app-shell flex min-h-screen flex-col">
@@ -191,19 +196,20 @@ function TeacherProfilePage() {
           <div
             className="gw-profile-banner h-44 bg-cover bg-center md:h-60"
             style={
-              teacher.avatar_url
+              bannerUrl
                 ? {
-                    backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.84), rgba(114, 47, 55, 0.58), rgba(205, 127, 50, 0.32)), url(${teacher.avatar_url})`,
+                    backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.84), rgba(114, 47, 55, 0.58), rgba(205, 127, 50, 0.32)), url(${bannerUrl})`,
+                    backgroundPosition: "center 38%",
                   }
                 : undefined
             }
           />
-          <div className="px-6 md:px-10 pb-8 -mt-16 md:-mt-20">
+          <div className="relative z-10 px-6 pb-8 -mt-12 md:-mt-20 md:px-10">
             <div className="flex flex-col md:flex-row md:items-end gap-5 md:gap-8">
-              <div className="gw-avatar-frame flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl md:h-40 md:w-40">
-                {teacher.avatar_url ? (
+              <div className="gw-avatar-frame flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl md:h-40 md:w-40">
+                {avatarUrl ? (
                   <img
-                    src={teacher.avatar_url}
+                    src={avatarUrl}
                     alt={teacher.full_name}
                     className="w-full h-full object-cover"
                   />

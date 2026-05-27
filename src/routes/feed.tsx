@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { LEVELS, sortLanguagesByCatalog } from "@/lib/constants";
+import { getProfileAvatarUrl, getProfileBannerUrl } from "@/lib/profile-media";
 import {
   BookOpenCheck,
   CalendarCheck,
@@ -35,6 +36,7 @@ interface TeacherCard {
   id: string;
   full_name: string;
   avatar_url: string | null;
+  email: string | null;
   bio: string | null;
   hourly_rate: number;
   languages_taught: string[];
@@ -69,7 +71,7 @@ function FeedPage() {
       const ids = teachersData.map((t) => t.id);
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, email")
         .in("id", ids);
       const profMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
 
@@ -93,6 +95,7 @@ function FeedPage() {
           id: t.id,
           full_name: p?.full_name || "Professor",
           avatar_url: p?.avatar_url ?? null,
+          email: p?.email ?? null,
           bio: t.bio,
           hourly_rate: Number(t.hourly_rate || 0),
           languages_taught: t.languages_taught || [],
@@ -272,6 +275,9 @@ function FeedPage() {
 }
 
 function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number }) {
+  const avatarUrl = getProfileAvatarUrl(teacher);
+  const bannerUrl = getProfileBannerUrl(teacher);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -282,9 +288,10 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       <div
         className="gw-profile-banner relative h-36 bg-cover bg-center"
         style={
-          teacher.avatar_url
+          bannerUrl
             ? {
-                backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.78), rgba(114, 47, 55, 0.55), rgba(205, 127, 50, 0.28)), url(${teacher.avatar_url})`,
+                backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.78), rgba(114, 47, 55, 0.55), rgba(205, 127, 50, 0.28)), url(${bannerUrl})`,
+                backgroundPosition: "center 38%",
               }
             : undefined
         }
@@ -297,11 +304,11 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
         )}
       </div>
       <div className="space-y-3 p-5 pt-0">
-        <div className="-mt-11 flex items-end gap-3">
-          <div className="gw-avatar-frame z-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
-            {teacher.avatar_url ? (
+        <div className="-mt-10 relative z-10 flex flex-col gap-3">
+          <div className="gw-avatar-frame flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
+            {avatarUrl ? (
               <img
-                src={teacher.avatar_url}
+                src={avatarUrl}
                 alt={teacher.full_name}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -310,8 +317,10 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
               <span className="text-2xl font-bold text-wine">{teacher.full_name.charAt(0)}</span>
             )}
           </div>
-          <div className="min-w-0 pb-1">
-            <h3 className="truncate text-lg font-bold text-wine">{teacher.full_name}</h3>
+          <div className="min-w-0">
+            <h3 className="line-clamp-2 break-words text-lg font-bold leading-tight text-wine">
+              {teacher.full_name}
+            </h3>
             <p className="mt-1 flex items-center gap-1 text-xs text-brown-soft">
               <Languages className="h-3.5 w-3.5 text-bronze" />
               {teacher.languages_taught.slice(0, 3).join(" · ") || "Idioma a confirmar"}

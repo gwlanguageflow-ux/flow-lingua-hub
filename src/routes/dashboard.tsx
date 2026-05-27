@@ -77,6 +77,11 @@ type TeacherProfileRecord = Pick<
   Tables<"teacher_profiles">,
   "languages_taught" | "use_custom_pricing"
 >;
+type TeacherPayoutProfile = Pick<
+  Tables<"teacher_payout_profiles">,
+  "pix_key" | "account_holder_name" | "account_holder_document"
+>;
+type TeacherIdentity = Pick<Tables<"profiles">, "full_name" | "cpf">;
 
 type StudentProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url"> & {
   desired_language?: string | null;
@@ -102,6 +107,10 @@ function DashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfileRecord | null>(null);
+  const [teacherIdentity, setTeacherIdentity] = useState<TeacherIdentity | null>(null);
+  const [teacherPayoutProfile, setTeacherPayoutProfile] = useState<TeacherPayoutProfile | null>(
+    null,
+  );
   const [pricingMode, setPricingMode] = useState<"padrao" | "custom" | null>(null);
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [members, setMembers] = useState<ClassMember[]>([]);
@@ -124,6 +133,8 @@ function DashboardPage() {
     const [
       { data: bks },
       { data: tp },
+      { data: identity },
+      { data: payoutProfile },
       { data: classRows },
       { data: materialRows },
       { data: requestRows },
@@ -146,6 +157,12 @@ function DashboardPage() {
         .from("teacher_profiles")
         .select("languages_taught, use_custom_pricing")
         .eq("id", user.id)
+        .maybeSingle(),
+      supabase.from("profiles").select("full_name, cpf").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("teacher_payout_profiles")
+        .select("pix_key, account_holder_name, account_holder_document")
+        .eq("teacher_id", user.id)
         .maybeSingle(),
       supabase
         .from("class_groups")
@@ -201,6 +218,8 @@ function DashboardPage() {
 
     setBookings(bks || []);
     setTeacherProfile((tp as TeacherProfileRecord | null) ?? null);
+    setTeacherIdentity((identity as TeacherIdentity | null) ?? null);
+    setTeacherPayoutProfile((payoutProfile as TeacherPayoutProfile | null) ?? null);
     setPricingMode(tp?.use_custom_pricing ? "custom" : "padrao");
     setClasses(classRows || []);
     setMaterials(materialRows || []);
@@ -448,6 +467,8 @@ function DashboardPage() {
               summary={walletSummary}
               transactions={walletTransactions}
               withdrawals={withdrawals}
+              teacherIdentity={teacherIdentity}
+              payoutProfile={teacherPayoutProfile}
               onChanged={loadDashboard}
             />
           </TabsContent>
@@ -1734,22 +1755,35 @@ function WalletPanel({
   summary,
   transactions,
   withdrawals,
+  teacherIdentity,
+  payoutProfile,
   onChanged,
 }: {
   summary: WalletSummary;
   transactions: WalletTransaction[];
   withdrawals: WithdrawalRequest[];
+  teacherIdentity: TeacherIdentity | null;
+  payoutProfile: TeacherPayoutProfile | null;
   onChanged: () => void | Promise<void>;
 }) {
   const [amount, setAmount] = useState("");
-  const [pixKey, setPixKey] = useState("");
-  const [holderName, setHolderName] = useState("");
+  const [pixKey, setPixKey] = useState(payoutProfile?.pix_key ?? "");
+  const [holderName, setHolderName] = useState(
+    payoutProfile?.account_holder_name ?? teacherIdentity?.full_name ?? "",
+  );
   const [submitting, setSubmitting] = useState(false);
+  const document = payoutProfile?.account_holder_document ?? teacherIdentity?.cpf ?? "";
+  const payoutReady = pixKey.trim().length >= 3 && holderName.trim().length >= 2;
   const financialTransactions = transactions.filter(
     (item) =>
       item.transaction_type !== "withdrawal_hold" &&
       item.transaction_type !== "withdrawal_reversal",
   );
+
+  useEffect(() => {
+    setPixKey(payoutProfile?.pix_key ?? "");
+    setHolderName(payoutProfile?.account_holder_name ?? teacherIdentity?.full_name ?? "");
+  }, [payoutProfile, teacherIdentity]);
 
   const submitWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1765,8 +1799,8 @@ function WalletPanel({
       return;
     }
 
-    if (pixKey.trim().length < 3 || holderName.trim().length < 2) {
-      toast.error("Preencha a chave Pix e o nome do titular.");
+    if (!payoutReady) {
+      toast.error("Atualize seus dados de saque no cadastro de professor antes de solicitar.");
       return;
     }
 
@@ -1777,16 +1811,16 @@ function WalletPanel({
           amount: parsedAmount,
           pixKey: pixKey.trim(),
           accountHolderName: holderName.trim(),
+          accountHolderDocument: document,
         },
       });
       toast.success(
-        result.queued
-          ? "Saque registrado para transferencia manual pela diretoria."
-          : "Saque Pix registrado.",
+        result.whatsappUrl
+          ? "Saque registrado. Abrindo WhatsApp da plataforma."
+          : "Saque registrado para transferencia manual pela diretoria.",
       );
       setAmount("");
-      setPixKey("");
-      setHolderName("");
+      if (result.whatsappUrl) window.location.href = result.whatsappUrl;
       await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel solicitar o saque.");
@@ -1829,7 +1863,8 @@ function WalletPanel({
           <div>
             <h3 className="font-display text-xl text-wine">Solicitar saque Pix</h3>
             <p className="text-sm text-brown-soft mt-1">
-              Informe o nome completo, a chave Pix e o valor que deseja sacar.
+              Informe o valor e confirme seus dados. Abriremos o WhatsApp da plataforma com a
+              mensagem pronta para a diretoria.
             </p>
           </div>
 
@@ -1837,18 +1872,35 @@ function WalletPanel({
             <Label>Nome completo</Label>
             <Input
               value={holderName}
-              onChange={(e) => setHolderName(e.target.value)}
+              readOnly
+              className="bg-cream/70"
               placeholder="Nome do titular da chave Pix"
             />
           </div>
 
+          {document && (
+            <div className="space-y-2">
+              <Label>CPF cadastrado</Label>
+              <Input value={document} readOnly className="bg-cream/70" />
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label>Chave Pix</Label>
+            <Label>Chave Pix cadastrada</Label>
             <Input
               value={pixKey}
-              onChange={(e) => setPixKey(e.target.value)}
-              placeholder="CPF, e-mail, telefone ou chave aleatória"
+              readOnly
+              className="bg-cream/70"
+              placeholder="CPF, e-mail, telefone ou chave aleatoria"
             />
+            <p className="text-xs text-brown-soft">
+              Para alterar a chave oficial, use o botao editar do seu perfil de professor.
+            </p>
+            {!payoutReady && (
+              <p className="text-xs font-semibold text-wine">
+                Cadastre sua chave Pix na pagina de cadastro do professor para liberar o saque.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -1863,11 +1915,11 @@ function WalletPanel({
 
           <Button
             type="submit"
-            disabled={submitting || Number(summary.available_balance || 0) <= 0}
+            disabled={submitting || !payoutReady || Number(summary.available_balance || 0) <= 0}
             className="w-full bg-bronze text-white hover:bg-wine shadow-bronze gap-2"
           >
-            <Send className="h-4 w-4" />
-            {submitting ? "Sacando..." : "Sacar"}
+            <MessageCircle className="h-4 w-4" />
+            {submitting ? "Registrando..." : "Solicitar no WhatsApp"}
           </Button>
         </form>
 

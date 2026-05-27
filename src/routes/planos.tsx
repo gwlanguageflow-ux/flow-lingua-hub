@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { createSubscriptionCheckout } from "@/functions/validapay-checkout.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { getProfileAvatarUrl } from "@/lib/profile-media";
 
 export const Route = createFileRoute("/planos")({
   head: () => ({
@@ -57,6 +58,7 @@ interface SelectedTeacher {
   id: string;
   full_name: string;
   avatar_url: string | null;
+  email: string | null;
 }
 
 const comparisonRows = [
@@ -90,7 +92,7 @@ function PlansPage() {
     if (professor) {
       supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, email")
         .eq("id", professor)
         .maybeSingle()
         .then(({ data }) => setTeacher((data as SelectedTeacher | null) ?? null));
@@ -171,9 +173,9 @@ function PlansPage() {
 
             {teacher ? (
               <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-3 rounded-xl border border-bronze/30 bg-white/86 px-4 py-3 text-sm font-semibold text-wine shadow-soft">
-                {teacher.avatar_url ? (
+                {getProfileAvatarUrl(teacher) ? (
                   <img
-                    src={teacher.avatar_url}
+                    src={getProfileAvatarUrl(teacher) ?? ""}
                     alt={teacher.full_name}
                     className="h-9 w-9 rounded-full object-cover"
                   />

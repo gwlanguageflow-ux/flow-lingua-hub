@@ -11,8 +11,11 @@ type WithdrawalStatus = Database["public"]["Enums"]["teacher_withdrawal_status"]
 const teacherWithdrawalSchema = z.object({
   amount: z.coerce.number().positive(),
   accountHolderName: z.string().trim().min(2).max(160),
+  accountHolderDocument: z.string().trim().max(32).optional().or(z.literal("")),
   pixKey: z.string().trim().min(3).max(200),
 });
+
+const PLATFORM_WHATSAPP_NUMBER = "5571988221450";
 
 function toMoney(value: number) {
   return Math.round(value * 100) / 100;
@@ -31,22 +34,33 @@ function inferPixKeyType(value: string): PixKeyType {
   return "aleatoria";
 }
 
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function buildWhatsappUrl(message: string) {
+  return `https://wa.me/${PLATFORM_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => teacherWithdrawalSchema.parse(input))
   .handler(async ({ data, context }) => {
     const amount = toMoney(data.amount);
     if (amount <= 0) throw new Error("Informe um valor maior que zero.");
+    const document = onlyDigits(data.accountHolderDocument ?? "");
+    const holderName = data.accountHolderName.trim();
+    const pixKey = data.pixKey.trim();
 
     const { data: withdrawalId, error: rpcError } = await supabaseAdmin.rpc(
       "create_teacher_withdrawal_request",
       {
         _teacher_id: context.userId,
         _amount: amount,
-        _pix_key_type: inferPixKeyType(data.pixKey),
-        _pix_key: data.pixKey.trim(),
-        _account_holder_name: data.accountHolderName.trim(),
-        _account_holder_document: null,
+        _pix_key_type: inferPixKeyType(pixKey),
+        _pix_key: pixKey,
+        _account_holder_name: holderName,
+        _account_holder_document: document || null,
         _teacher_notes: "Saque registrado para transferencia manual pela diretoria.",
       },
     );
@@ -67,12 +81,19 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
 
     if (updateError) throw new Error(updateError.message);
 
+    const whatsappMessage = [
+      `Ola, me chamo ${holderName}, gostaria de sacar ${formatMoney(amount)}.`,
+      `Meu CPF ${document || "nao informado"}, chave Pix ${pixKey}.`,
+      `Codigo do saque: ${withdrawalId}.`,
+    ].join(" ");
+
     return {
       ok: true,
       queued: true,
       withdrawalId,
       provider: "manual",
       status: "pendente" as WithdrawalStatus,
+      whatsappUrl: buildWhatsappUrl(whatsappMessage),
       message: "Saque registrado para transferencia manual pela diretoria.",
     };
   });

@@ -60,6 +60,7 @@ import {
   updateDirectorAlertStatus,
 } from "@/functions/admin.functions";
 import type { Enums, Tables } from "@/integrations/supabase/types";
+import { getProfileAvatarUrl } from "@/lib/profile-media";
 
 type Profile = Tables<"profiles">;
 type TeacherProfile = Tables<"teacher_profiles">;
@@ -780,7 +781,9 @@ function AdminPage() {
                                   <span>
                                     Professor:{" "}
                                     <strong>
-                                      {userName(selectedSubscription.teacher_id, profiles)}
+                                      {selectedSubscription.teacher_id
+                                        ? userName(selectedSubscription.teacher_id, profiles)
+                                        : "Professor nao vinculado"}
                                     </strong>
                                   </span>
                                   <span>
@@ -1737,14 +1740,15 @@ function ProfileAvatar({
   size?: "sm" | "md";
 }) {
   const classes = size === "sm" ? "h-10 w-10 rounded-xl text-sm" : "h-16 w-16 rounded-2xl text-xl";
+  const avatarUrl = getProfileAvatarUrl(profile);
 
   return (
     <div
       className={`gw-avatar-frame flex shrink-0 items-center justify-center overflow-hidden ${classes}`}
     >
-      {profile.avatar_url ? (
+      {avatarUrl ? (
         <img
-          src={profile.avatar_url}
+          src={avatarUrl}
           alt={profileDisplayName(profile)}
           className="h-full w-full object-cover"
           loading="lazy"
