@@ -2,14 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Enums, Json, Tables } from "@/integrations/supabase/types";
-import {
-  createValidapayPixWithdrawal,
-  isValidapayInsufficientBalanceError,
-  mapValidapayWithdrawalStatus,
-  requireValidapayConfig,
-  VALIDAPAY_WAITING_BALANCE_MESSAGE,
-} from "@/server/validapay.server";
+import type { Enums, Tables } from "@/integrations/supabase/types";
 
 type AppRole = Enums<"app_role">;
 type WithdrawalStatus = Enums<"teacher_withdrawal_status">;
@@ -20,7 +13,7 @@ type PlatformWalletTransaction = Tables<"platform_wallet_transactions">;
 type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
 type SubscriptionWithPlan = Pick<
   Tables<"student_subscriptions">,
-  "id" | "plan_id" | "status" | "created_at"
+  "id" | "student_id" | "teacher_id" | "plan_id" | "status" | "created_at"
 > & {
   subscription_plans: SubscriptionPlanSummary | null;
 };
@@ -75,6 +68,10 @@ const directorWithdrawalSchema = z.object({
   accountHolderName: z.string().trim().min(2).max(160),
   pixKey: z.string().trim().min(3).max(200),
   note: z.string().trim().max(500).optional().nullable(),
+});
+
+const activateSubscriptionSchema = z.object({
+  subscriptionId: z.string().uuid(),
 });
 
 const alertStatusSchema = z.object({
@@ -386,7 +383,9 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         .limit(200),
       supabaseAdmin
         .from("student_subscriptions")
-        .select("id, plan_id, status, created_at, subscription_plans(id, name, price, slug)")
+        .select(
+          "id, student_id, teacher_id, plan_id, status, created_at, subscription_plans(id, name, price, slug)",
+        )
         .order("created_at", { ascending: false }),
     ]);
 
@@ -405,6 +404,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       directorAlerts: directorAlerts ?? [],
       directMessages: directMessages ?? [],
       anonymousReports: anonymousReports ?? [],
+      subscriptions: subscriptionRows,
       platformWalletTransactions: walletTransactions,
       platformWalletSummary: buildPlatformWalletSummary(
         walletTransactions,
@@ -415,11 +415,73 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
     };
   });
 
+export const activateStudentSubscriptionManually = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => activateSubscriptionSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+
+    const { data: subscription, error: subscriptionError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("id, status")
+      .eq("id", data.subscriptionId)
+      .maybeSingle();
+
+    if (subscriptionError || !subscription) {
+      throw new Error(subscriptionError?.message ?? "Assinatura nao encontrada.");
+    }
+
+    if (subscription.status === "ativa") {
+      return { ok: true, alreadyActive: true };
+    }
+
+    if (subscription.status !== "pendente") {
+      throw new Error("Apenas assinaturas no aguardo podem ser ativadas manualmente.");
+    }
+
+    const periodStart = new Date().toISOString();
+    const { data: activation, error: activationError } = await supabaseAdmin.rpc(
+      "activate_paid_student_subscription",
+      {
+        _subscription_id: data.subscriptionId,
+        _period_start: periodStart,
+        _period_end: null,
+        _payment_reference: `manual-whatsapp-${data.subscriptionId}`,
+      },
+    );
+
+    if (activationError) throw new Error(activationError.message);
+
+    const activationRows = Array.isArray(activation) ? activation : [];
+    const activationResult = activationRows[0] as
+      | {
+          teacher_transaction_id?: string | null;
+          platform_transaction_id?: string | null;
+        }
+      | undefined;
+
+    await Promise.all([
+      activationResult?.teacher_transaction_id
+        ? supabaseAdmin
+            .from("teacher_wallet_transactions")
+            .update({ description: "Credito de assinatura paga manualmente" })
+            .eq("id", activationResult.teacher_transaction_id)
+        : Promise.resolve(),
+      activationResult?.platform_transaction_id
+        ? supabaseAdmin
+            .from("platform_wallet_transactions")
+            .update({ description: "Taxa da plataforma sobre assinatura paga manualmente" })
+            .eq("id", activationResult.platform_transaction_id)
+        : Promise.resolve(),
+    ]);
+
+    return { ok: true, activation };
+  });
+
 export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => directorWithdrawalSchema.parse(input))
   .handler(async ({ data, context }) => {
-    requireValidapayConfig();
     const supabaseAdmin = await requireDirector(context.userId);
     const amount = toMoney(data.amount);
 
@@ -490,10 +552,22 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("platform_withdrawal_requests")
-      .update({ wallet_transaction_id: walletTransaction.id })
+      .update({
+        wallet_transaction_id: walletTransaction.id,
+        payout_provider: "manual",
+        payout_error: "Saque registrado para transferencia manual pela diretoria.",
+      })
       .eq("id", withdrawal.id);
 
-    try {
+    return {
+      ok: true,
+      queued: true,
+      provider: "manual",
+      status: "pendente" as WithdrawalStatus,
+      message: "Saque registrado para transferencia manual.",
+    };
+
+    /* Legacy gateway payout removed while the platform uses manual withdrawals.
       const transfer = await createValidapayPixWithdrawal({
         amount,
         pixKey: data.pixKey,
@@ -563,6 +637,7 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
       });
       throw new Error(message);
     }
+    */
   });
 
 export const createDirectorMessage = createServerFn({ method: "POST" })

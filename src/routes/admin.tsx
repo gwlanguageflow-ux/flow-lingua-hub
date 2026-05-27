@@ -50,6 +50,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  activateStudentSubscriptionManually,
   createDirectorAlert,
   createDirectorMessage,
   getAdminDashboard,
@@ -74,6 +75,13 @@ type PlatformWalletTransaction = Tables<"platform_wallet_transactions">;
 type AppRole = Enums<"app_role">;
 type TargetType = "all" | "role" | "user" | "class";
 type PlatformRange = "30d" | "90d" | "365d";
+
+type StudentSubscription = Pick<
+  Tables<"student_subscriptions">,
+  "id" | "student_id" | "teacher_id" | "plan_id" | "status" | "created_at"
+> & {
+  subscription_plans: Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug"> | null;
+};
 
 type PlatformChartPoint = {
   label: string;
@@ -131,6 +139,22 @@ const statusLabels: Record<string, string> = {
   arquivado: "Arquivado",
 };
 
+const subscriptionStatusLabels: Record<string, string> = {
+  pendente: "No aguardo",
+  ativa: "Ativo",
+  inadimplente: "Inadimplente",
+  cancelada: "Cancelado",
+  expirada: "Expirado",
+};
+
+const subscriptionStatusClasses: Record<string, string> = {
+  pendente: "border-amber-300 bg-amber-50 text-amber-800",
+  ativa: "border-emerald-300 bg-emerald-50 text-emerald-800",
+  inadimplente: "border-red-300 bg-red-50 text-red-800",
+  cancelada: "border-brown-soft/30 bg-cream text-brown",
+  expirada: "border-brown-soft/30 bg-cream text-brown",
+};
+
 const emptyPlatformWalletSummary: PlatformWalletSummary = {
   totalPlatformFees: 0,
   availableBalance: 0,
@@ -170,6 +194,7 @@ function AdminPage() {
   const [directorAlerts, setDirectorAlerts] = useState<DirectorAlert[]>([]);
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
   const [anonymousReports, setAnonymousReports] = useState<AnonymousReport[]>([]);
+  const [subscriptions, setSubscriptions] = useState<StudentSubscription[]>([]);
   const [platformWalletTransactions, setPlatformWalletTransactions] = useState<
     PlatformWalletTransaction[]
   >([]);
@@ -179,6 +204,9 @@ function AdminPage() {
   const [platformRange, setPlatformRange] = useState<PlatformRange>("30d");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [userFilter, setUserFilter] = useState<"all" | "professor" | "aluno">("all");
+  const [studentStatusFilter, setStudentStatusFilter] = useState<"all" | "pendente" | "ativa">(
+    "all",
+  );
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -220,6 +248,7 @@ function AdminPage() {
       setDirectorAlerts(dashboard.directorAlerts);
       setDirectMessages(dashboard.directMessages);
       setAnonymousReports(dashboard.anonymousReports);
+      setSubscriptions(dashboard.subscriptions);
       setPlatformWalletTransactions(dashboard.platformWalletTransactions);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
       setReportDrafts(
@@ -258,23 +287,60 @@ function AdminPage() {
     () => new Map(students.map((student) => [student.id, student])),
     [students],
   );
+  const latestSubscriptionByStudent = useMemo(() => {
+    const map = new Map<string, StudentSubscription>();
+    subscriptions.forEach((subscription) => {
+      const current = map.get(subscription.student_id);
+      if (!current || new Date(subscription.created_at) > new Date(current.created_at)) {
+        map.set(subscription.student_id, subscription);
+      }
+    });
+    return map;
+  }, [subscriptions]);
+  const studentStatusCounts = useMemo(() => {
+    const studentIds = new Set(
+      roles.filter((role) => role.role === "aluno").map((role) => role.user_id),
+    );
+    let waiting = 0;
+    let active = 0;
+    studentIds.forEach((studentId) => {
+      const status = latestSubscriptionByStudent.get(studentId)?.status;
+      if (status === "pendente") waiting += 1;
+      if (status === "ativa") active += 1;
+    });
+    return { waiting, active };
+  }, [latestSubscriptionByStudent, roles]);
   const classById = useMemo(() => new Map(classes.map((item) => [item.id, item])), [classes]);
 
   const userProfiles = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return profiles.filter((profile) => {
-      const userRoles = roleByUser.get(profile.id) ?? [];
-      const roleMatch = userFilter === "all" || userRoles.includes(userFilter);
-      const searchMatch = !needle || profileSearchText(profile).includes(needle);
-      return roleMatch && searchMatch;
-    });
-  }, [profiles, roleByUser, search, userFilter]);
+    const statusWeight: Record<string, number> = { pendente: 0, ativa: 1 };
+    return profiles
+      .filter((profile) => {
+        const userRoles = roleByUser.get(profile.id) ?? [];
+        const roleMatch = userFilter === "all" || userRoles.includes(userFilter);
+        const statusMatch =
+          studentStatusFilter === "all" ||
+          (userRoles.includes("aluno") &&
+            latestSubscriptionByStudent.get(profile.id)?.status === studentStatusFilter);
+        const searchMatch = !needle || profileSearchText(profile).includes(needle);
+        return roleMatch && statusMatch && searchMatch;
+      })
+      .sort((a, b) => {
+        const aStatus = latestSubscriptionByStudent.get(a.id)?.status ?? "";
+        const bStatus = latestSubscriptionByStudent.get(b.id)?.status ?? "";
+        return (statusWeight[aStatus] ?? 3) - (statusWeight[bStatus] ?? 3);
+      });
+  }, [latestSubscriptionByStudent, profiles, roleByUser, search, studentStatusFilter, userFilter]);
 
   const selectedUser =
     profiles.find((profile) => profile.id === selectedUserId) ?? userProfiles[0] ?? null;
   const selectedRoles = selectedUser ? (roleByUser.get(selectedUser.id) ?? []) : [];
   const selectedTeacher = selectedUser ? teacherById.get(selectedUser.id) : null;
   const selectedStudent = selectedUser ? studentById.get(selectedUser.id) : null;
+  const selectedSubscription = selectedUser
+    ? latestSubscriptionByStudent.get(selectedUser.id)
+    : null;
   const selectedDirectMessages = selectedUser
     ? directMessages.filter((message) => message.user_id === selectedUser.id)
     : [];
@@ -372,6 +438,19 @@ function AdminPage() {
     }
   };
 
+  const handleActivateStudent = async (subscriptionId: string) => {
+    setSending(true);
+    try {
+      await activateStudentSubscriptionManually({ data: { subscriptionId } });
+      toast.success("Aluno ativado e carteira do professor creditada.");
+      await loadDashboard();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nao foi possivel ativar o aluno.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="gw-app-shell min-h-screen">
       <SiteHeader />
@@ -401,11 +480,12 @@ function AdminPage() {
           </div>
         </div>
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           <Stat icon={Users} label="Usuários" value={profiles.length} />
           <Stat icon={GraduationCap} label="Professores" value={teachers.length} />
           <Stat icon={UserRound} label="Alunos" value={students.length} />
-          <Stat icon={Calendar} label="Aulas" value={bookings.length} />
+          <Stat icon={AlertTriangle} label="No aguardo" value={studentStatusCounts.waiting} />
+          <Stat icon={CheckCircle2} label="Alunos ativos" value={studentStatusCounts.active} />
           <Stat icon={ShieldAlert} label="Denúncias novas" value={openReports} />
           <Stat
             icon={Wallet}
@@ -520,7 +600,7 @@ function AdminPage() {
               <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)]">
                 <section className="rounded-xl border border-border bg-white p-4">
                   <SectionTitle icon={Users} title="Perfis" />
-                  <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brown-soft" />
                       <Input
@@ -543,6 +623,21 @@ function AdminPage() {
                         <SelectItem value="aluno">Alunos</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Select
+                      value={studentStatusFilter}
+                      onValueChange={(value) =>
+                        setStudentStatusFilter(value as typeof studentStatusFilter)
+                      }
+                    >
+                      <SelectTrigger className="w-full sm:w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos status</SelectItem>
+                        <SelectItem value="pendente">No aguardo</SelectItem>
+                        <SelectItem value="ativa">Ativos</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="mt-4 max-h-[620px] space-y-2 overflow-y-auto pr-1">
                     {userProfiles.length === 0 ? (
@@ -550,6 +645,7 @@ function AdminPage() {
                     ) : (
                       userProfiles.map((profile) => {
                         const userRoles = roleByUser.get(profile.id) ?? [];
+                        const subscription = latestSubscriptionByStudent.get(profile.id);
                         const active = selectedUser?.id === profile.id;
                         return (
                           <button
@@ -574,6 +670,14 @@ function AdminPage() {
                                 </div>
                               </div>
                               <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                                {userRoles.includes("aluno") && (
+                                  <Badge
+                                    variant="outline"
+                                    className={`rounded-full ${subscriptionStatusClass(subscription?.status)}`}
+                                  >
+                                    {subscriptionStatusLabel(subscription?.status)}
+                                  </Badge>
+                                )}
                                 {userRoles.map((role) => (
                                   <Badge key={role} variant="secondary" className="rounded-full">
                                     {roleLabels[role]}
@@ -649,6 +753,64 @@ function AdminPage() {
                           </>
                         )}
                       </div>
+
+                      {selectedRoles.includes("aluno") && (
+                        <div className="mt-4 rounded-xl border border-border bg-background p-4">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-sm font-bold text-wine">
+                                  Status comercial do aluno
+                                </h3>
+                                <Badge
+                                  variant="outline"
+                                  className={`rounded-full ${subscriptionStatusClass(selectedSubscription?.status)}`}
+                                >
+                                  {subscriptionStatusLabel(selectedSubscription?.status)}
+                                </Badge>
+                              </div>
+                              {selectedSubscription ? (
+                                <div className="mt-3 grid gap-2 text-sm text-brown md:grid-cols-2">
+                                  <span>
+                                    Plano:{" "}
+                                    <strong>
+                                      {selectedSubscription.subscription_plans?.name ?? "Plano"}
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    Professor:{" "}
+                                    <strong>
+                                      {userName(selectedSubscription.teacher_id, profiles)}
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    Solicitado em:{" "}
+                                    <strong>
+                                      {new Date(selectedSubscription.created_at).toLocaleString(
+                                        "pt-BR",
+                                      )}
+                                    </strong>
+                                  </span>
+                                </div>
+                              ) : (
+                                <p className="mt-2 text-sm text-brown-soft">
+                                  O aluno ainda nao solicitou assinatura.
+                                </p>
+                              )}
+                            </div>
+                            {selectedSubscription?.status === "pendente" && (
+                              <Button
+                                onClick={() => handleActivateStudent(selectedSubscription.id)}
+                                disabled={sending}
+                                className="rounded-lg bg-wine text-white hover:bg-bronze"
+                              >
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Ativar aluno
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mt-5 rounded-xl border border-border bg-cream p-3">
                         <div className="mb-3 flex items-center gap-2">
@@ -990,7 +1152,7 @@ function DirectorWalletPanel({
       });
       toast.success(
         result.queued
-          ? "Saque da diretoria registrado. O Pix sera enviado automaticamente quando a ValidaPay liberar saldo."
+          ? "Saque da diretoria registrado para transferencia manual."
           : "Saque da diretoria registrado.",
       );
       setAmount("");
@@ -1335,6 +1497,7 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     directorAlerts: data?.directorAlerts ?? [],
     directMessages: data?.directMessages ?? [],
     anonymousReports: data?.anonymousReports ?? [],
+    subscriptions: data?.subscriptions ?? [],
     platformWalletTransactions: data?.platformWalletTransactions ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,
   };
@@ -1346,6 +1509,16 @@ function profileDisplayName(profile: Pick<Profile, "full_name" | "email" | "id">
 
 function profileSearchText(profile: Pick<Profile, "full_name" | "email" | "id">) {
   return `${profileDisplayName(profile)} ${profile.email ?? ""}`.toLowerCase();
+}
+
+function subscriptionStatusLabel(status: string | null | undefined) {
+  if (!status) return "Sem assinatura";
+  return subscriptionStatusLabels[status] ?? status;
+}
+
+function subscriptionStatusClass(status: string | null | undefined) {
+  if (!status) return "border-border bg-white text-brown-soft";
+  return subscriptionStatusClasses[status] ?? "border-border bg-white text-brown";
 }
 
 function formatMoney(value: number | string | null | undefined) {

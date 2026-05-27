@@ -4,15 +4,14 @@ import { toast } from "sonner";
 import {
   BadgeCheck,
   CheckCircle2,
-  CreditCard,
   Loader2,
-  QrCode,
+  MessageCircle,
   ShieldCheck,
   Sparkles,
   Trophy,
   UserRound,
-  WalletCards,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -24,8 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { createSubscriptionCheckout } from "@/functions/validapay-checkout.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,11 +30,11 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/planos")({
   head: () => ({
     meta: [
-      { title: "Planos de Assinatura — GWLanguageFlow" },
+      { title: "Planos de Assinatura - GWLanguageFlow" },
       {
         name: "description",
         content:
-          "Escolha seu plano na GWLanguageFlow: aulas, materiais, atividades e acompanhamento pedagógico.",
+          "Escolha seu plano na GWLanguageFlow: aulas, materiais, atividades e acompanhamento pedagogico.",
       },
     ],
   }),
@@ -65,8 +62,8 @@ interface SelectedTeacher {
 const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
-  ["Acompanhamento", "Direção pedagógica e histórico do aluno"],
-  ["Pagamento", "Cartão ou Pix com checkout seguro"],
+  ["Acompanhamento", "Direcao pedagogica e historico do aluno"],
+  ["Assinatura", "Solicitacao guiada pelo WhatsApp da plataforma"],
 ];
 
 function PlansPage() {
@@ -75,7 +72,6 @@ function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan | null>(null);
   const [terms, setTerms] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">("card");
   const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [teacher, setTeacher] = useState<SelectedTeacher | null>(null);
@@ -113,26 +109,22 @@ function PlansPage() {
       return;
     }
     if (!terms) {
-      toast.error("Você precisa aceitar o Termo de Adesão e Contrato.");
+      toast.error("Voce precisa aceitar o Termo de Adesao e Contrato.");
       return;
     }
 
     setLoading(true);
     try {
-      const origin = window.location.origin;
       const res = await createSubscriptionCheckout({
         data: {
           planSlug: selected.slug,
           teacherId,
-          paymentMethod,
           termsAccepted: true,
-          successUrl: `${origin}/meus-agendamentos?checkout=success&professor=${teacherId}`,
-          cancelUrl: `${origin}/planos?checkout=cancel&professor=${teacherId}`,
         },
       });
       if ("url" in res && res.url) window.location.href = res.url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao iniciar checkout");
+      toast.error(e instanceof Error ? e.message : "Erro ao abrir solicitacao no WhatsApp");
     } finally {
       setLoading(false);
     }
@@ -149,23 +141,23 @@ function PlansPage() {
                 <div className="bg-white/92 p-6 md:p-9">
                   <p className="gw-section-kicker">Planos GWLanguageFlow</p>
                   <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
-                    Escolha a intensidade da sua evolução.
+                    Escolha a intensidade da sua evolucao.
                   </h1>
                   <p className="mt-4 max-w-2xl leading-7 text-brown-soft">
-                    Cada assinatura combina aula, material, atividade e acompanhamento. Você escolhe
+                    Cada assinatura combina aula, material, atividade e acompanhamento. Voce escolhe
                     o ritmo, a plataforma organiza o percurso.
                   </p>
                 </div>
                 <div className="gw-ink-panel p-6 md:p-8">
-                  <p className="font-display text-2xl font-bold text-white">Fluxo seguro</p>
+                  <p className="font-display text-2xl font-bold text-white">Fluxo assistido</p>
                   <p className="mt-2 text-sm leading-6 text-white/66">
-                    Professor vinculado, aceite registrado e pagamento processado em ambiente
-                    controlado.
+                    Professor vinculado, aceite registrado e solicitacao enviada para a equipe da
+                    plataforma confirmar manualmente.
                   </p>
                   <div className="mt-5 grid gap-3">
                     <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" dark />
-                    <PlanSignal icon={WalletCards} label="Cartão recorrente seguro" dark />
-                    <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" dark />
+                    <PlanSignal icon={MessageCircle} label="Solicitacao por WhatsApp" dark />
+                    <PlanSignal icon={BadgeCheck} label="Acesso liberado pela diretoria" dark />
                   </div>
                 </div>
               </div>
@@ -173,8 +165,8 @@ function PlansPage() {
 
             <div className="mx-auto mt-6 hidden max-w-4xl gap-3 md:grid md:grid-cols-3">
               <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" />
-              <PlanSignal icon={WalletCards} label="Cartão recorrente seguro" />
-              <PlanSignal icon={BadgeCheck} label="Acesso completo ao painel" />
+              <PlanSignal icon={MessageCircle} label="Solicitacao por WhatsApp" />
+              <PlanSignal icon={BadgeCheck} label="Acesso liberado pela diretoria" />
             </div>
 
             {teacher ? (
@@ -206,10 +198,10 @@ function PlansPage() {
               <div className="gw-panel mx-auto max-w-2xl rounded-xl p-8 text-center">
                 <Sparkles className="mx-auto h-8 w-8 text-bronze" />
                 <h2 className="mt-4 font-display text-2xl font-bold text-wine">
-                  Planos em preparação
+                  Planos em preparacao
                 </h2>
                 <p className="mt-2 text-brown-soft">
-                  Os planos ativos serão exibidos aqui assim que estiverem disponíveis.
+                  Os planos ativos serao exibidos aqui assim que estiverem disponiveis.
                 </p>
               </div>
             ) : (
@@ -221,7 +213,6 @@ function PlansPage() {
                     onSelect={() => {
                       setSelected(plan);
                       setTerms(false);
-                      setPaymentMethod("card");
                     }}
                   />
                 ))}
@@ -236,11 +227,11 @@ function PlansPage() {
               <div>
                 <p className="text-sm font-bold uppercase text-bronze">O que acompanha</p>
                 <h2 className="mt-3 font-display text-4xl font-bold leading-tight text-wine">
-                  A assinatura não compra só horas de aula.
+                  A assinatura nao compra so horas de aula.
                 </h2>
                 <p className="mt-4 leading-7 text-brown">
-                  Ela ativa uma rotina de estudo com entregáveis claros, histórico e suporte para o
-                  aluno não ficar perdido entre uma aula e outra.
+                  Ela ativa uma rotina de estudo com entregaveis claros, historico e suporte para o
+                  aluno nao ficar perdido entre uma aula e outra.
                 </p>
               </div>
               <div className="overflow-hidden rounded-xl border border-border bg-white shadow-soft">
@@ -265,8 +256,6 @@ function PlansPage() {
           selected={selected}
           terms={terms}
           setTerms={setTerms}
-          paymentMethod={paymentMethod}
-          setPaymentMethod={setPaymentMethod}
           loading={loading}
           onClose={() => setSelected(null)}
           onCheckout={handleCheckout}
@@ -282,7 +271,7 @@ function PlanSignal({
   label,
   dark = false,
 }: {
-  icon: typeof ShieldCheck;
+  icon: LucideIcon;
   label: string;
   dark?: boolean;
 }) {
@@ -337,7 +326,7 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
         <p className="mt-1 text-sm text-brown-soft">
           {plan.interval === "anual"
             ? `Total ${formatMoney(plan.price)} por ano`
-            : `Cobrança ${plan.interval}`}
+            : `Cobranca ${plan.interval}`}
         </p>
       </div>
 
@@ -366,8 +355,6 @@ function CheckoutDialog({
   selected,
   terms,
   setTerms,
-  paymentMethod,
-  setPaymentMethod,
   loading,
   onClose,
   onCheckout,
@@ -375,8 +362,6 @@ function CheckoutDialog({
   selected: Plan | null;
   terms: boolean;
   setTerms: (terms: boolean) => void;
-  paymentMethod: "card" | "pix";
-  setPaymentMethod: (method: "card" | "pix") => void;
   loading: boolean;
   onClose: () => void;
   onCheckout: () => void;
@@ -386,47 +371,14 @@ function CheckoutDialog({
       <DialogContent className="max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-wine">
-            Finalizar assinatura — {selected?.name}
+            Solicitar assinatura - {selected?.name}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
-          <div>
-            <Label className="text-sm font-semibold text-wine">Forma de pagamento</Label>
-            <RadioGroup
-              value={paymentMethod}
-              onValueChange={(value) => setPaymentMethod(value === "pix" ? "pix" : "card")}
-              className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
-            >
-              <label
-                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
-                  paymentMethod === "card" ? "border-bronze bg-cream" : "border-border bg-white"
-                }`}
-              >
-                <RadioGroupItem value="card" />
-                <CreditCard className="h-4 w-4 text-bronze" />
-                <span className="text-sm font-semibold">Cartão</span>
-              </label>
-              <label
-                className={`flex cursor-pointer items-center gap-2 rounded-2xl border p-4 transition ${
-                  paymentMethod === "pix" ? "border-bronze bg-cream" : "border-border bg-white"
-                }`}
-              >
-                <RadioGroupItem value="pix" />
-                <QrCode className="h-4 w-4 text-bronze" />
-                <span className="text-sm font-semibold">Pix</span>
-              </label>
-            </RadioGroup>
-            <p className="mt-2 text-xs leading-5 text-brown-soft">
-              {paymentMethod === "card"
-                ? "Cobrança pelo checkout ValidaPay."
-                : "Pix pelo checkout ValidaPay. A confirmação libera o acesso automaticamente."}
-            </p>
-          </div>
-
           <div className="rounded-xl border border-bronze/30 bg-cream p-4">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-wine">Resumo do contrato</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold text-wine">Resumo da solicitacao</p>
               <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-bronze">
                 v1
               </span>
@@ -443,20 +395,18 @@ function CheckoutDialog({
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-brown-soft">Cobrança</dt>
+                <dt className="text-brown-soft">Cobranca</dt>
                 <dd className="font-semibold capitalize text-wine">{selected?.interval}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-brown-soft">Pagamento</dt>
-                <dd className="font-semibold text-wine">
-                  {paymentMethod === "card" ? "Cartão" : "Pix"}
-                </dd>
+                <dt className="text-brown-soft">Canal</dt>
+                <dd className="font-semibold text-wine">WhatsApp da plataforma</dd>
               </div>
             </dl>
-            <div className="mt-4 max-h-28 space-y-2 overflow-y-auto border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">
+            <div className="mt-4 space-y-2 border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">
+              <p>Ao continuar, a solicitacao fica como "No aguardo" no painel da Diretoria.</p>
+              <p>A equipe confirma os dados no WhatsApp e ativa o aluno apos o pagamento manual.</p>
               <p>O acesso ao agendamento depende da assinatura ativa.</p>
-              <p>Cancelamento permitido; acesso mantido até o fim do período pago.</p>
-              <p>Pagamentos são processados pela GWLanguageFlow em ambiente seguro.</p>
             </div>
           </div>
 
@@ -464,7 +414,7 @@ function CheckoutDialog({
             <Checkbox checked={terms} onCheckedChange={(value) => setTerms(!!value)} />
             <span className="text-sm leading-6 text-brown">
               Li e concordo com os <strong className="text-wine">Termos de Uso</strong> e o{" "}
-              <strong className="text-wine">Contrato de Prestação de Serviços</strong> da
+              <strong className="text-wine">Contrato de Prestacao de Servicos</strong> da
               GWLanguageFlow.
             </span>
           </label>
@@ -472,7 +422,7 @@ function CheckoutDialog({
           {terms && (
             <p className="flex items-center gap-2 text-xs font-semibold text-bronze">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Aceite será registrado em {new Date().toLocaleString("pt-BR")}
+              Aceite sera registrado em {new Date().toLocaleString("pt-BR")}
             </p>
           )}
         </div>
@@ -483,8 +433,12 @@ function CheckoutDialog({
             disabled={loading || !terms}
             className="h-11 w-full rounded-lg bg-bronze text-white shadow-bronze hover:bg-wine"
           >
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Pagar e ativar
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <MessageCircle className="mr-2 h-4 w-4" />
+            )}
+            Enviar dados no WhatsApp
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -501,9 +455,10 @@ function formatMoney(value: number) {
 
 function normalizePlanFeature(feature: string) {
   const corrections: Record<string, string> = {
-    "Desafio da influência": "Desafio da fluência",
-    "Foco em aperfeiçoamento de complicações": "Foco em aperfeiçoamento de pontos de dificuldade",
-    "Foco em aperfeiçoar complicações": "Foco em aperfeiçoamento de pontos de dificuldade",
+    "Desafio da influÃªncia": "Desafio da fluencia",
+    "Foco em aperfeiÃ§oamento de complicaÃ§Ãµes":
+      "Foco em aperfeicoamento de pontos de dificuldade",
+    "Foco em aperfeiÃ§oar complicaÃ§Ãµes": "Foco em aperfeicoamento de pontos de dificuldade",
   };
 
   return corrections[feature] ?? feature;

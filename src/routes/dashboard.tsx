@@ -1781,8 +1781,8 @@ function WalletPanel({
       });
       toast.success(
         result.queued
-          ? "Saque registrado. O Pix sera enviado automaticamente quando a ValidaPay liberar saldo."
-          : "Saque Pix enviado para processamento.",
+          ? "Saque registrado para transferencia manual pela diretoria."
+          : "Saque Pix registrado.",
       );
       setAmount("");
       setPixKey("");
