@@ -77,6 +77,7 @@ function HomePage() {
       <SiteHeader />
       <main className="flex-1">
         <Hero />
+        <PlatformVideoSection />
         <QualityRail />
         <MethodArchitecture />
         <FlowExperience />
@@ -141,6 +142,48 @@ function Hero() {
 
           <div className="min-w-0 lg:block">
             <ProductCockpit />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlatformVideoSection() {
+  return (
+    <section className="border-b border-border bg-white py-10 md:py-14">
+      <div className="container mx-auto px-4">
+        <div className="grid gap-6 rounded-2xl border border-border bg-white/90 p-4 shadow-bronze md:p-6 lg:grid-cols-[0.72fr_1fr] lg:items-center">
+          <div className="order-2 lg:order-1">
+            <p className="text-sm font-bold uppercase tracking-[0.16em] text-bronze">
+              Apresentação da plataforma
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-4xl">
+              Veja como a GWLanguageFlow organiza sua evolução.
+            </h2>
+            <p className="mt-4 leading-7 text-brown-soft">
+              Uma visão rápida da experiência do aluno: professores, planos, acompanhamento,
+              materiais e rotina de estudo em um só lugar.
+            </p>
+            <div className="mt-5 grid gap-2 text-sm text-brown sm:grid-cols-2">
+              <Proof icon={CalendarCheck} text="Rotina clara de estudo" />
+              <Proof icon={ShieldCheck} text="Acompanhamento pedagógico" />
+            </div>
+          </div>
+
+          <div className="order-1 lg:order-2">
+            <div className="mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-border bg-black shadow-warm lg:max-w-[420px]">
+              <video
+                className="aspect-[9/16] w-full bg-black object-contain"
+                controls
+                playsInline
+                preload="metadata"
+                poster="/videos/apresentacao-site-poster.jpg"
+              >
+                <source src="/videos/apresentacao-site.mp4" type="video/mp4" />
+                Seu navegador não suporta vídeo HTML5.
+              </video>
+            </div>
           </div>
         </div>
       </div>

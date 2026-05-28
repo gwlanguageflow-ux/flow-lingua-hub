@@ -225,6 +225,7 @@ function PlansPage() {
               </div>
             ) : (
               <div className="grid gap-5 lg:grid-cols-4">
+                <PlansVideoCard />
                 {plans.map((plan) => (
                   <PlanCard
                     key={plan.id}
@@ -235,7 +236,6 @@ function PlansPage() {
                     }}
                   />
                 ))}
-                <PlansVideoCard />
               </div>
             )}
           </div>
@@ -288,7 +288,7 @@ function PlansPage() {
 
 function PlansVideoCard() {
   return (
-    <article className="gw-panel gw-lift relative flex min-h-[520px] flex-col overflow-hidden rounded-xl p-5">
+    <article className="gw-panel gw-lift order-first relative flex min-h-[520px] flex-col overflow-hidden rounded-xl p-5 lg:order-last">
       <div className="rounded-xl bg-wine p-5 text-white shadow-bronze">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-bronze-light">
           Apresentacao
