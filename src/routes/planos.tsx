@@ -345,7 +345,7 @@ function PlanSignal({
 }
 
 function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
-  const featured = plan.slug === "advanced";
+  const featured = plan.slug === "essencial" || plan.slug === "essential";
   const priceLabel =
     plan.installments > 1
       ? `${plan.installments}x ${formatMoney(plan.price / plan.installments)}`

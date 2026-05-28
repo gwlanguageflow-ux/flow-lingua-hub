@@ -23,6 +23,7 @@ import {
   Upload,
   UserPlus,
   Users,
+  Video,
   Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -102,8 +103,60 @@ const emptyWalletSummary: WalletSummary = {
   pending_withdrawals: 0,
 };
 
+const TEACHER_GUIDE_VIDEO_SRC = "/videos/guia-professor.mp4";
+const TEACHER_GUIDE_POSTER_SRC = "/videos/guia-professor-poster.jpg";
+
+type TeacherGuideVideoStatus = "checking" | "available" | "missing";
+type TeacherGuideIntroState = "checking" | "show" | "hide";
+
+function teacherGuideSeenKey(userId: string) {
+  return `gwl:teacher-guide-seen:${userId}`;
+}
+
+function readTeacherGuideSeen(userId: string) {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(teacherGuideSeenKey(userId)) === "true";
+  } catch {
+    return true;
+  }
+}
+
+function markTeacherGuideSeen(userId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(teacherGuideSeenKey(userId), "true");
+  } catch {
+    // If storage is blocked, do not prevent the teacher from entering the dashboard.
+  }
+}
+
+function useTeacherGuideVideoStatus() {
+  const [status, setStatus] = useState<TeacherGuideVideoStatus>("checking");
+
+  useEffect(() => {
+    let active = true;
+
+    fetch(TEACHER_GUIDE_VIDEO_SRC, { method: "HEAD", cache: "no-store" })
+      .then((response) => {
+        if (active) setStatus(response.ok ? "available" : "missing");
+      })
+      .catch(() => {
+        if (active) setStatus("missing");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return status;
+}
+
 function DashboardPage() {
   const { user } = useAuth();
+  const guideVideoStatus = useTeacherGuideVideoStatus();
+  const [guideIntroState, setGuideIntroState] = useState<TeacherGuideIntroState>("checking");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfileRecord | null>(null);
@@ -279,6 +332,19 @@ function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
+    if (guideVideoStatus === "checking") {
+      setGuideIntroState("checking");
+      return;
+    }
+    if (guideVideoStatus !== "available") {
+      setGuideIntroState("hide");
+      return;
+    }
+    setGuideIntroState(readTeacherGuideSeen(user.id) ? "hide" : "show");
+  }, [guideVideoStatus, user]);
+
+  useEffect(() => {
+    if (!user) return;
     const channel = supabase
       .channel(`teacher-live-${user.id}`)
       .on(
@@ -336,6 +402,29 @@ function DashboardPage() {
     );
     await loadDashboard();
   };
+
+  const handleGuideIntroContinue = () => {
+    if (user) markTeacherGuideSeen(user.id);
+    setGuideIntroState("hide");
+  };
+
+  if (guideIntroState === "checking") {
+    return (
+      <div className="gw-app-shell min-h-screen">
+        <SiteHeader />
+        <main className="container mx-auto max-w-4xl px-4 py-10">
+          <div className="gw-app-card rounded-xl p-8 text-center shadow-soft">
+            <Video className="mx-auto mb-4 h-8 w-8 text-bronze" />
+            <p className="text-sm font-semibold text-wine">Preparando seu dashboard...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (guideIntroState === "show") {
+    return <TeacherGuideIntro onContinue={handleGuideIntroContinue} />;
+  }
 
   return (
     <div className="gw-app-shell min-h-screen">
@@ -410,6 +499,7 @@ function DashboardPage() {
             <TeacherTab value="disponibilidade" icon={Clock} label="Disponibilidade" />
             <TeacherTab value="carteira" icon={Wallet} label="Carteira" />
             <TeacherTab value="material" icon={FolderOpen} label="Material" />
+            <TeacherTab value="guia" icon={Video} label="Guia do professor" />
           </TabsList>
 
           <TabsContent value="sala" className="mt-6">
@@ -483,6 +573,10 @@ function DashboardPage() {
               onChanged={loadDashboard}
             />
           </TabsContent>
+
+          <TabsContent value="guia" className="mt-6">
+            <TeacherGuidePanel videoStatus={guideVideoStatus} />
+          </TabsContent>
         </Tabs>
 
         <div className="mt-6 hidden text-center">
@@ -496,6 +590,152 @@ function DashboardPage() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function TeacherGuideIntro({ onContinue }: { onContinue: () => void }) {
+  return (
+    <div className="gw-app-shell min-h-screen">
+      <SiteHeader />
+      <main className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
+        <section className="gw-command-hero overflow-hidden rounded-xl shadow-bronze">
+          <div className="grid gap-0 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="p-6 md:p-10">
+              <p className="text-sm font-bold uppercase tracking-[0.16em] text-bronze">
+                Guia inicial
+              </p>
+              <h1 className="mt-3 font-display text-4xl font-bold leading-tight text-wine md:text-5xl">
+                Bem-vindo ao painel do professor
+              </h1>
+              <p className="mt-4 max-w-2xl leading-7 text-brown-soft">
+                Assista ao guia antes de entrar no dashboard para entender como organizar alunos,
+                materiais, agenda, mensagens e carteira em um fluxo profissional.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <GuideMiniStat label="Alunos" value="centralizados" />
+                <GuideMiniStat label="Materiais" value="organizados" />
+                <GuideMiniStat label="Carteira" value="visivel" />
+              </div>
+            </div>
+
+            <div className="border-t border-border bg-white/70 p-4 md:p-6 lg:border-l lg:border-t-0">
+              <TeacherGuideVideoCard videoStatus="available" />
+              <Button
+                type="button"
+                onClick={onContinue}
+                className="mt-4 h-12 w-full bg-wine text-white shadow-bronze hover:bg-bronze"
+              >
+                Prosseguir para o dashboard
+              </Button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function TeacherGuidePanel({ videoStatus }: { videoStatus: TeacherGuideVideoStatus }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <TeacherGuideVideoCard videoStatus={videoStatus} />
+
+      <div className="gw-app-card rounded-xl p-5 shadow-soft">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-bronze" />
+          <h3 className="font-display text-2xl font-bold text-wine">Guia do professor</h3>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-brown-soft">
+          Este espaço guarda o vídeo de orientação e os pontos principais para conduzir sua rotina
+          dentro da GWLanguageFlow.
+        </p>
+
+        <div className="mt-5 space-y-3">
+          <GuideChecklistItem
+            title="Perfil completo"
+            description="Mantenha foto, banner, idiomas, bio, chave Pix e valores sempre atualizados."
+          />
+          <GuideChecklistItem
+            title="Sala de aula organizada"
+            description="Crie turmas, acompanhe alunos ativos e registre aulas concluídas."
+          />
+          <GuideChecklistItem
+            title="Materiais e atividades"
+            description="Envie arquivos, responda solicitações e acompanhe entregas dos alunos."
+          />
+          <GuideChecklistItem
+            title="Carteira"
+            description="Confira o saldo disponível e solicite saque pelo WhatsApp da plataforma."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeacherGuideVideoCard({ videoStatus }: { videoStatus: TeacherGuideVideoStatus }) {
+  if (videoStatus === "checking") {
+    return (
+      <div className="gw-app-card flex aspect-video items-center justify-center rounded-xl p-6 text-center shadow-soft">
+        <div>
+          <Video className="mx-auto mb-3 h-8 w-8 text-bronze" />
+          <p className="text-sm font-semibold text-wine">Carregando guia...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (videoStatus === "missing") {
+    return (
+      <div className="gw-app-card flex aspect-video items-center justify-center rounded-xl border border-dashed border-bronze/50 bg-cream/60 p-6 text-center shadow-soft">
+        <div>
+          <Upload className="mx-auto mb-3 h-8 w-8 text-bronze" />
+          <p className="font-semibold text-wine">Vídeo do guia aguardando publicação</p>
+          <p className="mt-2 max-w-md text-sm leading-6 text-brown-soft">
+            Quando o arquivo do guia for enviado para a plataforma, ele aparecerá aqui e será
+            exibido apenas uma vez antes do primeiro acesso ao dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-black shadow-bronze">
+      <video
+        className="aspect-video w-full bg-black object-contain"
+        controls
+        playsInline
+        preload="metadata"
+        poster={TEACHER_GUIDE_POSTER_SRC}
+      >
+        <source src={TEACHER_GUIDE_VIDEO_SRC} type="video/mp4" />
+        Seu navegador nao conseguiu carregar o video do guia.
+      </video>
+    </div>
+  );
+}
+
+function GuideMiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-white/76 p-4 shadow-soft">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-bronze">{label}</p>
+      <p className="mt-1 font-semibold text-wine">{value}</p>
+    </div>
+  );
+}
+
+function GuideChecklistItem({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-white/78 p-4 shadow-soft">
+      <div className="flex items-start gap-3">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-bronze" />
+        <div>
+          <p className="font-semibold text-wine">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-brown-soft">{description}</p>
+        </div>
+      </div>
     </div>
   );
 }
