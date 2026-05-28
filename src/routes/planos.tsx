@@ -68,6 +68,23 @@ const comparisonRows = [
   ["Assinatura", "Solicitacao guiada pelo WhatsApp da plataforma"],
 ];
 
+const planDisplayOrder: Record<string, number> = {
+  advanced: 1,
+  essencial: 2,
+  essential: 2,
+  conversation: 3,
+};
+
+function orderPlansForDisplay(plans: Plan[]) {
+  return [...plans].sort((a, b) => {
+    const aOrder = planDisplayOrder[a.slug] ?? a.sort_order ?? 99;
+    const bOrder = planDisplayOrder[b.slug] ?? b.sort_order ?? 99;
+
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+}
+
 function PlansPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -87,7 +104,7 @@ function PlansPage() {
       .select("*")
       .eq("is_active", true)
       .order("sort_order")
-      .then(({ data }) => setPlans((data ?? []) as Plan[]));
+      .then(({ data }) => setPlans(orderPlansForDisplay((data ?? []) as Plan[])));
 
     if (professor) {
       supabase
@@ -218,6 +235,7 @@ function PlansPage() {
                     }}
                   />
                 ))}
+                <PlansVideoCard />
               </div>
             )}
           </div>
@@ -265,6 +283,43 @@ function PlansPage() {
       </main>
       <SiteFooter />
     </div>
+  );
+}
+
+function PlansVideoCard() {
+  return (
+    <article className="gw-panel gw-lift relative flex min-h-[520px] flex-col overflow-hidden rounded-xl p-5">
+      <div className="rounded-xl bg-wine p-5 text-white shadow-bronze">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-bronze-light">
+          Apresentacao
+        </p>
+        <h3 className="mt-2 font-display text-2xl font-bold leading-tight">
+          Veja os planos antes de escolher
+        </h3>
+        <p className="mt-3 text-sm leading-6 text-white/72">
+          Uma explicacao rapida para entender qual plano combina melhor com o seu momento.
+        </p>
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-xl border border-bronze/25 bg-black shadow-soft">
+        <video
+          className="aspect-video w-full bg-black object-contain"
+          controls
+          playsInline
+          preload="metadata"
+          poster="/videos/apresentacao-planos-poster.jpg"
+        >
+          <source src="/videos/apresentacao-planos.mp4" type="video/mp4" />
+          Seu navegador nao suporta video HTML5.
+        </video>
+      </div>
+
+      <div className="mt-auto pt-5">
+        <div className="rounded-xl border border-bronze/25 bg-cream p-4 text-sm leading-6 text-brown">
+          Assista com calma e depois escolha o plano com o professor selecionado.
+        </div>
+      </div>
+    </article>
   );
 }
 
