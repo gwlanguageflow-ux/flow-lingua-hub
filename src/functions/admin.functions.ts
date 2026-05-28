@@ -10,6 +10,10 @@ type TargetType = "all" | "role" | "user" | "class";
 type Profile = Tables<"profiles">;
 type UserRole = Tables<"user_roles">;
 type PlatformWalletTransaction = Tables<"platform_wallet_transactions">;
+type TeacherWalletTransaction = Tables<"teacher_wallet_transactions">;
+type TeacherWithdrawalRequest = Tables<"teacher_withdrawal_requests">;
+type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
+type ClassMaterial = Tables<"class_materials">;
 type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
 type SubscriptionWithPlan = Pick<
   Tables<"student_subscriptions">,
@@ -347,6 +351,10 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       { data: directMessages },
       { data: anonymousReports },
       { data: platformWalletTransactions },
+      { data: teacherWalletTransactions },
+      { data: teacherWithdrawals },
+      { data: teacherPayoutProfiles },
+      { data: classMaterials },
       { data: subscriptions },
     ] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
@@ -382,6 +390,22 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(200),
       supabaseAdmin
+        .from("teacher_wallet_transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabaseAdmin
+        .from("teacher_withdrawal_requests")
+        .select("*")
+        .order("requested_at", { ascending: false })
+        .limit(200),
+      supabaseAdmin.from("teacher_payout_profiles").select("*"),
+      supabaseAdmin
+        .from("class_materials")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabaseAdmin
         .from("student_subscriptions")
         .select(
           "id, student_id, teacher_id, plan_id, status, created_at, subscription_plans(id, name, price, slug)",
@@ -406,6 +430,10 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       anonymousReports: anonymousReports ?? [],
       subscriptions: subscriptionRows,
       platformWalletTransactions: walletTransactions,
+      teacherWalletTransactions: (teacherWalletTransactions ?? []) as TeacherWalletTransaction[],
+      teacherWithdrawals: (teacherWithdrawals ?? []) as TeacherWithdrawalRequest[],
+      teacherPayoutProfiles: (teacherPayoutProfiles ?? []) as TeacherPayoutProfile[],
+      classMaterials: (classMaterials ?? []) as ClassMaterial[],
       platformWalletSummary: buildPlatformWalletSummary(
         walletTransactions,
         (profiles ?? []) as Profile[],

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, LogOut, Menu, UserRound, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Settings, UserRound, X } from "lucide-react";
 import { DirectorNotifications } from "./DirectorNotifications";
 import { Logo } from "./Logo";
 
@@ -28,6 +28,7 @@ export function SiteHeader() {
   const isTeacher = roles.includes("professor");
   const isStudent = roles.includes("aluno");
   const dashboardLink = isDev ? "/admin" : isTeacher ? "/dashboard" : "/meus-agendamentos";
+  const accountSettingsLink = "/configuracoes/perfil/cadastro";
 
   const handleSignOut = async () => {
     await signOut();
@@ -81,6 +82,10 @@ export function SiteHeader() {
                       </DropdownMenuItem>
                     </>
                   )}
+                  <DropdownMenuItem onClick={() => navigate({ to: accountSettingsLink })}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Perfil e cadastro
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" /> Sair
@@ -137,6 +142,13 @@ export function SiteHeader() {
                 className="block rounded-xl px-3 py-3 text-sm font-semibold text-wine hover:bg-cream"
               >
                 {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
+              </Link>
+              <Link
+                to={accountSettingsLink}
+                onClick={() => setOpen(false)}
+                className="block rounded-xl px-3 py-3 text-sm font-semibold text-wine hover:bg-cream"
+              >
+                Perfil e cadastro
               </Link>
               <button
                 onClick={handleSignOut}

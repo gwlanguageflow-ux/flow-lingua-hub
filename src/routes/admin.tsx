@@ -17,6 +17,7 @@ import {
   Calendar,
   CheckCircle2,
   CreditCard,
+  FileText,
   GraduationCap,
   History,
   LineChart,
@@ -28,6 +29,7 @@ import {
   ShieldAlert,
   Sparkles,
   TrendingUp,
+  Upload,
   UserRound,
   Users,
   Wallet,
@@ -59,8 +61,10 @@ import {
   updateAnonymousReport,
   updateDirectorAlertStatus,
 } from "@/functions/admin.functions";
-import type { Enums, Tables } from "@/integrations/supabase/types";
+import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
+import { supabase } from "@/integrations/supabase/client";
+import { uploadLearningFile } from "@/lib/upload";
 
 type Profile = Tables<"profiles">;
 type TeacherProfile = Tables<"teacher_profiles">;
@@ -73,6 +77,10 @@ type DirectorAlert = Tables<"director_alerts">;
 type DirectMessage = Tables<"director_user_messages">;
 type AnonymousReport = Tables<"anonymous_reports">;
 type PlatformWalletTransaction = Tables<"platform_wallet_transactions">;
+type TeacherWalletTransaction = Tables<"teacher_wallet_transactions">;
+type TeacherWithdrawalRequest = Tables<"teacher_withdrawal_requests">;
+type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
+type ClassMaterial = Tables<"class_materials">;
 type AppRole = Enums<"app_role">;
 type TargetType = "all" | "role" | "user" | "class";
 type PlatformRange = "30d" | "90d" | "365d";
@@ -199,6 +207,12 @@ function AdminPage() {
   const [platformWalletTransactions, setPlatformWalletTransactions] = useState<
     PlatformWalletTransaction[]
   >([]);
+  const [teacherWalletTransactions, setTeacherWalletTransactions] = useState<
+    TeacherWalletTransaction[]
+  >([]);
+  const [teacherWithdrawals, setTeacherWithdrawals] = useState<TeacherWithdrawalRequest[]>([]);
+  const [teacherPayoutProfiles, setTeacherPayoutProfiles] = useState<TeacherPayoutProfile[]>([]);
+  const [classMaterials, setClassMaterials] = useState<ClassMaterial[]>([]);
   const [platformWalletSummary, setPlatformWalletSummary] = useState<PlatformWalletSummary>(
     emptyPlatformWalletSummary,
   );
@@ -251,6 +265,10 @@ function AdminPage() {
       setAnonymousReports(dashboard.anonymousReports);
       setSubscriptions(dashboard.subscriptions);
       setPlatformWalletTransactions(dashboard.platformWalletTransactions);
+      setTeacherWalletTransactions(dashboard.teacherWalletTransactions);
+      setTeacherWithdrawals(dashboard.teacherWithdrawals);
+      setTeacherPayoutProfiles(dashboard.teacherPayoutProfiles);
+      setClassMaterials(dashboard.classMaterials);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
       setReportDrafts(
         Object.fromEntries(
@@ -512,6 +530,7 @@ function AdminPage() {
               <Tab value="usuarios" icon={MessageCircle} label="Usuários" />
               <Tab value="alertas" icon={BellRing} label="Alertas" />
               <Tab value="denuncias" icon={ShieldAlert} label="Denúncias" />
+              <Tab value="materiais" icon={FileText} label="Materiais" />
               <Tab value="carteira" icon={Wallet} label="Carteira" />
               <Tab value="operacao" icon={Calendar} label="Operação" />
             </TabsList>
@@ -1072,8 +1091,23 @@ function AdminPage() {
               <DirectorWalletPanel
                 summary={platformWalletSummary}
                 transactions={platformWalletTransactions}
+                teacherWithdrawals={teacherWithdrawals}
+                teacherWalletTransactions={teacherWalletTransactions}
+                teacherPayoutProfiles={teacherPayoutProfiles}
+                profiles={profiles}
+                teachers={teachers}
                 range={platformRange}
                 onRangeChange={setPlatformRange}
+                onChanged={loadDashboard}
+              />
+            </TabsContent>
+
+            <TabsContent value="materiais" className="mt-0">
+              <DirectorMaterialsPanel
+                profiles={profiles}
+                classes={classes}
+                roleByUser={roleByUser}
+                materials={classMaterials}
                 onChanged={loadDashboard}
               />
             </TabsContent>
@@ -1102,15 +1136,240 @@ function AdminPage() {
   );
 }
 
+function DirectorMaterialsPanel({
+  profiles,
+  classes,
+  roleByUser,
+  materials,
+  onChanged,
+}: {
+  profiles: Profile[];
+  classes: ClassGroup[];
+  roleByUser: Map<string, AppRole[]>;
+  materials: ClassMaterial[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const [form, setForm] = useState(
+    withTargetDefaults({
+      title: "",
+      description: "",
+      externalUrl: "",
+    }),
+  );
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const classById = useMemo(() => new Map(classes.map((item) => [item.id, item])), [classes]);
+
+  const buildRows = (
+    uploaded: Awaited<ReturnType<typeof uploadLearningFile>> | null,
+    creatorId: string,
+  ): TablesInsert<"class_materials">[] => {
+    const base = {
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      external_url: form.externalUrl.trim() || null,
+      file_path: uploaded?.path ?? null,
+      file_name: uploaded?.name ?? null,
+      file_mime_type: uploaded?.mimeType ?? null,
+      created_by: creatorId,
+    };
+
+    if (form.targetType === "all") {
+      return [{ ...base, source: "platform" }];
+    }
+
+    if (form.targetType === "class") {
+      const selectedClass = classById.get(form.targetClassId);
+      if (!selectedClass) throw new Error("Selecione uma turma.");
+      return [
+        {
+          ...base,
+          source: "director",
+          class_id: selectedClass.id,
+          teacher_id: selectedClass.teacher_id,
+        },
+      ];
+    }
+
+    const users =
+      form.targetType === "user"
+        ? profiles.filter((profile) => profile.id === form.targetUserId)
+        : profiles.filter((profile) =>
+            (roleByUser.get(profile.id) ?? []).includes(form.targetRole),
+          );
+
+    if (users.length === 0) throw new Error("Nenhum usuario encontrado para este destino.");
+
+    return users.map((profile) => {
+      const roles = roleByUser.get(profile.id) ?? [];
+      if (roles.includes("professor")) {
+        return { ...base, source: "director", teacher_id: profile.id };
+      }
+      return { ...base, source: "director", student_id: profile.id };
+    });
+  };
+
+  const submitMaterial = async (event: FormEvent) => {
+    event.preventDefault();
+    if (form.title.trim().length < 3) {
+      toast.error("Informe um titulo para o material.");
+      return;
+    }
+    if (!file && !form.externalUrl.trim()) {
+      toast.error("Adicione um arquivo ou link.");
+      return;
+    }
+
+    setSubmitting(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setSubmitting(false);
+      toast.error("Sessao expirada. Entre novamente.");
+      return;
+    }
+
+    const uploaded = file ? await uploadLearningFile(user.id, file) : null;
+    if (file && !uploaded) {
+      setSubmitting(false);
+      toast.error("Nao foi possivel enviar o arquivo.");
+      return;
+    }
+
+    try {
+      const rows = buildRows(uploaded, user.id);
+      const { error } = await supabase.from("class_materials").insert(rows);
+      if (error) throw error;
+      toast.success("Material enviado.");
+      setForm((current) => ({
+        ...current,
+        title: "",
+        description: "",
+        externalUrl: "",
+      }));
+      setFile(null);
+      await onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nao foi possivel enviar o material.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <form onSubmit={submitMaterial} className="rounded-xl border border-border bg-white p-4">
+        <SectionTitle icon={Upload} title="Enviar material pela Diretoria" />
+        <p className="mt-2 text-sm text-brown-soft">
+          Envie arquivo ou link para todos, um perfil, uma turma ou um usuario especifico.
+        </p>
+
+        <TargetControls
+          form={form}
+          onChange={setForm}
+          profiles={profiles}
+          classes={classes}
+          roleByUser={roleByUser}
+        />
+
+        <div className="mt-4 grid gap-3">
+          <Field label="Titulo">
+            <Input
+              value={form.title}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, title: event.target.value }))
+              }
+              placeholder="Ex.: Material complementar da semana"
+            />
+          </Field>
+          <Field label="Descricao">
+            <Textarea
+              value={form.description}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, description: event.target.value }))
+              }
+              placeholder="Explique como o material deve ser usado."
+            />
+          </Field>
+          <Field label="Arquivo">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            />
+          </Field>
+          <Field label="Link externo">
+            <Input
+              value={form.externalUrl}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, externalUrl: event.target.value }))
+              }
+              placeholder="https://..."
+            />
+          </Field>
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="rounded-lg bg-wine text-white hover:bg-bronze"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {submitting ? "Enviando..." : "Enviar material"}
+          </Button>
+        </div>
+      </form>
+
+      <section className="rounded-xl border border-border bg-white p-4">
+        <SectionTitle icon={FileText} title="Materiais recentes" />
+        <div className="mt-4 space-y-3">
+          {materials.length === 0 ? (
+            <EmptyState text="Nenhum material cadastrado ainda." />
+          ) : (
+            materials.slice(0, 14).map((material) => (
+              <div key={material.id} className="rounded-xl border border-border bg-background p-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-bold text-wine">{material.title}</p>
+                    <p className="mt-1 text-xs text-brown-soft">
+                      {materialTargetLabel(material, profiles, classById)} -{" "}
+                      {new Date(material.created_at).toLocaleString("pt-BR")}
+                    </p>
+                    {material.description && (
+                      <p className="mt-2 text-sm text-brown">{material.description}</p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="w-fit rounded-full bg-white">
+                    {material.file_name ? "Arquivo" : "Link"}
+                  </Badge>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function DirectorWalletPanel({
   summary,
   transactions,
+  teacherWithdrawals,
+  teacherWalletTransactions,
+  teacherPayoutProfiles,
+  profiles,
+  teachers,
   range,
   onRangeChange,
   onChanged,
 }: {
   summary: PlatformWalletSummary;
   transactions: PlatformWalletTransaction[];
+  teacherWithdrawals: TeacherWithdrawalRequest[];
+  teacherWalletTransactions: TeacherWalletTransaction[];
+  teacherPayoutProfiles: TeacherPayoutProfile[];
+  profiles: Profile[];
+  teachers: TeacherProfile[];
   range: PlatformRange;
   onRangeChange: Dispatch<SetStateAction<PlatformRange>>;
   onChanged: () => void | Promise<void>;
@@ -1123,6 +1382,9 @@ function DirectorWalletPanel({
   const periodFees = series.reduce((sum, item) => sum + item.platformFees, 0);
   const periodStudents = series.reduce((sum, item) => sum + item.studentSignups, 0);
   const availableBalance = Number(summary.availableBalance || 0);
+  const pendingTeacherWithdrawals = teacherWithdrawals.filter((item) =>
+    ["pendente", "em_processamento"].includes(item.status),
+  );
 
   const submitWithdrawal = async (event: FormEvent) => {
     event.preventDefault();
@@ -1327,7 +1589,135 @@ function DirectorWalletPanel({
           </div>
         </section>
       </div>
+
+      <TeacherWithdrawalQueue
+        withdrawals={teacherWithdrawals}
+        pendingCount={pendingTeacherWithdrawals.length}
+        walletTransactions={teacherWalletTransactions}
+        payoutProfiles={teacherPayoutProfiles}
+        profiles={profiles}
+        teachers={teachers}
+      />
     </div>
+  );
+}
+
+function TeacherWithdrawalQueue({
+  withdrawals,
+  pendingCount,
+  walletTransactions,
+  payoutProfiles,
+  profiles,
+  teachers,
+}: {
+  withdrawals: TeacherWithdrawalRequest[];
+  pendingCount: number;
+  walletTransactions: TeacherWalletTransaction[];
+  payoutProfiles: TeacherPayoutProfile[];
+  profiles: Profile[];
+  teachers: TeacherProfile[];
+}) {
+  const profileById = useMemo(() => new Map(profiles.map((item) => [item.id, item])), [profiles]);
+  const teacherById = useMemo(() => new Map(teachers.map((item) => [item.id, item])), [teachers]);
+  const payoutByTeacher = useMemo(
+    () => new Map(payoutProfiles.map((item) => [item.teacher_id, item])),
+    [payoutProfiles],
+  );
+
+  return (
+    <section className="rounded-xl border border-border bg-white p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <SectionTitle icon={Wallet} title="Saques solicitados por professores" />
+          <p className="mt-1 text-sm text-brown-soft">
+            A Diretoria acompanha o pedido, os dados Pix e o saldo do professor antes da
+            transferencia manual.
+          </p>
+        </div>
+        <Badge className="w-fit rounded-full bg-wine text-white">{pendingCount} em aberto</Badge>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {withdrawals.length === 0 ? (
+          <EmptyState text="Nenhum saque de professor solicitado." />
+        ) : (
+          withdrawals.slice(0, 16).map((withdrawal) => {
+            const profile = profileById.get(withdrawal.teacher_id);
+            const teacher = teacherById.get(withdrawal.teacher_id);
+            const payoutProfile = payoutByTeacher.get(withdrawal.teacher_id);
+            const summary = teacherFinancialSummary(
+              withdrawal.teacher_id,
+              walletTransactions,
+              withdrawals,
+            );
+
+            return (
+              <div
+                key={withdrawal.id}
+                className="rounded-xl border border-border bg-background p-4"
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-display text-xl font-bold text-wine">
+                        {profile ? profileDisplayName(profile) : "Professor"}
+                      </h3>
+                      <Badge variant="outline" className="rounded-full bg-white">
+                        {teacherWithdrawalStatusLabel(withdrawal.status)}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-brown-soft">
+                      Pedido em {new Date(withdrawal.requested_at).toLocaleString("pt-BR")} - ID{" "}
+                      {withdrawal.id.slice(0, 8)}
+                    </p>
+                    <div className="mt-3 grid gap-2 text-sm text-brown sm:grid-cols-2 xl:grid-cols-4">
+                      <Info label="Valor solicitado" value={formatMoney(withdrawal.amount)} />
+                      <Info label="Saldo disponivel agora" value={formatMoney(summary.available)} />
+                      <Info label="Reservado em saques" value={formatMoney(summary.pending)} />
+                      <Info label="Total recebido" value={formatMoney(summary.received)} />
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-white p-3 text-sm text-brown lg:w-80">
+                    <p className="font-bold text-wine">Dados para transferencia</p>
+                    <p className="mt-2">
+                      <span className="font-semibold">Nome:</span> {withdrawal.account_holder_name}
+                    </p>
+                    <p>
+                      <span className="font-semibold">CPF:</span>{" "}
+                      {withdrawal.account_holder_document || profile?.cpf || "Nao informado"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Pix:</span> {withdrawal.pix_key}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Tipo:</span> {withdrawal.pix_key_type}
+                    </p>
+                    {profile?.email && (
+                      <p className="mt-2 text-xs text-brown-soft">{profile.email}</p>
+                    )}
+                    {teacher && (
+                      <p className="mt-1 text-xs text-brown-soft">
+                        Idiomas: {(teacher.languages_taught || []).join(", ") || "Nao informado"}
+                      </p>
+                    )}
+                    {payoutProfile && payoutProfile.pix_key !== withdrawal.pix_key && (
+                      <p className="mt-2 rounded-lg bg-cream px-3 py-2 text-xs text-brown">
+                        Pix salvo no cadastro: {payoutProfile.pix_key}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {withdrawal.payout_error && (
+                  <p className="mt-3 rounded-lg bg-cream px-3 py-2 text-xs text-brown">
+                    Observacao: {withdrawal.payout_error}
+                  </p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -1488,6 +1878,18 @@ function userName(userId: string, profiles: Profile[]) {
   return profile ? profileDisplayName(profile) : userId.slice(0, 8);
 }
 
+function materialTargetLabel(
+  material: Pick<ClassMaterial, "source" | "teacher_id" | "student_id" | "class_id">,
+  profiles: Profile[],
+  classById: Map<string, ClassGroup>,
+) {
+  if (material.source === "platform") return "Todos os usuarios";
+  if (material.class_id) return classById.get(material.class_id)?.name ?? "Turma";
+  if (material.teacher_id) return `Professor: ${userName(material.teacher_id, profiles)}`;
+  if (material.student_id) return `Aluno: ${userName(material.student_id, profiles)}`;
+  return "Destino especifico";
+}
+
 function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboard>> | undefined) {
   return {
     profiles: data?.profiles ?? [],
@@ -1502,6 +1904,10 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     anonymousReports: data?.anonymousReports ?? [],
     subscriptions: data?.subscriptions ?? [],
     platformWalletTransactions: data?.platformWalletTransactions ?? [],
+    teacherWalletTransactions: data?.teacherWalletTransactions ?? [],
+    teacherWithdrawals: data?.teacherWithdrawals ?? [],
+    teacherPayoutProfiles: data?.teacherPayoutProfiles ?? [],
+    classMaterials: data?.classMaterials ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,
   };
 }
@@ -1543,6 +1949,45 @@ function platformTransactionLabel(item: PlatformWalletTransaction) {
   }
   if (item.transaction_type === "manual_adjustment") return "Ajuste manual";
   return item.transaction_type;
+}
+
+function teacherWithdrawalStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pendente: "Pendente",
+    em_processamento: "Em processamento",
+    pago: "Pago",
+    falhou: "Falhou",
+    cancelado: "Cancelado",
+  };
+  return labels[status] ?? status;
+}
+
+function teacherFinancialSummary(
+  teacherId: string,
+  walletTransactions: TeacherWalletTransaction[],
+  withdrawals: TeacherWithdrawalRequest[],
+) {
+  const transactions = walletTransactions.filter((item) => item.teacher_id === teacherId);
+  const available = transactions.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const received = transactions
+    .filter((item) => Number(item.amount) > 0)
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const pending = withdrawals
+    .filter(
+      (item) =>
+        item.teacher_id === teacherId && ["pendente", "em_processamento"].includes(item.status),
+    )
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const withdrawn = withdrawals
+    .filter((item) => item.teacher_id === teacherId && item.status === "pago")
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  return {
+    available,
+    received,
+    pending,
+    withdrawn,
+  };
 }
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {

@@ -44,6 +44,8 @@ declare module "lucide-react" {
   export const Copy: LucideIcon;
   export const CreditCard: LucideIcon;
   export const Download: LucideIcon;
+  export const Eye: LucideIcon;
+  export const EyeOff: LucideIcon;
   export const ExternalLink: LucideIcon;
   export const FileText: LucideIcon;
   export const Filter: LucideIcon;
@@ -56,6 +58,7 @@ declare module "lucide-react" {
   export const HeartHandshake: LucideIcon;
   export const History: LucideIcon;
   export const ImagePlus: LucideIcon;
+  export const KeyRound: LucideIcon;
   export const Languages: LucideIcon;
   export const LayoutDashboard: LucideIcon;
   export const LineChart: LucideIcon;
@@ -79,6 +82,7 @@ declare module "lucide-react" {
   export const Scale: LucideIcon;
   export const Search: LucideIcon;
   export const Send: LucideIcon;
+  export const Settings: LucideIcon;
   export const Settings2: LucideIcon;
   export const ShieldAlert: LucideIcon;
   export const ShieldCheck: LucideIcon;

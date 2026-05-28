@@ -34,6 +34,7 @@ import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-passw
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as AdminLgpdRouteImport } from './routes/admin.lgpd'
+import { Route as ConfiguracoesPerfilCadastroRouteImport } from './routes/configuracoes.perfil.cadastro'
 import { Route as ApiPublicValidapayWebhookRouteImport } from './routes/api/public/validapay-webhook'
 import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
 import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
@@ -165,6 +166,12 @@ const AdminLgpdRoute = AdminLgpdRouteImport.update({
   path: '/lgpd',
   getParentRoute: () => AdminRoute,
 } as any)
+const ConfiguracoesPerfilCadastroRoute =
+  ConfiguracoesPerfilCadastroRouteImport.update({
+    id: '/configuracoes/perfil/cadastro',
+    path: '/configuracoes/perfil/cadastro',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicValidapayWebhookRoute =
   ApiPublicValidapayWebhookRouteImport.update({
     id: '/api/public/validapay-webhook',
@@ -225,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
+  '/configuracoes/perfil/cadastro': typeof ConfiguracoesPerfilCadastroRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -257,6 +265,7 @@ export interface FileRoutesByTo {
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
+  '/configuracoes/perfil/cadastro': typeof ConfiguracoesPerfilCadastroRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -290,6 +299,7 @@ export interface FileRoutesById {
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
   '/api/public/validapay-webhook': typeof ApiPublicValidapayWebhookRoute
+  '/configuracoes/perfil/cadastro': typeof ConfiguracoesPerfilCadastroRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/api/public/consent'
     | '/api/public/security-event'
     | '/api/public/validapay-webhook'
+    | '/configuracoes/perfil/cadastro'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/api/public/consent'
     | '/api/public/security-event'
     | '/api/public/validapay-webhook'
+    | '/configuracoes/perfil/cadastro'
   id:
     | '__root__'
     | '/'
@@ -388,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/public/consent'
     | '/api/public/security-event'
     | '/api/public/validapay-webhook'
+    | '/configuracoes/perfil/cadastro'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -420,6 +433,7 @@ export interface RootRouteChildren {
   ApiPublicConsentRoute: typeof ApiPublicConsentRoute
   ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
   ApiPublicValidapayWebhookRoute: typeof ApiPublicValidapayWebhookRoute
+  ConfiguracoesPerfilCadastroRoute: typeof ConfiguracoesPerfilCadastroRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -599,6 +613,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLgpdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/configuracoes/perfil/cadastro': {
+      id: '/configuracoes/perfil/cadastro'
+      path: '/configuracoes/perfil/cadastro'
+      fullPath: '/configuracoes/perfil/cadastro'
+      preLoaderRoute: typeof ConfiguracoesPerfilCadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/validapay-webhook': {
       id: '/api/public/validapay-webhook'
       path: '/api/public/validapay-webhook'
@@ -677,6 +698,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicConsentRoute: ApiPublicConsentRoute,
   ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,
   ApiPublicValidapayWebhookRoute: ApiPublicValidapayWebhookRoute,
+  ConfiguracoesPerfilCadastroRoute: ConfiguracoesPerfilCadastroRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1315,7 +1315,10 @@ function MaterialsPanel({
   const [submitting, setSubmitting] = useState(false);
 
   const platformMaterials = materials.filter((item) => item.source === "platform");
-  const teacherMaterials = materials.filter((item) => item.source !== "platform");
+  const directorMaterials = materials.filter((item) => item.source === "director");
+  const teacherMaterials = materials.filter(
+    (item) => item.source !== "platform" && item.source !== "director",
+  );
 
   const submitMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1496,6 +1499,28 @@ function MaterialsPanel({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {directorMaterials.length > 0 && (
+        <div className="rounded-2xl border border-bronze/40 bg-cream p-5">
+          <h3 className="font-display text-xl text-wine mb-4">Materiais da Diretoria</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            {directorMaterials.map((item) => (
+              <ResourceRow
+                key={item.id}
+                title={item.title}
+                subtitle={
+                  item.class_id
+                    ? classes.find((cls) => cls.id === item.class_id)?.name || "Turma"
+                    : "Enviado pela Diretoria"
+                }
+                filePath={item.file_path}
+                fileName={item.file_name}
+                externalUrl={item.external_url}
+              />
+            ))}
+          </div>
         </div>
       )}
 

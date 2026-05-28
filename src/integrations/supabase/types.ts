@@ -208,6 +208,7 @@ export type Database = {
           file_path: string | null;
           id: string;
           source: string;
+          student_id: string | null;
           teacher_id: string | null;
           title: string;
           updated_at: string;
@@ -223,6 +224,7 @@ export type Database = {
           file_path?: string | null;
           id?: string;
           source?: string;
+          student_id?: string | null;
           teacher_id?: string | null;
           title: string;
           updated_at?: string;
@@ -238,6 +240,7 @@ export type Database = {
           file_path?: string | null;
           id?: string;
           source?: string;
+          student_id?: string | null;
           teacher_id?: string | null;
           title?: string;
           updated_at?: string;
@@ -255,6 +258,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_materials_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "student_profiles";
             referencedColumns: ["id"];
           },
           {

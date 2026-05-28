@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthRedirectUrl } from "@/lib/auth-redirect";
 import { isGoogleAuthEnabled } from "@/lib/auth-providers";
@@ -239,9 +240,8 @@ function LoginPage() {
                     Esqueci minha senha
                   </Link>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
