@@ -14,46 +14,8 @@ type StudentProfile = Pick<
   "desired_language" | "comprehension_level"
 >;
 
-const PLATFORM_WHATSAPP_NUMBER = "5571988221450";
-
-function valueOrPending(value: string | number | null | undefined) {
-  const text = String(value ?? "").trim();
-  return text || "nao informado";
-}
-
-function formatMoney(value: number) {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function buildWhatsappMessage(input: {
-  subscriptionId: string;
-  plan: Plan;
-  student: Profile;
-  studentProfile: StudentProfile;
-  teacher: Profile;
-}) {
-  return [
-    `ola sou o ${valueOrPending(input.student.full_name)}, quero assinar o plano ${input.plan.name}, esses sao meus dados:`,
-    "",
-    `Nome completo: ${valueOrPending(input.student.full_name)}`,
-    `Idade: ${valueOrPending(input.student.age)}`,
-    `CPF: ${valueOrPending(input.student.cpf)}`,
-    `Email: ${valueOrPending(input.student.email)}`,
-    `Lingua que escolhi aprender: ${valueOrPending(input.studentProfile.desired_language)}`,
-    `Nivel de entendimento: ${valueOrPending(input.studentProfile.comprehension_level)}`,
-    `Professor selecionado: ${valueOrPending(input.teacher.full_name)}`,
-    `CPF do professor selecionado: ${valueOrPending(input.teacher.cpf)}`,
-    `Plano escolhido: ${input.plan.name}`,
-    `Valor do plano: ${formatMoney(Number(input.plan.price || 0))}`,
-    `Codigo da solicitacao: ${input.subscriptionId}`,
-  ].join("\n");
-}
-
-function whatsappUrl(message: string) {
-  return `https://wa.me/${PLATFORM_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+function getValidapayPriceId(response: { prices?: Array<{ priceId?: string }> }) {
+  return response.prices?.find((price) => price.priceId)?.priceId ?? null;
 }
 
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
@@ -69,6 +31,8 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createValidapayCheckoutSession, createValidapayProduct } =
+      await import("@/server/validapay.server");
     const { userId } = context;
 
     const [
@@ -76,7 +40,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       { data: teacherProfile, error: teacherProfileError },
       { data: student, error: studentError },
       { data: studentProfile, error: studentProfileError },
-      { data: teacher, error: teacherError },
     ] = await Promise.all([
       supabaseAdmin
         .from("subscription_plans")
@@ -100,11 +63,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         .select("desired_language, comprehension_level")
         .eq("id", userId)
         .maybeSingle<StudentProfile>(),
-      supabaseAdmin
-        .from("profiles")
-        .select("full_name, age, cpf, email")
-        .eq("id", data.teacherId)
-        .maybeSingle<Profile>(),
     ]);
 
     if (planError || !plan) throw new Error("Plano nao encontrado.");
@@ -114,7 +72,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       throw new Error("Complete seu cadastro de aluno antes de solicitar a assinatura.");
     if (studentProfileError || !studentProfile)
       throw new Error("Complete seu perfil de aluno antes de solicitar a assinatura.");
-    if (teacherError || !teacher) throw new Error("Dados do professor nao encontrados.");
 
     const now = new Date().toISOString();
     const { data: existingPending, error: existingError } = await supabaseAdmin
@@ -131,25 +88,32 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (existingError) throw new Error(existingError.message);
 
     let subscriptionId = existingPending?.id;
-    const payload = {
-      manual_request: true,
-      channel: "whatsapp",
-      whatsapp_number: PLATFORM_WHATSAPP_NUMBER,
-      requested_at: now,
-    } as Json;
+    let priceId = plan.validapay_price_id;
 
-    if (subscriptionId) {
-      const { error: updateError } = await supabaseAdmin
-        .from("student_subscriptions")
+    if (!priceId) {
+      const product = await createValidapayProduct({
+        name: plan.name,
+        description: plan.description,
+        slug: plan.slug,
+        amount: Number(plan.price),
+        interval: plan.interval,
+      });
+
+      priceId = getValidapayPriceId(product);
+      if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano.");
+
+      const { error: planUpdateError } = await supabaseAdmin
+        .from("subscription_plans")
         .update({
-          terms_accepted_at: now,
-          terms_version: "v1",
-          validapay_payload: payload,
+          validapay_product_id: product.productId,
+          validapay_price_id: priceId,
         })
-        .eq("id", subscriptionId);
+        .eq("id", plan.id);
 
-      if (updateError) throw new Error(updateError.message);
-    } else {
+      if (planUpdateError) throw new Error(planUpdateError.message);
+    }
+
+    if (!subscriptionId) {
       const { data: created, error: createError } = await supabaseAdmin
         .from("student_subscriptions")
         .insert({
@@ -160,7 +124,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
           payment_method: null,
           terms_accepted_at: now,
           terms_version: "v1",
-          validapay_payload: payload,
         })
         .select("id")
         .single();
@@ -174,18 +137,46 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 
     if (!subscriptionId) throw new Error("Falha ao registrar solicitacao de assinatura.");
 
-    const message = buildWhatsappMessage({
-      subscriptionId,
-      plan,
-      student,
-      studentProfile,
-      teacher,
+    const session = await createValidapayCheckoutSession({
+      priceId,
+      customer: {
+        name: student.full_name,
+        email: student.email,
+        documentNumber: student.cpf,
+      },
     });
 
+    const payload = {
+      provider: "validapay",
+      channel: "checkout_session",
+      requested_at: now,
+      checkout_session: session,
+      plan_slug: plan.slug,
+      teacher_id: data.teacherId,
+      student_profile: {
+        desired_language: studentProfile.desired_language,
+        comprehension_level: studentProfile.comprehension_level,
+      },
+      allowed_payment_methods: ["creditcard", "pix"],
+    } as Json;
+
+    const { error: updateError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        terms_accepted_at: now,
+        terms_version: "v1",
+        validapay_checkout_session_id: session.id,
+        validapay_payload: payload,
+        validapay_payment_status: "checkout.created",
+      })
+      .eq("id", subscriptionId);
+
+    if (updateError) throw new Error(updateError.message);
+
     return {
-      url: whatsappUrl(message),
+      url: session.url,
       subscriptionId,
-      channel: "whatsapp",
+      channel: "validapay",
       status: "pendente",
     };
   });

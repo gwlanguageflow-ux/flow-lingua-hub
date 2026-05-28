@@ -2,10 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  BadgeCheck,
   CheckCircle2,
+  CreditCard,
   Loader2,
-  MessageCircle,
+  QrCode,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -65,7 +65,7 @@ const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
   ["Acompanhamento", "Direcao pedagogica e historico do aluno"],
-  ["Assinatura", "Solicitacao guiada pelo WhatsApp da plataforma"],
+  ["Assinatura", "Checkout ValidaPay com cartao de credito ou Pix Automatico"],
 ];
 
 const planDisplayOrder: Record<string, number> = {
@@ -143,7 +143,7 @@ function PlansPage() {
       });
       if ("url" in res && res.url) window.location.href = res.url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao abrir solicitacao no WhatsApp");
+      toast.error(e instanceof Error ? e.message : "Erro ao abrir checkout ValidaPay");
     } finally {
       setLoading(false);
     }
@@ -168,15 +168,15 @@ function PlansPage() {
                   </p>
                 </div>
                 <div className="gw-ink-panel p-6 md:p-8">
-                  <p className="font-display text-2xl font-bold text-white">Fluxo assistido</p>
+                  <p className="font-display text-2xl font-bold text-white">Checkout ValidaPay</p>
                   <p className="mt-2 text-sm leading-6 text-white/66">
-                    Professor vinculado, aceite registrado e solicitacao enviada para a equipe da
-                    plataforma confirmar manualmente.
+                    Professor vinculado, aceite registrado e pagamento em ambiente seguro com cartao
+                    de credito ou Pix Automatico.
                   </p>
                   <div className="mt-5 grid gap-3">
                     <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" dark />
-                    <PlanSignal icon={MessageCircle} label="Solicitacao por WhatsApp" dark />
-                    <PlanSignal icon={BadgeCheck} label="Acesso liberado pela diretoria" dark />
+                    <PlanSignal icon={CreditCard} label="Cartao de credito" dark />
+                    <PlanSignal icon={QrCode} label="Pix Automatico" dark />
                   </div>
                 </div>
               </div>
@@ -184,8 +184,8 @@ function PlansPage() {
 
             <div className="mx-auto mt-6 hidden max-w-4xl gap-3 md:grid md:grid-cols-3">
               <PlanSignal icon={ShieldCheck} label="Contrato e aceite registrados" />
-              <PlanSignal icon={MessageCircle} label="Solicitacao por WhatsApp" />
-              <PlanSignal icon={BadgeCheck} label="Acesso liberado pela diretoria" />
+              <PlanSignal icon={CreditCard} label="Cartao de credito" />
+              <PlanSignal icon={QrCode} label="Pix Automatico" />
             </div>
 
             {teacher ? (
@@ -428,14 +428,14 @@ function CheckoutDialog({
       <DialogContent className="max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-wine">
-            Solicitar assinatura - {selected?.name}
+            Finalizar assinatura - {selected?.name}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
           <div className="rounded-xl border border-bronze/30 bg-cream p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="font-semibold text-wine">Resumo da solicitacao</p>
+              <p className="font-semibold text-wine">Resumo do checkout</p>
               <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-bronze">
                 v1
               </span>
@@ -456,13 +456,15 @@ function CheckoutDialog({
                 <dd className="font-semibold capitalize text-wine">{selected?.interval}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-brown-soft">Canal</dt>
-                <dd className="font-semibold text-wine">WhatsApp da plataforma</dd>
+                <dt className="text-brown-soft">Pagamento</dt>
+                <dd className="text-right font-semibold text-wine">
+                  Cartao de credito ou Pix Automatico
+                </dd>
               </div>
             </dl>
             <div className="mt-4 space-y-2 border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">
-              <p>Ao continuar, a solicitacao fica como "No aguardo" no painel da Diretoria.</p>
-              <p>A equipe confirma os dados no WhatsApp e ativa o aluno apos o pagamento manual.</p>
+              <p>Ao continuar, voce sera direcionado ao checkout seguro da ValidaPay.</p>
+              <p>O acesso e a carteira do professor sao liberados apos confirmacao do pagamento.</p>
               <p>O acesso ao agendamento depende da assinatura ativa.</p>
             </div>
           </div>
@@ -493,9 +495,9 @@ function CheckoutDialog({
             {loading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <MessageCircle className="mr-2 h-4 w-4" />
+              <CreditCard className="mr-2 h-4 w-4" />
             )}
-            Enviar dados no WhatsApp
+            Ir para pagamento
           </Button>
         </DialogFooter>
       </DialogContent>

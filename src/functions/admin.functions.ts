@@ -474,7 +474,7 @@ export const activateStudentSubscriptionManually = createServerFn({ method: "POS
         _subscription_id: data.subscriptionId,
         _period_start: periodStart,
         _period_end: null,
-        _payment_reference: `manual-whatsapp-${data.subscriptionId}`,
+        _payment_reference: `manual-admin-${data.subscriptionId}`,
       },
     );
 

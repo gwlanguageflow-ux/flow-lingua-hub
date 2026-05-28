@@ -276,16 +276,6 @@ export function mapValidapayWithdrawalStatus(status: string | null | undefined) 
   return "em_processamento";
 }
 
-export function validapayPaymentMethod(method: "card" | "pix") {
-  return method === "card" ? "creditcard" : "pix";
-}
-
-export function validapayAllowedPaymentMethods(preferredMethod: "card" | "pix") {
-  const preferred = validapayPaymentMethod(preferredMethod);
-  const fallback = preferredMethod === "card" ? "pix" : "creditcard";
-  return [preferred, fallback];
-}
-
 export function validapayRecurrenceType(interval: "mensal" | "trimestral" | "anual") {
   if (interval === "anual") return "YEARLY";
   return "MONTHLY";
@@ -328,7 +318,7 @@ export async function createValidapayProduct(input: {
 
 export async function createValidapayCheckoutSession(input: {
   priceId: string;
-  paymentMethod: "card" | "pix";
+  allowedPaymentMethods?: Array<"creditcard" | "pix">;
   customer: {
     name?: string | null;
     email?: string | null;
@@ -344,7 +334,7 @@ export async function createValidapayCheckoutSession(input: {
 
   const body: JsonBody = {
     priceId: input.priceId,
-    allowedPaymentMethods: validapayAllowedPaymentMethods(input.paymentMethod),
+    allowedPaymentMethods: input.allowedPaymentMethods ?? ["creditcard", "pix"],
   };
   if (Object.keys(customer).length) body.customer = customer;
 
