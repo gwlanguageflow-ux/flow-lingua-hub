@@ -14,6 +14,8 @@ type TeacherWalletTransaction = Tables<"teacher_wallet_transactions">;
 type TeacherWithdrawalRequest = Tables<"teacher_withdrawal_requests">;
 type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
 type ClassMaterial = Tables<"class_materials">;
+type DiscountCoupon = Tables<"discount_coupons">;
+type CouponRedemption = Tables<"coupon_redemptions">;
 type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
 type SubscriptionWithPlan = Pick<
   Tables<"student_subscriptions">,
@@ -356,6 +358,8 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       { data: teacherPayoutProfiles },
       { data: classMaterials },
       { data: subscriptions },
+      { data: discountCoupons },
+      { data: couponRedemptions },
     ] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("*"),
@@ -411,6 +415,16 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
           "id, student_id, teacher_id, plan_id, status, created_at, subscription_plans(id, name, price, slug)",
         )
         .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("discount_coupons")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabaseAdmin
+        .from("coupon_redemptions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500),
     ]);
 
     const walletTransactions = (platformWalletTransactions ?? []) as PlatformWalletTransaction[];
@@ -434,6 +448,8 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       teacherWithdrawals: (teacherWithdrawals ?? []) as TeacherWithdrawalRequest[],
       teacherPayoutProfiles: (teacherPayoutProfiles ?? []) as TeacherPayoutProfile[],
       classMaterials: (classMaterials ?? []) as ClassMaterial[],
+      discountCoupons: (discountCoupons ?? []) as DiscountCoupon[],
+      couponRedemptions: (couponRedemptions ?? []) as CouponRedemption[],
       platformWalletSummary: buildPlatformWalletSummary(
         walletTransactions,
         (profiles ?? []) as Profile[],

@@ -32,10 +32,10 @@ const PRICE_FIELDS = [
   { key: "hourly", label: "Aula avulsa (1 hora)" },
   { key: "monthly", label: "Mensal" },
   { key: "package_8", label: "Pacote 8 aulas" },
-  { key: "plan_essencial", label: "Plano Essencial (mensal)" },
-  { key: "plan_advanced", label: "Plano Advanced (mensal)" },
-  { key: "plan_conversation", label: "Plano Conversation (mensal)" },
-  { key: "plan_anual", label: "Plano Anual Advanced (12x)" },
+  { key: "plan_essencial", label: "Plano essential (mensal)" },
+  { key: "plan_advanced", label: "Plano advenced (mensal)" },
+  { key: "plan_conversation", label: "Plano conversation (mensal)" },
+  { key: "plan_anual", label: "Plano anual desativado (12x)" },
 ] as const;
 type PriceKey = (typeof PRICE_FIELDS)[number]["key"];
 type PixKeyType = Database["public"]["Enums"]["pix_key_type"];

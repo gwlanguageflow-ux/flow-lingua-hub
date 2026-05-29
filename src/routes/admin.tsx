@@ -61,6 +61,7 @@ import {
   updateAnonymousReport,
   updateDirectorAlertStatus,
 } from "@/functions/admin.functions";
+import { createDirectorCoupon } from "@/functions/coupon.functions";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +82,8 @@ type TeacherWalletTransaction = Tables<"teacher_wallet_transactions">;
 type TeacherWithdrawalRequest = Tables<"teacher_withdrawal_requests">;
 type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
 type ClassMaterial = Tables<"class_materials">;
+type DiscountCoupon = Tables<"discount_coupons">;
+type CouponRedemption = Tables<"coupon_redemptions">;
 type AppRole = Enums<"app_role">;
 type TargetType = "all" | "role" | "user" | "class";
 type PlatformRange = "30d" | "90d" | "365d";
@@ -213,6 +216,8 @@ function AdminPage() {
   const [teacherWithdrawals, setTeacherWithdrawals] = useState<TeacherWithdrawalRequest[]>([]);
   const [teacherPayoutProfiles, setTeacherPayoutProfiles] = useState<TeacherPayoutProfile[]>([]);
   const [classMaterials, setClassMaterials] = useState<ClassMaterial[]>([]);
+  const [discountCoupons, setDiscountCoupons] = useState<DiscountCoupon[]>([]);
+  const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
   const [platformWalletSummary, setPlatformWalletSummary] = useState<PlatformWalletSummary>(
     emptyPlatformWalletSummary,
   );
@@ -269,6 +274,8 @@ function AdminPage() {
       setTeacherWithdrawals(dashboard.teacherWithdrawals);
       setTeacherPayoutProfiles(dashboard.teacherPayoutProfiles);
       setClassMaterials(dashboard.classMaterials);
+      setDiscountCoupons(dashboard.discountCoupons);
+      setCouponRedemptions(dashboard.couponRedemptions);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
       setReportDrafts(
         Object.fromEntries(
@@ -531,6 +538,7 @@ function AdminPage() {
               <Tab value="alertas" icon={BellRing} label="Alertas" />
               <Tab value="denuncias" icon={ShieldAlert} label="Denúncias" />
               <Tab value="materiais" icon={FileText} label="Materiais" />
+              <Tab value="cupons" icon={Sparkles} label="Cupons" />
               <Tab value="carteira" icon={Wallet} label="Carteira" />
               <Tab value="operacao" icon={Calendar} label="Operação" />
             </TabsList>
@@ -1112,6 +1120,15 @@ function AdminPage() {
               />
             </TabsContent>
 
+            <TabsContent value="cupons" className="mt-0">
+              <DirectorCouponsPanel
+                coupons={discountCoupons}
+                redemptions={couponRedemptions}
+                profiles={profiles}
+                onChanged={loadDashboard}
+              />
+            </TabsContent>
+
             <TabsContent value="operacao" className="mt-0">
               <section className="rounded-xl border border-border bg-white p-4">
                 <SectionTitle icon={Calendar} title="Agendamentos recentes" />
@@ -1344,6 +1361,155 @@ function DirectorMaterialsPanel({
                 </div>
               </div>
             ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DirectorCouponsPanel({
+  coupons,
+  redemptions,
+  profiles,
+  onChanged,
+}: {
+  coupons: DiscountCoupon[];
+  redemptions: CouponRedemption[];
+  profiles: Profile[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const [prefix, setPrefix] = useState("GWLF");
+  const [percent, setPercent] = useState("10");
+  const [active, setActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const statsByCoupon = useMemo(() => {
+    const map = new Map<string, { created: number; paid: number }>();
+    redemptions.forEach((redemption) => {
+      const current = map.get(redemption.coupon_id) ?? { created: 0, paid: 0 };
+      current.created += 1;
+      if (redemption.status === "paid") current.paid += 1;
+      map.set(redemption.coupon_id, current);
+    });
+    return map;
+  }, [redemptions]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await createDirectorCoupon({
+        data: {
+          prefix,
+          discountPercent: Number(percent),
+          active,
+          title: `Cupom da diretoria ${Number(percent)}%`,
+        },
+      });
+      toast.success("Cupom criado para a diretoria.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel criar o cupom.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+      <section className="rounded-xl border border-border bg-white p-4">
+        <SectionTitle icon={Sparkles} title="Criar cupom da diretoria" />
+        <p className="mt-2 text-sm leading-6 text-brown-soft">
+          O codigo usa 4 letras e 2 numeros. Os numeros acompanham a porcentagem escolhida para o
+          desconto, por exemplo GWLF10.
+        </p>
+        <form onSubmit={submit} className="mt-5 grid gap-3">
+          <Field label="4 letras do cupom">
+            <Input
+              value={prefix}
+              onChange={(event) =>
+                setPrefix(
+                  event.target.value
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-zA-Z]/g, "")
+                    .toUpperCase()
+                    .slice(0, 4),
+                )
+              }
+              placeholder="GWLF"
+              maxLength={4}
+            />
+          </Field>
+          <Field label="Desconto (%)">
+            <Input
+              value={percent}
+              onChange={(event) => setPercent(event.target.value.replace(/\D/g, "").slice(0, 2))}
+              inputMode="numeric"
+              placeholder="10"
+            />
+          </Field>
+          <Button
+            type="button"
+            variant={active ? "default" : "outline"}
+            onClick={() => setActive((value) => !value)}
+            className={active ? "bg-emerald-700 text-white hover:bg-emerald-800" : ""}
+          >
+            {active ? "Cupom ativo" : "Cupom pausado"}
+          </Button>
+          <Button disabled={saving} className="rounded-lg bg-wine text-white hover:bg-bronze">
+            <Sparkles className="mr-2 h-4 w-4" />
+            {saving
+              ? "Salvando..."
+              : `Criar ${prefix}${String(Number(percent || 0)).padStart(2, "0")}`}
+          </Button>
+        </form>
+      </section>
+
+      <section className="rounded-xl border border-border bg-white p-4">
+        <SectionTitle icon={Sparkles} title="Cupons e conversoes" />
+        <div className="mt-4 space-y-3">
+          {coupons.length === 0 ? (
+            <EmptyState text="Nenhum cupom criado ainda." />
+          ) : (
+            coupons.map((coupon) => {
+              const stats = statsByCoupon.get(coupon.id) ?? { created: 0, paid: 0 };
+              return (
+                <article
+                  key={coupon.id}
+                  className="rounded-xl border border-border bg-background p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-display text-2xl font-bold text-wine">{coupon.code}</p>
+                        <Badge
+                          className={
+                            coupon.active
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-zinc-100 text-zinc-700"
+                          }
+                        >
+                          {coupon.active ? "Ativo" : "Pausado"}
+                        </Badge>
+                        <Badge variant="outline">
+                          {coupon.scope === "teacher" ? "Professor" : "Diretoria"}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-brown-soft">
+                        {coupon.discount_percent}% de desconto
+                        {coupon.teacher_id ? ` - ${userName(coupon.teacher_id, profiles)}` : ""}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-center sm:w-44">
+                      <Info label="Checkouts" value={stats.created} />
+                      <Info label="Pagos" value={stats.paid} />
+                    </div>
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
       </section>
@@ -1908,6 +2074,8 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     teacherWithdrawals: data?.teacherWithdrawals ?? [],
     teacherPayoutProfiles: data?.teacherPayoutProfiles ?? [],
     classMaterials: data?.classMaterials ?? [],
+    discountCoupons: data?.discountCoupons ?? [],
+    couponRedemptions: data?.couponRedemptions ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,
   };
 }

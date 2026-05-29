@@ -16,6 +16,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { createSubscriptionCheckout } from "@/functions/validapay-checkout.functions";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
 
 export const Route = createFileRoute("/planos")({
@@ -61,6 +63,11 @@ interface SelectedTeacher {
   email: string | null;
 }
 
+type DiscountCoupon = Pick<
+  Tables<"discount_coupons">,
+  "id" | "code" | "discount_percent" | "scope" | "teacher_id"
+>;
+
 const comparisonRows = [
   ["Aulas online", "Sim, com professor especialista"],
   ["Materiais semanais", "PDFs, links e atividades no painel"],
@@ -69,9 +76,10 @@ const comparisonRows = [
 ];
 
 const planDisplayOrder: Record<string, number> = {
-  advanced: 1,
-  essencial: 2,
-  essential: 2,
+  essencial: 1,
+  essential: 1,
+  advanced: 2,
+  advenced: 2,
   conversation: 3,
 };
 
@@ -94,6 +102,9 @@ function PlansPage() {
   const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [teacher, setTeacher] = useState<SelectedTeacher | null>(null);
+  const [teacherCoupon, setTeacherCoupon] = useState<DiscountCoupon | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [useTeacherCoupon, setUseTeacherCoupon] = useState(false);
 
   useEffect(() => {
     const professor = new URLSearchParams(window.location.search).get("professor");
@@ -107,12 +118,29 @@ function PlansPage() {
       .then(({ data }) => setPlans(orderPlansForDisplay((data ?? []) as Plan[])));
 
     if (professor) {
-      supabase
+      void supabase
         .from("profiles")
         .select("id, full_name, avatar_url, email")
         .eq("id", professor)
         .maybeSingle()
         .then(({ data }) => setTeacher((data as SelectedTeacher | null) ?? null));
+
+      void supabase
+        .from("discount_coupons")
+        .select("id, code, discount_percent, scope, teacher_id")
+        .eq("scope", "teacher")
+        .eq("teacher_id", professor)
+        .eq("active", true)
+        .lte("starts_at", new Date().toISOString())
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          const coupon = (data as DiscountCoupon | null) ?? null;
+          setTeacherCoupon(coupon);
+          setUseTeacherCoupon(Boolean(coupon));
+        });
     }
   }, []);
 
@@ -139,6 +167,12 @@ function PlansPage() {
           planSlug: selected.slug,
           teacherId,
           termsAccepted: true,
+          couponCode:
+            useTeacherCoupon && teacherCoupon
+              ? teacherCoupon.code
+              : couponCode.trim()
+                ? couponCode.trim()
+                : null,
         },
       });
       if ("url" in res && res.url) window.location.href = res.url;
@@ -233,6 +267,8 @@ function PlansPage() {
                     onSelect={() => {
                       setSelected(plan);
                       setTerms(false);
+                      setCouponCode("");
+                      setUseTeacherCoupon(Boolean(teacherCoupon));
                     }}
                   />
                 ))}
@@ -274,6 +310,11 @@ function PlansPage() {
 
         <CheckoutDialog
           selected={selected}
+          teacherCoupon={teacherCoupon}
+          couponCode={couponCode}
+          setCouponCode={setCouponCode}
+          useTeacherCoupon={useTeacherCoupon}
+          setUseTeacherCoupon={setUseTeacherCoupon}
           terms={terms}
           setTerms={setTerms}
           loading={loading}
@@ -366,7 +407,7 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="font-display text-2xl font-bold text-wine">{plan.name}</h3>
+          <h3 className="font-display text-2xl font-bold text-wine">{canonicalPlanName(plan)}</h3>
           <p className="mt-2 min-h-[48px] text-sm leading-6 text-brown-soft">{plan.description}</p>
         </div>
         {featured ? (
@@ -410,6 +451,11 @@ function PlanCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
 function CheckoutDialog({
   selected,
+  teacherCoupon,
+  couponCode,
+  setCouponCode,
+  useTeacherCoupon,
+  setUseTeacherCoupon,
   terms,
   setTerms,
   loading,
@@ -417,18 +463,29 @@ function CheckoutDialog({
   onCheckout,
 }: {
   selected: Plan | null;
+  teacherCoupon: DiscountCoupon | null;
+  couponCode: string;
+  setCouponCode: (value: string) => void;
+  useTeacherCoupon: boolean;
+  setUseTeacherCoupon: (value: boolean) => void;
   terms: boolean;
   setTerms: (terms: boolean) => void;
   loading: boolean;
   onClose: () => void;
   onCheckout: () => void;
 }) {
+  const appliedTeacherCoupon = useTeacherCoupon && teacherCoupon ? teacherCoupon : null;
+  const discountPercent = appliedTeacherCoupon?.discount_percent ?? 0;
+  const discountValue =
+    selected && discountPercent > 0 ? (selected.price * discountPercent) / 100 : 0;
+  const finalValue = selected ? selected.price - discountValue : 0;
+
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[calc(100dvh-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-wine">
-            Finalizar assinatura - {selected?.name}
+            Finalizar assinatura - {selected ? canonicalPlanName(selected) : ""}
           </DialogTitle>
         </DialogHeader>
 
@@ -443,7 +500,9 @@ function CheckoutDialog({
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Plano</dt>
-                <dd className="text-right font-semibold text-wine">{selected?.name}</dd>
+                <dd className="text-right font-semibold text-wine">
+                  {selected ? canonicalPlanName(selected) : ""}
+                </dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Valor</dt>
@@ -451,6 +510,26 @@ function CheckoutDialog({
                   {selected ? formatMoney(selected.price) : ""}
                 </dd>
               </div>
+              {appliedTeacherCoupon && (
+                <>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-brown-soft">Cupom</dt>
+                    <dd className="text-right font-semibold text-emerald-700">
+                      {appliedTeacherCoupon.code} - {discountPercent}%
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-brown-soft">Desconto</dt>
+                    <dd className="font-semibold text-emerald-700">
+                      -{formatMoney(discountValue)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t border-bronze/20 pt-2">
+                    <dt className="font-semibold text-wine">Total com desconto</dt>
+                    <dd className="font-bold text-wine">{formatMoney(finalValue)}</dd>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Cobranca</dt>
                 <dd className="font-semibold capitalize text-wine">{selected?.interval}</dd>
@@ -467,6 +546,62 @@ function CheckoutDialog({
               <p>O acesso e a carteira do professor sao liberados apos confirmacao do pagamento.</p>
               <p>O acesso ao agendamento depende da assinatura ativa.</p>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-bronze">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-wine">Adicionar cupom</p>
+                <p className="mt-1 text-xs leading-5 text-brown-soft">
+                  Se o professor tiver cupom ativo, ele aparece aqui automaticamente. Voce escolhe
+                  se quer aplicar antes de pagar.
+                </p>
+              </div>
+            </div>
+
+            {teacherCoupon && (
+              <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-emerald-800">
+                      Cupom do professor: {teacherCoupon.code}
+                    </p>
+                    <p className="text-xs text-emerald-700">
+                      {teacherCoupon.discount_percent}% de desconto neste checkout.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={useTeacherCoupon ? "default" : "outline"}
+                    onClick={() => setUseTeacherCoupon(!useTeacherCoupon)}
+                    className={
+                      useTeacherCoupon
+                        ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                        : "border-emerald-400 text-emerald-800 hover:bg-emerald-100"
+                    }
+                  >
+                    {useTeacherCoupon ? "Cupom aplicado" : "Aplicar cupom"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {(!teacherCoupon || !useTeacherCoupon) && (
+              <div className="mt-4 grid gap-2">
+                <Input
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                  placeholder="Ex: GWLF10"
+                  className="uppercase"
+                />
+                <p className="text-xs text-brown-soft">
+                  Cupons da diretoria seguem o formato 4 letras + 2 numeros.
+                </p>
+              </div>
+            )}
           </div>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border p-4 transition hover:border-bronze/50">
@@ -510,6 +645,13 @@ function formatMoney(value: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function canonicalPlanName(plan: Pick<Plan, "slug" | "name">) {
+  if (plan.slug === "essencial" || plan.slug === "essential") return "essential";
+  if (plan.slug === "advanced" || plan.slug === "advenced") return "advenced";
+  if (plan.slug === "conversation") return "conversation";
+  return plan.name;
 }
 
 function normalizePlanFeature(feature: string) {

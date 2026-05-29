@@ -56,20 +56,20 @@ interface TeacherFull {
 }
 
 const PLATFORM_PRICES: { key: string; label: string; value: number }[] = [
-  { key: "plan_essencial", label: "Plano Essencial (mensal)", value: 179.9 },
-  { key: "plan_advanced", label: "Plano Advanced (mensal)", value: 299.9 },
-  { key: "plan_conversation", label: "Plano Conversation (mensal)", value: 169.9 },
-  { key: "plan_anual", label: "Plano Anual Advanced (12x R$ 269,90)", value: 3238.8 },
+  { key: "plan_essencial", label: "Plano essential (mensal)", value: 179.9 },
+  { key: "plan_advanced", label: "Plano advenced (mensal)", value: 299.9 },
+  { key: "plan_conversation", label: "Plano conversation (mensal)", value: 169.9 },
+  { key: "plan_anual", label: "Plano anual desativado (12x R$ 269,90)", value: 3238.8 },
 ];
 
 const PRICE_LABELS: Record<string, string> = {
   hourly: "Aula avulsa (1h)",
   monthly: "Mensal",
   package_8: "Pacote 8 aulas",
-  plan_essencial: "Plano Essencial",
-  plan_advanced: "Plano Advanced",
-  plan_conversation: "Plano Conversation",
-  plan_anual: "Plano Anual Advanced",
+  plan_essencial: "Plano essential",
+  plan_advanced: "Plano advenced",
+  plan_conversation: "Plano conversation",
+  plan_anual: "Plano anual desativado",
 };
 
 function TeacherProfilePage() {

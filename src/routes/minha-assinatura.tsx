@@ -110,7 +110,7 @@ function Page() {
       if ("url" in res && res.url) window.location.href = res.url;
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Nao foi possivel abrir o WhatsApp da plataforma.",
+        err instanceof Error ? err.message : "Nao foi possivel abrir o checkout ValidaPay.",
       );
       setRenewing(false);
     }
@@ -174,8 +174,8 @@ function Page() {
                   <div>
                     <p className="font-semibold">Assinatura vencida</p>
                     <p>
-                      Seu plano precisa ser renovado com a equipe para reativar o agendamento. Ao
-                      confirmar o pagamento manual, a diretoria libera seu acesso.
+                      Seu plano precisa ser renovado no checkout ValidaPay para reativar o
+                      agendamento assim que o pagamento for confirmado.
                     </p>
                     <Button
                       onClick={handleManualRenewal}
@@ -183,7 +183,7 @@ function Page() {
                       className="mt-3 bg-wine text-white hover:bg-wine/90 h-9"
                     >
                       {renewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Solicitar renovacao
+                      Renovar assinatura
                     </Button>
                   </div>
                 </div>
@@ -194,8 +194,8 @@ function Page() {
                   <MessageCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
                     <p>
-                      No aguardo da confirmacao pela diretoria. Se ainda nao enviou a mensagem,
-                      solicite pelo WhatsApp da plataforma.
+                      Sua assinatura ainda esta aguardando a confirmacao do pagamento. Abra o
+                      checkout ValidaPay para concluir quando estiver pronto.
                     </p>
                     <Button
                       onClick={handleManualRenewal}
@@ -204,7 +204,7 @@ function Page() {
                       className="mt-3 h-9 rounded-lg border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
                     >
                       {renewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Enviar dados no WhatsApp
+                      Abrir checkout ValidaPay
                     </Button>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ function Page() {
                       ? "Pix"
                       : sub.payment_method === "card"
                         ? "Cartao"
-                        : "Solicitacao manual"
+                        : "Checkout ValidaPay"
                   }
                 />
                 <Info

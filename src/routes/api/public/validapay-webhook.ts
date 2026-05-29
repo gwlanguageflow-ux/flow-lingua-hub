@@ -296,6 +296,13 @@ async function updateSubscriptionFromPayload(
     .eq("id", subscriptionId);
 
   if (error) throw error;
+
+  const { error: couponError } = await supabaseAdmin
+    .from("coupon_redemptions")
+    .update({ status: "paid", paid_at: start })
+    .eq("subscription_id", subscriptionId)
+    .eq("status", "checkout_created");
+  if (couponError) throw couponError;
 }
 
 async function markSubscriptionStatus(subscriptionId: string | null, status: SubscriptionStatus) {
@@ -305,6 +312,15 @@ async function markSubscriptionStatus(subscriptionId: string | null, status: Sub
     .update({ status })
     .eq("id", subscriptionId);
   if (error) throw error;
+
+  if (status === "cancelada" || status === "inadimplente") {
+    const { error: couponError } = await supabaseAdmin
+      .from("coupon_redemptions")
+      .update({ status: "cancelled" })
+      .eq("subscription_id", subscriptionId)
+      .eq("status", "checkout_created");
+    if (couponError) throw couponError;
+  }
 }
 
 function parseSignatureHeader(value: string | null) {

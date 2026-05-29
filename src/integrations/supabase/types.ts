@@ -773,6 +773,239 @@ export type Database = {
         };
         Relationships: [];
       };
+      discount_coupons: {
+        Row: {
+          active: boolean;
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          discount_percent: number;
+          expires_at: string | null;
+          id: string;
+          scope: string;
+          starts_at: string;
+          teacher_id: string | null;
+          title: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          discount_percent: number;
+          expires_at?: string | null;
+          id?: string;
+          scope?: string;
+          starts_at?: string;
+          teacher_id?: string | null;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          discount_percent?: number;
+          expires_at?: string | null;
+          id?: string;
+          scope?: string;
+          starts_at?: string;
+          teacher_id?: string | null;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "discount_coupons_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "discount_coupons_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string;
+          created_at: string;
+          discount_amount: number;
+          final_amount: number;
+          id: string;
+          original_amount: number;
+          paid_at: string | null;
+          plan_id: string | null;
+          status: string;
+          student_id: string;
+          subscription_id: string | null;
+          teacher_id: string | null;
+        };
+        Insert: {
+          coupon_id: string;
+          created_at?: string;
+          discount_amount: number;
+          final_amount: number;
+          id?: string;
+          original_amount: number;
+          paid_at?: string | null;
+          plan_id?: string | null;
+          status?: string;
+          student_id: string;
+          subscription_id?: string | null;
+          teacher_id?: string | null;
+        };
+        Update: {
+          coupon_id?: string;
+          created_at?: string;
+          discount_amount?: number;
+          final_amount?: number;
+          id?: string;
+          original_amount?: number;
+          paid_at?: string | null;
+          plan_id?: string | null;
+          status?: string;
+          student_id?: string;
+          subscription_id?: string | null;
+          teacher_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey";
+            columns: ["coupon_id"];
+            isOneToOne: false;
+            referencedRelation: "discount_coupons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "subscription_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_subscription_id_fkey";
+            columns: ["subscription_id"];
+            isOneToOne: false;
+            referencedRelation: "student_subscriptions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      discounted_plan_prices: {
+        Row: {
+          created_at: string;
+          discount_percent: number;
+          final_amount: number;
+          id: string;
+          plan_id: string;
+          updated_at: string;
+          validapay_price_id: string | null;
+          validapay_product_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          discount_percent: number;
+          final_amount: number;
+          id?: string;
+          plan_id: string;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          discount_percent?: number;
+          final_amount?: number;
+          id?: string;
+          plan_id?: string;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "discounted_plan_prices_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "subscription_plans";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      family_invites: {
+        Row: {
+          code: string;
+          created_at: string;
+          first_month_discount_percent: number;
+          id: string;
+          invited_student_id: string | null;
+          lifetime_discount_percent: number;
+          sponsor_student_id: string | null;
+          status: string;
+          used_at: string | null;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          first_month_discount_percent?: number;
+          id?: string;
+          invited_student_id?: string | null;
+          lifetime_discount_percent?: number;
+          sponsor_student_id?: string | null;
+          status?: string;
+          used_at?: string | null;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          first_month_discount_percent?: number;
+          id?: string;
+          invited_student_id?: string | null;
+          lifetime_discount_percent?: number;
+          sponsor_student_id?: string | null;
+          status?: string;
+          used_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "family_invites_invited_student_id_fkey";
+            columns: ["invited_student_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "family_invites_sponsor_student_id_fkey";
+            columns: ["sponsor_student_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       teacher_announcements: {
         Row: {
           body: string;

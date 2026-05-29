@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -43,6 +44,7 @@ interface TeacherCard {
   levels_taught: string[];
   is_active: boolean;
   rating?: number;
+  coupon?: Pick<Tables<"discount_coupons">, "code" | "discount_percent"> | null;
 }
 
 function FeedPage() {
@@ -79,6 +81,16 @@ function FeedPage() {
         .from("reviews")
         .select("teacher_id, rating")
         .in("teacher_id", ids);
+      const now = new Date().toISOString();
+      const { data: coupons } = await supabase
+        .from("discount_coupons")
+        .select("teacher_id, code, discount_percent")
+        .eq("scope", "teacher")
+        .eq("active", true)
+        .lte("starts_at", now)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .in("teacher_id", ids);
+      const couponMap = new Map(coupons?.map((coupon) => [coupon.teacher_id, coupon]) ?? []);
       const ratingMap = new Map<string, number>();
       reviews?.forEach((r) => {
         const cur = ratingMap.get(r.teacher_id) || 0;
@@ -102,6 +114,7 @@ function FeedPage() {
           levels_taught: t.levels_taught || [],
           is_active: t.is_active,
           rating: count > 0 ? sum / count : undefined,
+          coupon: couponMap.get(t.id) ?? null,
         };
       });
       setTeachers(cards);
@@ -283,8 +296,13 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="gw-app-card group overflow-hidden rounded-xl transition hover:-translate-y-1 hover:shadow-warm"
+      className={`gw-app-card group relative overflow-hidden rounded-xl transition hover:-translate-y-1 hover:shadow-warm ${
+        teacher.coupon ? "ring-2 ring-emerald-300/80 shadow-[0_0_34px_rgba(16,185,129,0.32)]" : ""
+      }`}
     >
+      {teacher.coupon && (
+        <div className="pointer-events-none absolute inset-0 rounded-xl bg-emerald-300/10 opacity-70" />
+      )}
       <div
         className="gw-profile-banner relative h-36 bg-cover bg-center"
         style={
@@ -300,6 +318,11 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
           <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-lg bg-background/95 px-2.5 py-1 shadow-soft backdrop-blur">
             <Star className="h-3.5 w-3.5 fill-bronze text-bronze" />
             <span className="text-xs font-semibold text-wine">{teacher.rating.toFixed(1)}</span>
+          </div>
+        )}
+        {teacher.coupon && (
+          <div className="absolute left-3 top-3 z-10 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold uppercase text-white shadow-[0_0_20px_rgba(16,185,129,0.45)]">
+            Cupom {teacher.coupon.discount_percent}%
           </div>
         )}
       </div>

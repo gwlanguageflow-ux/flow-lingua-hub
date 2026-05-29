@@ -20,6 +20,7 @@ import {
   PencilLine,
   Plus,
   Send,
+  Sparkles,
   Upload,
   UserPlus,
   Users,
@@ -48,6 +49,7 @@ import {
 import { AvailabilityManager } from "@/components/AvailabilityManager";
 import { MeetingLinkEditor } from "@/components/MeetingLinkEditor";
 import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
+import { upsertTeacherCoupon } from "@/functions/coupon.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
 import { openLearningFile, uploadLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
@@ -74,6 +76,7 @@ type TeacherAnnouncement = Tables<"teacher_announcements">;
 type TeacherMeeting = Tables<"teacher_meetings">;
 type WalletTransaction = Tables<"teacher_wallet_transactions">;
 type WithdrawalRequest = Tables<"teacher_withdrawal_requests">;
+type DiscountCoupon = Tables<"discount_coupons">;
 type TeacherProfileRecord = Pick<
   Tables<"teacher_profiles">,
   "languages_taught" | "use_custom_pricing"
@@ -178,6 +181,7 @@ function DashboardPage() {
   const [walletSummary, setWalletSummary] = useState<WalletSummary>(emptyWalletSummary);
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [teacherCoupon, setTeacherCoupon] = useState<DiscountCoupon | null>(null);
   const [creditingBookingId, setCreditingBookingId] = useState<string | null>(null);
 
   const loadDashboard = useCallback(async () => {
@@ -200,6 +204,7 @@ function DashboardPage() {
       { data: summary },
       { data: transactions },
       { data: withdrawalRows },
+      { data: couponRow },
     ] = await Promise.all([
       supabase
         .from("bookings")
@@ -267,6 +272,14 @@ function DashboardPage() {
         .eq("teacher_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20),
+      supabase
+        .from("discount_coupons")
+        .select("*")
+        .eq("teacher_id", user.id)
+        .eq("scope", "teacher")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     setBookings(bks || []);
@@ -286,6 +299,7 @@ function DashboardPage() {
     setWalletSummary(summary ?? emptyWalletSummary);
     setWalletTransactions(transactions ?? []);
     setWithdrawals(withdrawalRows ?? []);
+    setTeacherCoupon((couponRow as DiscountCoupon | null) ?? null);
 
     let memberRows: ClassMember[] = [];
     if (classRows?.length) {
@@ -498,6 +512,7 @@ function DashboardPage() {
             <TeacherTab value="secretaria" icon={MessageCircle} label="Secretaria" />
             <TeacherTab value="disponibilidade" icon={Clock} label="Disponibilidade" />
             <TeacherTab value="carteira" icon={Wallet} label="Carteira" />
+            <TeacherTab value="cupom" icon={Sparkles} label="Cupom" />
             <TeacherTab value="material" icon={FolderOpen} label="Material" />
             <TeacherTab value="guia" icon={Video} label="Guia do professor" />
           </TabsList>
@@ -559,6 +574,14 @@ function DashboardPage() {
               withdrawals={withdrawals}
               teacherIdentity={teacherIdentity}
               payoutProfile={teacherPayoutProfile}
+              onChanged={loadDashboard}
+            />
+          </TabsContent>
+
+          <TabsContent value="cupom" className="mt-6">
+            <TeacherCouponPanel
+              coupon={teacherCoupon}
+              teacherName={teacherIdentity?.full_name ?? ""}
               onChanged={loadDashboard}
             />
           </TabsContent>
@@ -670,6 +693,118 @@ function TeacherGuidePanel({ videoStatus }: { videoStatus: TeacherGuideVideoStat
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function TeacherCouponPanel({
+  coupon,
+  teacherName,
+  onChanged,
+}: {
+  coupon: DiscountCoupon | null;
+  teacherName: string;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [discountPercent, setDiscountPercent] = useState(String(coupon?.discount_percent ?? 10));
+  const [active, setActive] = useState(coupon?.active ?? false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDiscountPercent(String(coupon?.discount_percent ?? 10));
+    setActive(coupon?.active ?? false);
+  }, [coupon]);
+
+  const codePreview = `${teacherCouponPrefix(teacherName)}-${String(
+    Number(discountPercent || 0),
+  ).padStart(2, "0")}`;
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await upsertTeacherCoupon({
+        data: {
+          discountPercent: Number(discountPercent),
+          active,
+        },
+      });
+      toast.success(active ? "Cupom ativado no feed." : "Cupom pausado.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o cupom.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+      <form onSubmit={submit} className="gw-app-card gw-input-shell rounded-xl p-5 shadow-soft">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-bronze" />
+          <h3 className="font-display text-2xl font-bold text-wine">Cupom do professor</h3>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-brown-soft">
+          Quando ativo, seu card no feed ganha destaque visual e o aluno pode aplicar o desconto
+          antes de assinar com voce.
+        </p>
+
+        <div className="mt-5 grid gap-3">
+          <div className="rounded-xl border border-bronze/30 bg-cream p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-brown-soft">
+              Codigo previsto
+            </p>
+            <p className="mt-1 font-display text-3xl font-bold text-wine">{codePreview}</p>
+            <p className="mt-1 text-xs text-brown-soft">
+              As 4 letras saem do seu nome. Os numeros acompanham a porcentagem do desconto.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Porcentagem de desconto</Label>
+            <Input
+              value={discountPercent}
+              onChange={(event) =>
+                setDiscountPercent(event.target.value.replace(/\D/g, "").slice(0, 2))
+              }
+              inputMode="numeric"
+              placeholder="10"
+            />
+          </div>
+
+          <Button
+            type="button"
+            variant={active ? "default" : "outline"}
+            onClick={() => setActive((value) => !value)}
+            className={active ? "bg-emerald-700 text-white hover:bg-emerald-800" : ""}
+          >
+            {active ? "Cupom ativo" : "Cupom pausado"}
+          </Button>
+
+          <Button disabled={saving} className="bg-wine text-white hover:bg-bronze">
+            {saving ? "Salvando..." : "Salvar cupom"}
+          </Button>
+        </div>
+      </form>
+
+      <section className="gw-app-card rounded-xl p-5 shadow-soft">
+        <h3 className="font-display text-xl font-bold text-wine">Como usar sem desvalorizar</h3>
+        <div className="mt-4 space-y-3">
+          <GuideChecklistItem
+            title="Use como campanha"
+            description="Ative em momentos especificos: abertura de agenda, semana de conversacao, volta as aulas ou quando quiser preencher poucos horarios."
+          />
+          <GuideChecklistItem
+            title="Crie urgencia"
+            description="O ideal e colocar 1 ou 2 vezes no mes. Assim o aluno percebe como uma oportunidade real, nao como preco permanente."
+          />
+          <GuideChecklistItem
+            title="Apareca mais no feed"
+            description="Enquanto estiver ativo, seu card ganha brilho e selo com a porcentagem do desconto para chamar mais atencao."
+          />
+        </div>
+      </section>
     </div>
   );
 }
@@ -2411,4 +2546,13 @@ function requestStatusLabel(status: string) {
 function maskPixKey(value: string) {
   if (value.length <= 8) return value;
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function teacherCouponPrefix(name: string) {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase();
+  return (normalized + "GWLF").slice(0, 4);
 }

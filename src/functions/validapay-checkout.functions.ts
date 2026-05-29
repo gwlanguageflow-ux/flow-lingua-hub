@@ -13,9 +13,32 @@ type StudentProfile = Pick<
   Database["public"]["Tables"]["student_profiles"]["Row"],
   "desired_language" | "comprehension_level"
 >;
+type DiscountCoupon = Database["public"]["Tables"]["discount_coupons"]["Row"];
 
 function getValidapayPriceId(response: { prices?: Array<{ priceId?: string }> }) {
   return response.prices?.find((price) => price.priceId)?.priceId ?? null;
+}
+
+function toMoney(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function normalizeCouponCode(value: string | null | undefined) {
+  return (value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9-]/g, "");
+}
+
+function couponCodeVariants(code: string) {
+  const variants = new Set([code]);
+  const compact = code.replace(/-/g, "");
+  if (/^[A-Z]{4}[0-9]{2}$/.test(compact)) {
+    variants.add(compact);
+    variants.add(`${compact.slice(0, 4)}-${compact.slice(4)}`);
+  }
+  return Array.from(variants);
 }
 
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
@@ -26,6 +49,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         planSlug: z.string().min(1).max(60),
         teacherId: z.string().uuid(),
         termsAccepted: z.literal(true),
+        couponCode: z.string().trim().max(20).optional().nullable(),
       })
       .parse(input),
   )
@@ -74,6 +98,35 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       throw new Error("Complete seu perfil de aluno antes de solicitar a assinatura.");
 
     const now = new Date().toISOString();
+    const requestedCouponCode = normalizeCouponCode(data.couponCode);
+    let coupon: DiscountCoupon | null = null;
+    const originalAmount = toMoney(Number(plan.price));
+    let finalAmount = originalAmount;
+    let discountAmount = 0;
+
+    if (requestedCouponCode) {
+      const { data: couponRow, error: couponError } = await supabaseAdmin
+        .from("discount_coupons")
+        .select("*")
+        .in("code", couponCodeVariants(requestedCouponCode))
+        .eq("active", true)
+        .lte("starts_at", now)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<DiscountCoupon>();
+
+      if (couponError) throw new Error(couponError.message);
+      if (!couponRow) throw new Error("Cupom nao encontrado ou expirado.");
+      if (couponRow.scope === "teacher" && couponRow.teacher_id !== data.teacherId) {
+        throw new Error("Este cupom pertence a outro professor.");
+      }
+
+      coupon = couponRow;
+      discountAmount = toMoney((originalAmount * coupon.discount_percent) / 100);
+      finalAmount = toMoney(originalAmount - discountAmount);
+    }
+
     const { data: existingPending, error: existingError } = await supabaseAdmin
       .from("student_subscriptions")
       .select("id")
@@ -90,7 +143,43 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     let subscriptionId = existingPending?.id;
     let priceId = plan.validapay_price_id;
 
-    if (!priceId) {
+    if (coupon) {
+      const { data: discountedPrice, error: discountedPriceError } = await supabaseAdmin
+        .from("discounted_plan_prices")
+        .select("*")
+        .eq("plan_id", plan.id)
+        .eq("discount_percent", coupon.discount_percent)
+        .maybeSingle();
+      if (discountedPriceError) throw new Error(discountedPriceError.message);
+
+      priceId = discountedPrice?.validapay_price_id ?? null;
+      if (!priceId) {
+        const product = await createValidapayProduct({
+          name: `${plan.name} cupom ${coupon.code}`,
+          description: `${plan.description ?? plan.name} Desconto aplicado: ${coupon.discount_percent}%.`,
+          slug: `${plan.slug}-${coupon.code.toLowerCase()}`,
+          amount: finalAmount,
+          interval: plan.interval,
+        });
+
+        priceId = getValidapayPriceId(product);
+        if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano com cupom.");
+
+        const { error: discountedUpdateError } = await supabaseAdmin
+          .from("discounted_plan_prices")
+          .upsert(
+            {
+              plan_id: plan.id,
+              discount_percent: coupon.discount_percent,
+              final_amount: finalAmount,
+              validapay_product_id: product.productId,
+              validapay_price_id: priceId,
+            },
+            { onConflict: "plan_id,discount_percent" },
+          );
+        if (discountedUpdateError) throw new Error(discountedUpdateError.message);
+      }
+    } else if (!priceId) {
       const product = await createValidapayProduct({
         name: plan.name,
         description: plan.description,
@@ -137,8 +226,44 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 
     if (!subscriptionId) throw new Error("Falha ao registrar solicitacao de assinatura.");
 
+    if (coupon) {
+      const redemptionPayload = {
+        coupon_id: coupon.id,
+        student_id: userId,
+        teacher_id: data.teacherId,
+        subscription_id: subscriptionId,
+        plan_id: plan.id,
+        original_amount: originalAmount,
+        discount_amount: discountAmount,
+        final_amount: finalAmount,
+        status: "checkout_created" as const,
+      };
+      const { data: existingRedemption, error: existingRedemptionError } = await supabaseAdmin
+        .from("coupon_redemptions")
+        .select("id")
+        .eq("subscription_id", subscriptionId)
+        .eq("status", "checkout_created")
+        .maybeSingle();
+      if (existingRedemptionError) throw new Error(existingRedemptionError.message);
+
+      const { error: redemptionError } = existingRedemption
+        ? await supabaseAdmin
+            .from("coupon_redemptions")
+            .update(redemptionPayload)
+            .eq("id", existingRedemption.id)
+        : await supabaseAdmin.from("coupon_redemptions").insert(redemptionPayload);
+      if (redemptionError) throw new Error(redemptionError.message);
+    } else {
+      await supabaseAdmin
+        .from("coupon_redemptions")
+        .update({ status: "cancelled" })
+        .eq("subscription_id", subscriptionId)
+        .eq("status", "checkout_created");
+    }
+
     const session = await createValidapayCheckoutSession({
       priceId,
+      allowedPaymentMethods: ["creditcard", "pix"],
       customer: {
         name: student.full_name,
         email: student.email,
@@ -153,6 +278,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       checkout_session: session,
       plan_slug: plan.slug,
       teacher_id: data.teacherId,
+      pricing: {
+        original_amount: originalAmount,
+        discount_amount: discountAmount,
+        final_amount: finalAmount,
+        coupon_code: coupon?.code ?? null,
+        coupon_id: coupon?.id ?? null,
+        discount_percent: coupon?.discount_percent ?? null,
+      },
       student_profile: {
         desired_language: studentProfile.desired_language,
         comprehension_level: studentProfile.comprehension_level,
@@ -178,6 +311,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       subscriptionId,
       channel: "validapay",
       status: "pendente",
+      coupon: coupon
+        ? {
+            code: coupon.code,
+            discountPercent: coupon.discount_percent,
+            discountAmount,
+            finalAmount,
+          }
+        : null,
     };
   });
 
