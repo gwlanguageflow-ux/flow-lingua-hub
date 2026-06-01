@@ -17,11 +17,13 @@ type ClassMaterial = Tables<"class_materials">;
 type DiscountCoupon = Tables<"discount_coupons">;
 type CouponRedemption = Tables<"coupon_redemptions">;
 type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
+type CustomPlanSummary = Pick<Tables<"teacher_custom_plans">, "id" | "name" | "price">;
 type SubscriptionWithPlan = Pick<
   Tables<"student_subscriptions">,
-  "id" | "student_id" | "teacher_id" | "plan_id" | "status" | "created_at"
+  "id" | "student_id" | "teacher_id" | "plan_id" | "custom_plan_id" | "status" | "created_at"
 > & {
   subscription_plans: SubscriptionPlanSummary | null;
+  teacher_custom_plans: CustomPlanSummary | null;
 };
 type PlatformRange = "30d" | "90d" | "365d";
 type DirectorTarget = {
@@ -78,6 +80,10 @@ const directorWithdrawalSchema = z.object({
 
 const activateSubscriptionSchema = z.object({
   subscriptionId: z.string().uuid(),
+});
+
+const confirmTeacherWithdrawalSchema = z.object({
+  withdrawalId: z.string().uuid(),
 });
 
 const alertStatusSchema = z.object({
@@ -279,15 +285,21 @@ function buildPlanRanking(subscriptions: SubscriptionWithPlan[]) {
     .filter((subscription) => paidStatuses.has(subscription.status))
     .forEach((subscription) => {
       const plan = subscription.subscription_plans;
-      const planId = plan?.id ?? subscription.plan_id;
+      const customPlan = subscription.teacher_custom_plans;
+      const planId =
+        plan?.id ??
+        customPlan?.id ??
+        subscription.plan_id ??
+        subscription.custom_plan_id ??
+        "sem-plano";
       const current = ranking.get(planId) ?? {
         planId,
-        planName: plan?.name ?? "Plano",
+        planName: plan?.name ?? customPlan?.name ?? "Plano",
         subscriptions: 0,
         revenue: 0,
         platformFees: 0,
       };
-      const price = readAmount(plan?.price);
+      const price = readAmount(plan?.price ?? customPlan?.price);
       current.subscriptions += 1;
       current.revenue += price;
       current.platformFees += price * 0.1;
@@ -412,7 +424,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       supabaseAdmin
         .from("student_subscriptions")
         .select(
-          "id, student_id, teacher_id, plan_id, status, created_at, subscription_plans(id, name, price, slug)",
+          "id, student_id, teacher_id, plan_id, custom_plan_id, status, created_at, subscription_plans(id, name, price, slug), teacher_custom_plans(id, name, price)",
         )
         .order("created_at", { ascending: false }),
       supabaseAdmin
@@ -682,6 +694,48 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
       throw new Error(message);
     }
     */
+  });
+
+export const confirmTeacherWithdrawal = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => confirmTeacherWithdrawalSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const now = new Date().toISOString();
+
+    const { data: withdrawal, error: withdrawalError } = await supabaseAdmin
+      .from("teacher_withdrawal_requests")
+      .select("id, status")
+      .eq("id", data.withdrawalId)
+      .maybeSingle();
+
+    if (withdrawalError || !withdrawal) {
+      throw new Error(withdrawalError?.message ?? "Solicitacao de saque nao encontrada.");
+    }
+
+    if (withdrawal.status === "pago") {
+      return { ok: true, alreadyPaid: true };
+    }
+
+    if (!["pendente", "em_processamento"].includes(withdrawal.status)) {
+      throw new Error("Apenas saques pendentes podem ser confirmados.");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("teacher_withdrawal_requests")
+      .update({
+        status: "pago",
+        payout_provider: "manual",
+        payout_error: null,
+        payout_external_status: "manual_paid",
+        processed_at: now,
+        paid_at: now,
+        admin_notes: "Saque confirmado manualmente pela diretoria.",
+      })
+      .eq("id", data.withdrawalId);
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const createDirectorMessage = createServerFn({ method: "POST" })

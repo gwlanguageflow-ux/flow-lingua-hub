@@ -16,8 +16,8 @@ import { LANGUAGES, LEVELS } from "@/lib/constants";
 import { formatCpf, isValidCpf, normalizeCpf } from "@/lib/cpf";
 import { uploadAvatar } from "@/lib/upload";
 import { toast } from "sonner";
-import { Camera } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
+import { Camera, Plus, Trash2 } from "lucide-react";
+import type { Database, Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/cadastro/professor")({
   head: () => ({ meta: [{ title: "Cadastro de Professor — GWLanguageFlow" }] }),
@@ -28,17 +28,20 @@ export const Route = createFileRoute("/cadastro/professor")({
   ),
 });
 
-const PRICE_FIELDS = [
-  { key: "hourly", label: "Aula avulsa (1 hora)" },
-  { key: "monthly", label: "Mensal" },
-  { key: "package_8", label: "Pacote 8 aulas" },
-  { key: "plan_essencial", label: "Plano essential (mensal)" },
-  { key: "plan_advanced", label: "Plano advenced (mensal)" },
-  { key: "plan_conversation", label: "Plano conversation (mensal)" },
-  { key: "plan_anual", label: "Plano anual desativado (12x)" },
-] as const;
-type PriceKey = (typeof PRICE_FIELDS)[number]["key"];
 type PixKeyType = Database["public"]["Enums"]["pix_key_type"];
+type CustomPlanDraft = {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+};
+
+const emptyCustomPlan = (): CustomPlanDraft => ({
+  id: crypto.randomUUID(),
+  name: "",
+  price: "",
+  description: "",
+});
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -90,7 +93,7 @@ function Page() {
   const [languagesTaught, setLanguagesTaught] = useState<string[]>([]);
   const [levelsTaught, setLevelsTaught] = useState<string[]>([]);
   const [useCustomPricing, setUseCustomPricing] = useState(false);
-  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
+  const [customPlans, setCustomPlans] = useState<CustomPlanDraft[]>([emptyCustomPlan()]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [withdrawalPixKey, setWithdrawalPixKey] = useState("");
@@ -111,31 +114,50 @@ function Page() {
           .select("pix_key")
           .eq("teacher_id", user.id)
           .maybeSingle(),
-      ]).then(([{ data: profile }, { data: teacherProfile }, { data: payoutProfile }]) => {
-        if (profile) {
-          setFullName(profile.full_name || "");
-          if (profile.cpf) setCpf(formatCpf(profile.cpf));
-          if (profile.age) setAge(String(profile.age));
-          if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
-        }
-        if (teacherProfile) {
-          setExistingProfile(true);
-          setBio(teacherProfile.bio || "");
-          setExperiences(teacherProfile.experiences || "");
-          setLivedAbroad(!!teacherProfile.lived_abroad);
-          setCountriesLived(teacherProfile.countries_lived || "");
-          setLanguagesSpoken(teacherProfile.languages_spoken || []);
-          setLanguagesTaught(teacherProfile.languages_taught || []);
-          setLevelsTaught(teacherProfile.levels_taught || []);
-          setUseCustomPricing(!!teacherProfile.use_custom_pricing);
-          const prices = (teacherProfile.custom_prices || {}) as Record<string, number>;
-          setCustomPrices(
-            Object.fromEntries(Object.entries(prices).map(([key, value]) => [key, String(value)])),
-          );
-        }
-        if (payoutProfile?.pix_key) setWithdrawalPixKey(payoutProfile.pix_key);
-        setChecking(false);
-      });
+        supabase
+          .from("teacher_custom_plans")
+          .select("*")
+          .eq("teacher_id", user.id)
+          .order("sort_order", { ascending: true }),
+      ]).then(
+        ([
+          { data: profile },
+          { data: teacherProfile },
+          { data: payoutProfile },
+          { data: planRows },
+        ]) => {
+          if (profile) {
+            setFullName(profile.full_name || "");
+            if (profile.cpf) setCpf(formatCpf(profile.cpf));
+            if (profile.age) setAge(String(profile.age));
+            if (profile.avatar_url) setAvatarPreview(profile.avatar_url);
+          }
+          if (teacherProfile) {
+            setExistingProfile(true);
+            setBio(teacherProfile.bio || "");
+            setExperiences(teacherProfile.experiences || "");
+            setLivedAbroad(!!teacherProfile.lived_abroad);
+            setCountriesLived(teacherProfile.countries_lived || "");
+            setLanguagesSpoken(teacherProfile.languages_spoken || []);
+            setLanguagesTaught(teacherProfile.languages_taught || []);
+            setLevelsTaught(teacherProfile.levels_taught || []);
+            setUseCustomPricing(!!teacherProfile.use_custom_pricing);
+            const plans = (planRows ?? []) as Tables<"teacher_custom_plans">[];
+            if (plans.length) {
+              setCustomPlans(
+                plans.map((plan) => ({
+                  id: plan.id,
+                  name: plan.name,
+                  price: String(plan.price),
+                  description: plan.description,
+                })),
+              );
+            }
+          }
+          if (payoutProfile?.pix_key) setWithdrawalPixKey(payoutProfile.pix_key);
+          setChecking(false);
+        },
+      );
     } else {
       setChecking(false);
     }
@@ -165,23 +187,38 @@ function Page() {
     if (!user) return;
     const numericPrices: Record<string, number> = {};
     if (useCustomPricing) {
-      for (const f of PRICE_FIELDS) {
-        const raw = customPrices[f.key];
-        if (raw && raw.trim() !== "") {
-          const n = Number(raw);
-          if (Number.isNaN(n) || n < 0) {
-            toast.error(`Valor inválido em "${f.label}"`);
-            return;
-          }
-          numericPrices[f.key] = n;
-        }
-      }
-      if (Object.keys(numericPrices).length === 0) {
-        toast.error(
-          "Defina ao menos um valor personalizado ou use os valores padrão da plataforma.",
-        );
+      const validPlans = customPlans
+        .map((plan) => ({
+          ...plan,
+          name: plan.name.trim(),
+          description: plan.description.trim(),
+          priceNumber: Number(plan.price.replace(",", ".")),
+        }))
+        .filter((plan) => plan.name || plan.description || plan.price);
+
+      if (validPlans.length === 0) {
+        toast.error("Crie pelo menos um plano proprio com nome, valor e descricao.");
         return;
       }
+
+      for (const plan of validPlans) {
+        if (plan.name.length < 3) {
+          toast.error("Cada plano proprio precisa ter um nome com pelo menos 3 caracteres.");
+          return;
+        }
+        if (plan.description.length < 10) {
+          toast.error("Explique rapidamente cada plano proprio em pelo menos 10 caracteres.");
+          return;
+        }
+        if (!Number.isFinite(plan.priceNumber) || plan.priceNumber <= 0) {
+          toast.error(`Informe um valor valido para o plano "${plan.name}".`);
+          return;
+        }
+      }
+
+      validPlans.forEach((plan, index) => {
+        numericPrices[`custom_plan_${index + 1}`] = Number(plan.priceNumber.toFixed(2));
+      });
     }
     const parsed = schema.safeParse({
       fullName,
@@ -236,6 +273,44 @@ function Page() {
       return;
     }
 
+    const { error: deletePlansError } = await supabase
+      .from("teacher_custom_plans")
+      .delete()
+      .eq("teacher_id", user.id);
+
+    if (deletePlansError) {
+      toast.error(
+        `Perfil salvo, mas os planos proprios nao foram atualizados: ${deletePlansError.message}`,
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (d.useCustomPricing) {
+      const rows = customPlans
+        .map((plan, index) => ({
+          teacher_id: user.id,
+          name: plan.name.trim(),
+          description: plan.description.trim(),
+          price: Number(plan.price.replace(",", ".")),
+          interval: "mensal" as const,
+          sort_order: index + 1,
+          is_active: true,
+        }))
+        .filter(
+          (plan) => plan.name && plan.description && Number.isFinite(plan.price) && plan.price > 0,
+        );
+
+      const { error: insertPlansError } = await supabase.from("teacher_custom_plans").insert(rows);
+      if (insertPlansError) {
+        toast.error(
+          `Perfil salvo, mas os planos proprios nao foram criados: ${insertPlansError.message}`,
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error: payoutError } = await supabase.from("teacher_payout_profiles").upsert(
       {
         teacher_id: user.id,
@@ -261,6 +336,26 @@ function Page() {
     } else {
       navigate({ to: "/dashboard" });
     }
+  };
+
+  const updateCustomPlan = (
+    id: string,
+    field: keyof Omit<CustomPlanDraft, "id">,
+    value: string,
+  ) => {
+    setCustomPlans((current) =>
+      current.map((plan) => (plan.id === id ? { ...plan, [field]: value } : plan)),
+    );
+  };
+
+  const addCustomPlan = () => {
+    setCustomPlans((current) => [...current, emptyCustomPlan()]);
+  };
+
+  const removeCustomPlan = (id: string) => {
+    setCustomPlans((current) =>
+      current.length > 1 ? current.filter((plan) => plan.id !== id) : [emptyCustomPlan()],
+    );
   };
 
   if (checking) {
@@ -444,29 +539,88 @@ function Page() {
                 <div>
                   <div className="font-semibold text-wine">Personalizado</div>
                   <p className="text-sm text-brown">
-                    Defina seus próprios valores. Preencha apenas os campos que oferece.
+                    Crie seus planos com nome, valor e uma explicação curta para o aluno.
                   </p>
                 </div>
               </label>
             </RadioGroup>
 
             {useCustomPricing && (
-              <div className="grid md:grid-cols-2 gap-4 pt-2">
-                {PRICE_FIELDS.map((f) => (
-                  <div key={f.key} className="space-y-2">
-                    <Label>{f.label} (R$)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Deixe em branco se não oferece"
-                      value={customPrices[f.key] ?? ""}
-                      onChange={(e) =>
-                        setCustomPrices({ ...customPrices, [f.key]: e.target.value })
-                      }
-                    />
+              <div className="space-y-4 rounded-2xl border border-bronze/30 bg-cream/70 p-4">
+                <div>
+                  <p className="font-semibold text-wine">Seus planos</p>
+                  <p className="mt-1 text-sm leading-6 text-brown-soft">
+                    Cadastre pelo menos um plano. O aluno verá exatamente estes nomes, valores e
+                    descrições no perfil e no checkout.
+                  </p>
+                </div>
+
+                {customPlans.map((plan, index) => (
+                  <div
+                    key={plan.id}
+                    className="rounded-2xl border border-border bg-white p-4 shadow-soft"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-wine">Plano {index + 1}</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCustomPlan(plan.id)}
+                        className="h-8 text-brown-soft hover:text-wine"
+                        aria-label="Remover plano"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-[1fr_160px]">
+                      <div className="space-y-2">
+                        <Label>Nome do plano</Label>
+                        <Input
+                          value={plan.name}
+                          onChange={(event) =>
+                            updateCustomPlan(plan.id, "name", event.target.value)
+                          }
+                          placeholder="Ex: Conversação intensiva"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Valor mensal (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={plan.price}
+                          onChange={(event) =>
+                            updateCustomPlan(plan.id, "price", event.target.value)
+                          }
+                          placeholder="199,90"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <Label>Descrição rápida</Label>
+                      <Textarea
+                        rows={2}
+                        value={plan.description}
+                        onChange={(event) =>
+                          updateCustomPlan(plan.id, "description", event.target.value)
+                        }
+                        placeholder="Explique em poucas palavras para quem este plano é indicado."
+                      />
+                    </div>
                   </div>
                 ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addCustomPlan}
+                  className="w-full border-bronze/40 text-wine hover:bg-white"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar plano
+                </Button>
               </div>
             )}
           </Section>

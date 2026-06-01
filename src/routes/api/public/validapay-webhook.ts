@@ -167,20 +167,96 @@ function addPlanInterval(startIso: string, interval: string | null | undefined) 
 async function getSubscriptionPeriodEnd(subscriptionId: string, startIso: string) {
   const { data: subscription, error: subscriptionError } = await supabaseAdmin
     .from("student_subscriptions")
-    .select("plan_id")
+    .select("plan_id, custom_plan_id")
     .eq("id", subscriptionId)
     .maybeSingle();
   if (subscriptionError) throw subscriptionError;
-  if (!subscription?.plan_id) return null;
 
-  const { data: plan, error: planError } = await supabaseAdmin
-    .from("subscription_plans")
-    .select("interval")
-    .eq("id", subscription.plan_id)
-    .maybeSingle();
-  if (planError) throw planError;
+  if (subscription?.plan_id) {
+    const { data: plan, error: planError } = await supabaseAdmin
+      .from("subscription_plans")
+      .select("interval")
+      .eq("id", subscription.plan_id)
+      .maybeSingle();
+    if (planError) throw planError;
+    return addPlanInterval(startIso, plan?.interval);
+  }
 
-  return addPlanInterval(startIso, plan?.interval);
+  if (subscription?.custom_plan_id) {
+    const { data: plan, error: planError } = await supabaseAdmin
+      .from("teacher_custom_plans")
+      .select("interval")
+      .eq("id", subscription.custom_plan_id)
+      .maybeSingle();
+    if (planError) throw planError;
+    return addPlanInterval(startIso, plan?.interval);
+  }
+
+  return null;
+}
+
+async function getPendingSubscriptionAmounts(
+  subscriptions: Array<{
+    id: string;
+    plan_id: string | null;
+    custom_plan_id: string | null;
+  }>,
+) {
+  const amounts = new Map<string, number>();
+  const planIds = Array.from(
+    new Set(subscriptions.map((item) => item.plan_id).filter(Boolean) as string[]),
+  );
+  const customPlanIds = Array.from(
+    new Set(subscriptions.map((item) => item.custom_plan_id).filter(Boolean) as string[]),
+  );
+
+  const [planResult, customPlanResult, couponResult] = await Promise.all([
+    planIds.length
+      ? supabaseAdmin.from("subscription_plans").select("id, price").in("id", planIds)
+      : Promise.resolve({ data: [], error: null }),
+    customPlanIds.length
+      ? supabaseAdmin.from("teacher_custom_plans").select("id, price").in("id", customPlanIds)
+      : Promise.resolve({ data: [], error: null }),
+    subscriptions.length
+      ? supabaseAdmin
+          .from("coupon_redemptions")
+          .select("subscription_id, final_amount")
+          .in(
+            "subscription_id",
+            subscriptions.map((item) => item.id),
+          )
+          .eq("status", "checkout_created")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (planResult.error) throw planResult.error;
+  if (customPlanResult.error) throw customPlanResult.error;
+  if (couponResult.error) throw couponResult.error;
+
+  const planPrices = new Map((planResult.data ?? []).map((item) => [item.id, Number(item.price)]));
+  const customPrices = new Map(
+    (customPlanResult.data ?? []).map((item) => [item.id, Number(item.price)]),
+  );
+  const couponPrices = new Map(
+    (couponResult.data ?? []).map((item) => [item.subscription_id, Number(item.final_amount)]),
+  );
+
+  subscriptions.forEach((subscription) => {
+    const couponAmount = couponPrices.get(subscription.id);
+    if (Number.isFinite(couponAmount) && Number(couponAmount) > 0) {
+      amounts.set(subscription.id, Number(couponAmount));
+      return;
+    }
+
+    const baseAmount = subscription.plan_id
+      ? planPrices.get(subscription.plan_id)
+      : subscription.custom_plan_id
+        ? customPrices.get(subscription.custom_plan_id)
+        : null;
+    if (Number.isFinite(baseAmount)) amounts.set(subscription.id, Number(baseAmount));
+  });
+
+  return amounts;
 }
 
 async function findPendingSubscription(payload: ValidapayWebhookPayload) {
@@ -245,7 +321,7 @@ async function findPendingSubscription(payload: ValidapayWebhookPayload) {
 
   const { data: subscriptions, error: subscriptionError } = await supabaseAdmin
     .from("student_subscriptions")
-    .select("id, payment_method, status, subscription_plans(price)")
+    .select("id, payment_method, status, plan_id, custom_plan_id")
     .eq("student_id", profile.id)
     .eq("status", "pendente")
     .order("created_at", { ascending: false })
@@ -254,9 +330,9 @@ async function findPendingSubscription(payload: ValidapayWebhookPayload) {
 
   const method = paymentMethodFromPayload(payload.paymentMethod);
   const amount = Number(payload.amount);
+  const subscriptionAmounts = await getPendingSubscriptionAmounts(subscriptions ?? []);
   const sameAmountSubscriptions = (subscriptions ?? []).filter((subscription) => {
-    const plan = subscription.subscription_plans as { price?: number } | null;
-    return Math.abs(Number(plan?.price ?? 0) - amount) < 0.01;
+    return Math.abs(Number(subscriptionAmounts.get(subscription.id) ?? 0) - amount) < 0.01;
   });
 
   const exactMethodMatch = sameAmountSubscriptions.find(

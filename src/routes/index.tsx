@@ -23,17 +23,17 @@ import directorHero from "@/assets/director-eloiza.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "GWLanguageFlow — Plataforma profissional de idiomas" },
+      { title: "GWLanguageFlow - Plataforma profissional de idiomas" },
       {
         name: "description",
         content:
-          "GWLanguageFlow é uma plataforma profissional para aprender idiomas com método estruturado, professores especialistas, materiais semanais e acompanhamento pedagógico.",
+          "GWLanguageFlow é uma plataforma de idiomas que conecta aluno, professor e direção pedagógica em uma rotina clara de aulas, materiais, atividades e acompanhamento.",
       },
       { property: "og:title", content: "GWLanguageFlow" },
       {
         property: "og:description",
         content:
-          "Uma plataforma de idiomas com método, direção pedagógica e rotina real de estudo.",
+          "Aprenda idiomas com professor selecionado, agenda organizada, materiais, atividades e acompanhamento pedagógico.",
       },
     ],
   }),
@@ -65,10 +65,10 @@ const schedule = [
 ];
 
 const qualityMetrics = [
-  { value: "+1.200", label: "alunos ativos" },
-  { value: "98%", label: "renovação" },
-  { value: "11", label: "idiomas" },
-  { value: "4.9", label: "avaliação média" },
+  { value: "Agenda", label: "aulas e links em um só lugar" },
+  { value: "Materiais", label: "conteúdos liberados por plano" },
+  { value: "Atividades", label: "tarefas, prazos e acompanhamento" },
+  { value: "Diretoria", label: "avisos e suporte pedagógico" },
 ];
 
 function HomePage() {
@@ -102,15 +102,15 @@ function Hero() {
         <div className="grid min-h-[560px] items-center gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
           <div className="min-w-0 max-w-3xl">
             <h1 className="max-w-[640px] break-words font-display text-[2rem] font-bold leading-[1.08] text-wine sm:text-[2.65rem] md:text-5xl xl:text-[3.35rem]">
-              GWLanguageFlow é uma central de aprendizagem, não só uma página de aulas.
+              Aprenda idiomas com rotina, professor e acompanhamento de verdade.
             </h1>
             <p className="mt-4 max-w-2xl text-lg font-semibold leading-snug text-brown sm:text-xl md:mt-5 md:text-2xl">
-              Método, direção pedagógica, professores, agenda, materiais, atividades e mensagens em
-              um fluxo organizado.
+              A GWLanguageFlow organiza professor, agenda, materiais, atividades e mensagens para
+              você evoluir com clareza.
             </p>
             <p className="mt-4 max-w-xl text-sm leading-7 text-brown-soft sm:text-base md:mt-5 md:leading-8">
-              Estude com professores selecionados, acompanhamento de perto e uma rotina clara para
-              evoluir com confiança em cada aula.
+              Depois do cadastro, você escolhe o idioma, encontra professores disponíveis, compara
+              planos e acompanha sua jornada em um painel simples, bonito e direto ao ponto.
             </p>
 
             <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap md:mt-8">
@@ -134,8 +134,8 @@ function Hero() {
             </div>
 
             <div className="mt-7 grid max-w-2xl gap-2 text-sm text-brown sm:grid-cols-3 md:mt-8 md:gap-3">
-              <Proof icon={ShieldCheck} text="Pagamento seguro" />
-              <Proof icon={CalendarCheck} text="Agenda guiada" />
+              <Proof icon={ShieldCheck} text="Checkout seguro" />
+              <Proof icon={CalendarCheck} text="Rotina guiada" />
               <Proof icon={Trophy} text="Padrão pedagógico GW" />
             </div>
           </div>
@@ -159,15 +159,15 @@ function PlatformVideoSection() {
               Apresentação da plataforma
             </p>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-4xl">
-              Veja como a GWLanguageFlow organiza sua evolução.
+              Veja como a GWLanguageFlow transforma aula em processo.
             </h2>
             <p className="mt-4 leading-7 text-brown-soft">
-              Uma visão rápida da experiência do aluno: professores, planos, acompanhamento,
-              materiais e rotina de estudo em um só lugar.
+              A plataforma centraliza o que normalmente fica espalhado: escolha do professor,
+              assinatura, agenda, materiais, atividades, mensagens e acompanhamento da diretoria.
             </p>
             <div className="mt-5 grid gap-2 text-sm text-brown sm:grid-cols-2">
-              <Proof icon={CalendarCheck} text="Rotina clara de estudo" />
-              <Proof icon={ShieldCheck} text="Acompanhamento pedagógico" />
+              <Proof icon={CalendarCheck} text="Caminho claro de estudo" />
+              <Proof icon={ShieldCheck} text="Acompanhamento de perto" />
             </div>
           </div>
 
@@ -239,7 +239,7 @@ function ProductCockpit() {
                   Sua agenda
                 </p>
                 <h2 className="mt-2 max-w-[260px] font-display text-3xl font-bold leading-tight text-white md:text-4xl">
-                  Próxima aula com acompanhamento real.
+                  Próxima aula com direção pedagógica.
                 </h2>
               </div>
               <div className="rounded-lg bg-white/92 px-3 py-1 text-xs font-bold text-wine shadow-soft">
@@ -347,11 +347,11 @@ function MethodArchitecture() {
           <div className="lg:sticky lg:top-28">
             <p className="text-sm font-bold uppercase text-bronze">Método GW</p>
             <h2 className="mt-3 max-w-xl font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
-              Uma plataforma para estudar com ritmo, evidência e direção.
+              Um método para estudar com ritmo, registro e direção.
             </h2>
             <p className="mt-4 max-w-lg text-base leading-7 text-brown md:mt-5 md:text-lg md:leading-8">
-              O aluno sabe o que precisa fazer. O professor sabe o que precisa acompanhar. A direção
-              pedagógica enxerga o percurso.
+              O aluno sabe o próximo passo. O professor acompanha o progresso. A diretoria mantém
+              padrão, suporte e comunicação sem deixar o estudo se perder.
             </p>
           </div>
 
@@ -398,7 +398,7 @@ function FlowExperience() {
     {
       icon: FileText,
       label: "Materiais",
-      text: "PDFs, links, Word e conteúdos padrão da plataforma por turma.",
+      text: "PDFs, links, Word e conteúdos padrão da plataforma por turma ou aluno.",
     },
     {
       icon: ClipboardCheck,
@@ -408,7 +408,7 @@ function FlowExperience() {
     {
       icon: MessagesSquare,
       label: "Chat",
-      text: "Contato direto entre aluno, professor e secretaria pedagógica.",
+      text: "Contato direto entre aluno, professor e diretoria pedagógica.",
     },
   ];
 
@@ -444,14 +444,15 @@ function FlowExperience() {
                 Acompanhamento que aparece antes do problema virar atraso.
               </h3>
               <p className="mt-4 text-sm leading-7 text-white/68">
-                A plataforma foi preparada para registrar aulas, materiais, atividades e mensagens.
-                Isso cria uma linha de acompanhamento para aluno, professor e direção.
+                A plataforma registra aulas, materiais, atividades, mensagens, alertas e
+                solicitações. Isso cria uma linha de acompanhamento para aluno, professor e
+                diretoria.
               </p>
             </div>
             <div className="grid gap-px bg-white/10 md:grid-cols-3">
               {[
                 ["Aula", "Presença, link e foco do encontro"],
-                ["Material", "Conteúdo entregue por plano e turma"],
+                ["Material", "Conteúdo entregue por plano, turma ou aluno"],
                 ["Evolução", "Notas, feedbacks e histórico"],
               ].map(([title, text]) => (
                 <div key={title} className="bg-ink p-7">
@@ -481,7 +482,7 @@ function PlansTeaser() {
           <div>
             <p className="text-sm font-bold uppercase text-bronze">Planos</p>
             <h2 className="mt-3 max-w-3xl font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
-              Escolha o ritmo, não uma promessa vaga.
+              Escolha o ritmo ideal para estudar com constância.
             </h2>
           </div>
           <Link
@@ -543,8 +544,8 @@ function FinalCTA() {
                 Comece com estrutura desde o primeiro acesso.
               </h2>
               <p className="mt-4 max-w-lg leading-8 text-white/78">
-                Crie sua conta, escolha um plano e entre em uma jornada com aula, material,
-                professor e acompanhamento.
+                Crie sua conta, escolha um professor e entre em uma jornada com aula, material,
+                atividades, mensagens e acompanhamento.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/auth/signup">
@@ -570,7 +571,7 @@ function FinalCTA() {
               {[
                 "Painel do aluno com agenda, materiais e atividades",
                 "Professores selecionados e acompanhamento pedagógico",
-                "Pagamento por cartão com registro de assinatura",
+                "Checkout ValidaPay com cartão e Pix conforme disponibilidade",
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3 bg-wine-deep/45 p-7">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-bronze" />

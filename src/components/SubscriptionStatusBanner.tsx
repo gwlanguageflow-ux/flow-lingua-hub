@@ -11,6 +11,7 @@ type SubInfo = Pick<
   "status" | "payment_method" | "current_period_end"
 > & {
   subscription_plans: { name: string } | null;
+  teacher_custom_plans: { name: string } | null;
 };
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -39,7 +40,9 @@ export function SubscriptionStatusBanner() {
     if (!user || !roles.includes("aluno")) return;
     supabase
       .from("student_subscriptions")
-      .select("status, payment_method, current_period_end, subscription_plans(name)")
+      .select(
+        "status, payment_method, current_period_end, subscription_plans(name), teacher_custom_plans(name)",
+      )
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -59,7 +62,7 @@ export function SubscriptionStatusBanner() {
           <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-bronze" />
           <div className="flex-1 text-sm">
             <p className="font-semibold text-wine">
-              Assinatura ativa — {sub.subscription_plans?.name}
+              Assinatura ativa — {sub.subscription_plans?.name ?? sub.teacher_custom_plans?.name}
             </p>
             {sub.current_period_end && (
               <p className="text-xs text-brown-soft">

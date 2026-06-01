@@ -25,6 +25,7 @@ interface SubRow {
   status: string;
   payment_method: "card" | "pix" | null;
   teacher_id: string | null;
+  custom_plan_id: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
@@ -38,6 +39,12 @@ interface SubRow {
     interval: string;
     description: string | null;
     features: string[];
+  } | null;
+  custom_plan: {
+    name: string;
+    price: number;
+    interval: string;
+    description: string | null;
   } | null;
 }
 
@@ -74,7 +81,7 @@ function Page() {
     supabase
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, teacher_id, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features)",
+        "id, status, payment_method, teacher_id, custom_plan_id, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features), custom_plan:teacher_custom_plans(name, price, interval, description)",
       )
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
@@ -87,12 +94,20 @@ function Page() {
   }, [user]);
 
   const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
+  const currentPlan = sub?.plan ?? sub?.custom_plan ?? null;
   const isExpiredByDate = !!periodEnd && periodEnd <= new Date();
   const needsRenewal = !!sub && (sub.status === "inadimplente" || isExpiredByDate);
   const displayedStatus = needsRenewal ? "inadimplente" : sub?.status;
 
   const handleManualRenewal = async () => {
-    if (!sub?.plan?.slug || !sub.teacher_id) {
+    if (!sub) {
+      toast.error("Nao foi possivel identificar sua assinatura.");
+      return;
+    }
+
+    const planSlug = sub.plan?.slug ?? null;
+    const customPlanId = sub.custom_plan_id ?? null;
+    if ((!planSlug && !customPlanId) || !sub.teacher_id) {
       toast.error("Nao foi possivel identificar o plano e professor desta assinatura.");
       return;
     }
@@ -101,7 +116,8 @@ function Page() {
     try {
       const res = await createSubscriptionCheckout({
         data: {
-          planSlug: sub.plan.slug,
+          planSlug,
+          customPlanId,
           teacherId: sub.teacher_id,
           termsAccepted: true,
         },
@@ -155,10 +171,10 @@ function Page() {
                 <div>
                   <p className="text-xs uppercase tracking-wider text-brown-soft">Plano atual</p>
                   <h2 className="font-display text-2xl text-wine font-bold mt-1">
-                    {sub.plan?.name ?? "-"}
+                    {currentPlan?.name ?? "-"}
                   </h2>
-                  {sub.plan?.description && (
-                    <p className="text-sm text-brown mt-1">{sub.plan.description}</p>
+                  {currentPlan?.description && (
+                    <p className="text-sm text-brown mt-1">{currentPlan.description}</p>
                   )}
                 </div>
                 <Badge
@@ -215,7 +231,9 @@ function Page() {
                   icon={<MessageCircle className="h-4 w-4" />}
                   label="Valor"
                   value={
-                    sub.plan ? `${fmtBRL(Number(sub.plan.price))} / ${sub.plan.interval}` : "-"
+                    currentPlan
+                      ? `${fmtBRL(Number(currentPlan.price))} / ${currentPlan.interval}`
+                      : "-"
                   }
                 />
                 <Info

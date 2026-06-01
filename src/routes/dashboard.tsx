@@ -364,7 +364,7 @@ function DashboardPage() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "teacher_student_messages",
           filter: `teacher_id=eq.${user.id}`,
@@ -374,15 +374,65 @@ function DashboardPage() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "teacher_secretariat_messages",
           filter: `teacher_id=eq.${user.id}`,
         },
         () => loadDashboard(),
       )
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_materials" }, () =>
+        loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "class_assignments",
+          filter: `teacher_id=eq.${user.id}`,
+        },
+        () => loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "material_requests",
+          filter: `teacher_id=eq.${user.id}`,
+        },
+        () => loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "teacher_withdrawal_requests",
+          filter: `teacher_id=eq.${user.id}`,
+        },
+        () => loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "teacher_wallet_transactions",
+          filter: `teacher_id=eq.${user.id}`,
+        },
+        () => loadDashboard(),
+      )
       .subscribe();
+
+    const interval = window.setInterval(loadDashboard, 20000);
+    const onFocus = () => loadDashboard();
+    window.addEventListener("focus", onFocus);
+
     return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
       supabase.removeChannel(channel);
     };
   }, [loadDashboard, user]);
@@ -547,6 +597,7 @@ function DashboardPage() {
           <TabsContent value="atividades" className="mt-6">
             <AssignmentsPanel
               classes={classes}
+              students={students}
               assignments={assignments}
               onChanged={loadDashboard}
               teacherId={user?.id}
@@ -589,6 +640,7 @@ function DashboardPage() {
           <TabsContent value="material" className="mt-6">
             <MaterialsPanel
               classes={classes}
+              students={students}
               materials={materials}
               requests={materialRequests}
               pricingMode={pricingMode}
@@ -1522,16 +1574,20 @@ function PrivateChat({
 
 function AssignmentsPanel({
   classes,
+  students,
   assignments,
   teacherId,
   onChanged,
 }: {
   classes: ClassGroup[];
+  students: StudentProfile[];
   assignments: ClassAssignment[];
   teacherId?: string;
   onChanged: () => void | Promise<void>;
 }) {
+  const [targetType, setTargetType] = useState<"class" | "student">("class");
   const [classId, setClassId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
   const [dueAt, setDueAt] = useState("");
@@ -1542,8 +1598,18 @@ function AssignmentsPanel({
   const submitAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teacherId) return;
-    if (!classId || title.trim().length < 3) {
-      toast.error("Escolha a turma e informe o título da atividade.");
+    const selectedClassId = targetType === "class" ? classId : "";
+    const selectedStudentId = targetType === "student" ? studentId : "";
+    if (targetType === "class" && !selectedClassId) {
+      toast.error("Escolha a turma que recebera a atividade.");
+      return;
+    }
+    if (targetType === "student" && !selectedStudentId) {
+      toast.error("Escolha o aluno que recebera a atividade.");
+      return;
+    }
+    if (title.trim().length < 3) {
+      toast.error("Informe o titulo da atividade.");
       return;
     }
     if (!file && !externalUrl.trim() && !instructions.trim()) {
@@ -1558,7 +1624,8 @@ function AssignmentsPanel({
       return;
     }
     const { error } = await supabase.from("class_assignments").insert({
-      class_id: classId,
+      class_id: selectedClassId || null,
+      student_id: selectedStudentId || null,
       teacher_id: teacherId,
       title: title.trim(),
       instructions: instructions.trim() || null,
@@ -1573,7 +1640,11 @@ function AssignmentsPanel({
       toast.error(error.message);
       return;
     }
-    toast.success("Atividade enviada para a turma.");
+    toast.success(
+      targetType === "class"
+        ? "Atividade enviada para a turma."
+        : "Atividade enviada para o aluno.",
+    );
     setTitle("");
     setInstructions("");
     setExternalUrl("");
@@ -1582,25 +1653,66 @@ function AssignmentsPanel({
     await onChanged();
   };
 
+  const assignmentTargetLabel = (item: ClassAssignment) => {
+    if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
+    if (item.student_id) {
+      return students.find((student) => student.id === item.student_id)?.full_name || "Aluno";
+    }
+    return "Destino direto";
+  };
+
   return (
     <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
       <form onSubmit={submitAssignment} className="rounded-2xl border border-border p-5 space-y-4">
         <h3 className="font-display text-xl text-wine">Enviar atividade</h3>
         <div className="space-y-2">
-          <Label>Turma</Label>
-          <Select value={classId} onValueChange={setClassId}>
+          <Label>Destino</Label>
+          <Select
+            value={targetType}
+            onValueChange={(value) => setTargetType(value as "class" | "student")}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Selecione a turma" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {classes.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="class">Turma</SelectItem>
+              <SelectItem value="student">Aluno específico</SelectItem>
             </SelectContent>
           </Select>
         </div>
+        {targetType === "class" ? (
+          <div className="space-y-2">
+            <Label>Turma</Label>
+            <Select value={classId} onValueChange={setClassId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a turma" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Aluno</Label>
+            <Select value={studentId} onValueChange={setStudentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o aluno" />
+              </SelectTrigger>
+              <SelectContent>
+                {students.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.full_name || "Aluno"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Título</Label>
           <Input
@@ -1635,7 +1747,11 @@ function AssignmentsPanel({
           />
         </div>
         <Button
-          disabled={submitting || classes.length === 0}
+          disabled={
+            submitting ||
+            (targetType === "class" && classes.length === 0) ||
+            (targetType === "student" && students.length === 0)
+          }
           className="w-full bg-bronze text-white hover:bg-wine gap-2"
         >
           <Upload className="h-4 w-4" />
@@ -1653,7 +1769,7 @@ function AssignmentsPanel({
               <ResourceRow
                 key={item.id}
                 title={item.title}
-                subtitle={`${classes.find((cls) => cls.id === item.class_id)?.name || "Turma"}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
+                subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
                 filePath={item.file_path}
                 fileName={item.file_name}
                 externalUrl={item.external_url}
@@ -1668,6 +1784,7 @@ function AssignmentsPanel({
 
 function MaterialsPanel({
   classes,
+  students,
   materials,
   requests,
   pricingMode,
@@ -1675,13 +1792,16 @@ function MaterialsPanel({
   onChanged,
 }: {
   classes: ClassGroup[];
+  students: StudentProfile[];
   materials: ClassMaterial[];
   requests: MaterialRequest[];
   pricingMode: "padrao" | "custom" | null;
   teacherId?: string;
   onChanged: () => void | Promise<void>;
 }) {
+  const [targetType, setTargetType] = useState<"class" | "student">("class");
   const [classId, setClassId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
@@ -1698,8 +1818,18 @@ function MaterialsPanel({
   const submitMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teacherId) return;
-    if (!classId || title.trim().length < 3) {
-      toast.error("Escolha a turma e informe o título do material.");
+    const selectedClassId = targetType === "class" ? classId : "";
+    const selectedStudentId = targetType === "student" ? studentId : "";
+    if (targetType === "class" && !selectedClassId) {
+      toast.error("Escolha a turma que recebera o material.");
+      return;
+    }
+    if (targetType === "student" && !selectedStudentId) {
+      toast.error("Escolha o aluno que recebera o material.");
+      return;
+    }
+    if (title.trim().length < 3) {
+      toast.error("Informe o titulo do material.");
       return;
     }
     if (!file && !externalUrl.trim()) {
@@ -1714,7 +1844,8 @@ function MaterialsPanel({
       return;
     }
     const { error } = await supabase.from("class_materials").insert({
-      class_id: classId,
+      class_id: selectedClassId || null,
+      student_id: selectedStudentId || null,
       teacher_id: teacherId,
       title: title.trim(),
       description: description.trim() || null,
@@ -1730,7 +1861,9 @@ function MaterialsPanel({
       toast.error(error.message);
       return;
     }
-    toast.success("Material enviado para a turma.");
+    toast.success(
+      targetType === "class" ? "Material enviado para a turma." : "Material enviado para o aluno.",
+    );
     setTitle("");
     setDescription("");
     setExternalUrl("");
@@ -1757,26 +1890,68 @@ function MaterialsPanel({
     await onChanged();
   };
 
+  const materialTargetLabel = (item: ClassMaterial) => {
+    if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
+    if (item.student_id) {
+      return students.find((student) => student.id === item.student_id)?.full_name || "Aluno";
+    }
+    if (item.teacher_id === teacherId && item.source === "director") return "Enviado para voce";
+    return "Destino direto";
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <form onSubmit={submitMaterial} className="rounded-2xl border border-border p-5 space-y-4">
           <h3 className="font-display text-xl text-wine">Upload de material didático</h3>
           <div className="space-y-2">
-            <Label>Turma que receberá o material</Label>
-            <Select value={classId} onValueChange={setClassId}>
+            <Label>Destino</Label>
+            <Select
+              value={targetType}
+              onValueChange={(value) => setTargetType(value as "class" | "student")}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a turma" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="class">Turma</SelectItem>
+                <SelectItem value="student">Aluno específico</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {targetType === "class" ? (
+            <div className="space-y-2">
+              <Label>Turma que receberá o material</Label>
+              <Select value={classId} onValueChange={setClassId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a turma" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Aluno que receberá o material</Label>
+              <Select value={studentId} onValueChange={setStudentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o aluno" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.full_name || "Aluno"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Título</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -1803,7 +1978,11 @@ function MaterialsPanel({
             />
           </div>
           <Button
-            disabled={submitting || classes.length === 0}
+            disabled={
+              submitting ||
+              (targetType === "class" && classes.length === 0) ||
+              (targetType === "student" && students.length === 0)
+            }
             className="w-full bg-bronze text-white hover:bg-wine gap-2"
           >
             <Upload className="h-4 w-4" />
@@ -1885,11 +2064,7 @@ function MaterialsPanel({
               <ResourceRow
                 key={item.id}
                 title={item.title}
-                subtitle={
-                  item.class_id
-                    ? classes.find((cls) => cls.id === item.class_id)?.name || "Turma"
-                    : "Enviado pela Diretoria"
-                }
+                subtitle={materialTargetLabel(item)}
                 filePath={item.file_path}
                 fileName={item.file_name}
                 externalUrl={item.external_url}
@@ -1909,7 +2084,7 @@ function MaterialsPanel({
               <ResourceRow
                 key={item.id}
                 title={item.title}
-                subtitle={`${classes.find((cls) => cls.id === item.class_id)?.name || "Sem turma"} · ${item.source === "director" ? "Diretora" : "Professor"}`}
+                subtitle={`${materialTargetLabel(item)} · ${item.source === "director" ? "Diretora" : "Professor"}`}
                 filePath={item.file_path}
                 fileName={item.file_name}
                 externalUrl={item.external_url}

@@ -54,6 +54,8 @@ interface Plan {
   interval: "mensal" | "trimestral" | "anual";
   installments: number;
   sort_order: number;
+  kind?: "platform" | "custom";
+  customPlanId?: string;
 }
 
 interface SelectedTeacher {
@@ -62,6 +64,8 @@ interface SelectedTeacher {
   avatar_url: string | null;
   email: string | null;
 }
+
+type TeacherPricingMode = "platform" | "custom" | null;
 
 type DiscountCoupon = Pick<
   Tables<"discount_coupons">,
@@ -102,46 +106,112 @@ function PlansPage() {
   const [loading, setLoading] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [teacher, setTeacher] = useState<SelectedTeacher | null>(null);
+  const [teacherPricingMode, setTeacherPricingMode] = useState<TeacherPricingMode>(null);
   const [teacherCoupon, setTeacherCoupon] = useState<DiscountCoupon | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [useTeacherCoupon, setUseTeacherCoupon] = useState(false);
 
   useEffect(() => {
-    const professor = new URLSearchParams(window.location.search).get("professor");
-    setTeacherId(professor);
+    let cancelled = false;
 
-    supabase
-      .from("subscription_plans")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order")
-      .then(({ data }) => setPlans(orderPlansForDisplay((data ?? []) as Plan[])));
+    async function loadPlans() {
+      const professor = new URLSearchParams(window.location.search).get("professor");
+      setTeacherId(professor);
 
-    if (professor) {
-      void supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url, email")
-        .eq("id", professor)
-        .maybeSingle()
-        .then(({ data }) => setTeacher((data as SelectedTeacher | null) ?? null));
+      const { data: platformRows } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order");
 
-      void supabase
+      const platformPlans = orderPlansForDisplay(
+        ((platformRows ?? []) as Plan[]).map((plan) => ({ ...plan, kind: "platform" })),
+      );
+
+      if (!professor) {
+        if (!cancelled) {
+          setTeacher(null);
+          setTeacherPricingMode(null);
+          setPlans(platformPlans);
+        }
+        return;
+      }
+
+      const [{ data: profile }, { data: teacherProfile }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, avatar_url, email")
+          .eq("id", professor)
+          .maybeSingle(),
+        supabase
+          .from("teacher_profiles")
+          .select("id, use_custom_pricing")
+          .eq("id", professor)
+          .maybeSingle(),
+      ]);
+
+      if (cancelled) return;
+
+      setTeacher((profile as SelectedTeacher | null) ?? null);
+      const mode: TeacherPricingMode = teacherProfile?.use_custom_pricing ? "custom" : "platform";
+      setTeacherPricingMode(mode);
+
+      if (mode === "custom") {
+        const { data: customRows } = await supabase
+          .from("teacher_custom_plans")
+          .select("id, name, description, price, interval, sort_order")
+          .eq("teacher_id", professor)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+
+        if (!cancelled) {
+          setPlans(
+            orderPlansForDisplay(
+              (customRows ?? []).map((plan) => ({
+                id: plan.id,
+                slug: `custom-${plan.id}`,
+                name: plan.name,
+                description: plan.description,
+                features: [plan.description],
+                price: Number(plan.price),
+                interval: plan.interval,
+                installments: 1,
+                sort_order: plan.sort_order ?? 1,
+                kind: "custom" as const,
+                customPlanId: plan.id,
+              })),
+            ),
+          );
+        }
+      } else {
+        setPlans(platformPlans);
+      }
+
+      const now = new Date().toISOString();
+      const { data: couponData } = await supabase
         .from("discount_coupons")
         .select("id, code, discount_percent, scope, teacher_id")
         .eq("scope", "teacher")
         .eq("teacher_id", professor)
         .eq("active", true)
-        .lte("starts_at", new Date().toISOString())
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+        .lte("starts_at", now)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle()
-        .then(({ data }) => {
-          const coupon = (data as DiscountCoupon | null) ?? null;
-          setTeacherCoupon(coupon);
-          setUseTeacherCoupon(Boolean(coupon));
-        });
+        .maybeSingle();
+
+      if (!cancelled) {
+        const coupon = (couponData as DiscountCoupon | null) ?? null;
+        setTeacherCoupon(coupon);
+        setUseTeacherCoupon(Boolean(coupon));
+      }
     }
+
+    void loadPlans();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleCheckout = async () => {
@@ -164,7 +234,8 @@ function PlansPage() {
     try {
       const res = await createSubscriptionCheckout({
         data: {
-          planSlug: selected.slug,
+          planSlug: selected.kind === "custom" ? null : selected.slug,
+          customPlanId: selected.kind === "custom" ? selected.customPlanId : null,
           teacherId,
           termsAccepted: true,
           couponCode:
@@ -194,11 +265,14 @@ function PlansPage() {
                 <div className="bg-white/92 p-6 md:p-9">
                   <p className="gw-section-kicker">Planos GWLanguageFlow</p>
                   <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
-                    Escolha a intensidade da sua evolucao.
+                    {teacherPricingMode === "custom"
+                      ? "Escolha o plano criado pelo professor."
+                      : "Escolha a intensidade da sua evolucao."}
                   </h1>
                   <p className="mt-4 max-w-2xl leading-7 text-brown-soft">
-                    Cada assinatura combina aula, material, atividade e acompanhamento. Voce escolhe
-                    o ritmo, a plataforma organiza o percurso.
+                    {teacherPricingMode === "custom"
+                      ? "Este professor trabalha com valores próprios. A assinatura continua registrada na plataforma, com checkout ValidaPay e liberação automática após pagamento."
+                      : "Cada assinatura combina aula, material, atividade e acompanhamento. Voce escolhe o ritmo, a plataforma organiza o percurso."}
                   </p>
                 </div>
                 <div className="gw-ink-panel p-6 md:p-8">

@@ -53,6 +53,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   activateStudentSubscriptionManually,
+  confirmTeacherWithdrawal,
   createDirectorAlert,
   createDirectorMessage,
   getAdminDashboard,
@@ -90,9 +91,10 @@ type PlatformRange = "30d" | "90d" | "365d";
 
 type StudentSubscription = Pick<
   Tables<"student_subscriptions">,
-  "id" | "student_id" | "teacher_id" | "plan_id" | "status" | "created_at"
+  "id" | "student_id" | "teacher_id" | "plan_id" | "custom_plan_id" | "status" | "created_at"
 > & {
   subscription_plans: Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug"> | null;
+  teacher_custom_plans: Pick<Tables<"teacher_custom_plans">, "id" | "name" | "price"> | null;
 };
 
 type PlatformChartPoint = {
@@ -295,6 +297,47 @@ function AdminPage() {
 
   useEffect(() => {
     loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("director-live-dashboard")
+      .on("postgres_changes", { event: "*", schema: "public", table: "anonymous_reports" }, () =>
+        loadDashboard(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "director_alerts" }, () =>
+        loadDashboard(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "director_messages" }, () =>
+        loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "director_user_messages" },
+        () => loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "teacher_withdrawal_requests" },
+        () => loadDashboard(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_materials" }, () =>
+        loadDashboard(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "material_requests" }, () =>
+        loadDashboard(),
+      )
+      .subscribe();
+
+    const interval = window.setInterval(loadDashboard, 20000);
+    const onFocus = () => loadDashboard();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      supabase.removeChannel(channel);
+    };
   }, [loadDashboard]);
 
   const roleByUser = useMemo(() => {
@@ -802,7 +845,9 @@ function AdminPage() {
                                   <span>
                                     Plano:{" "}
                                     <strong>
-                                      {selectedSubscription.subscription_plans?.name ?? "Plano"}
+                                      {selectedSubscription.subscription_plans?.name ??
+                                        selectedSubscription.teacher_custom_plans?.name ??
+                                        "Plano"}
                                     </strong>
                                   </span>
                                   <span>
@@ -1763,6 +1808,7 @@ function DirectorWalletPanel({
         payoutProfiles={teacherPayoutProfiles}
         profiles={profiles}
         teachers={teachers}
+        onChanged={onChanged}
       />
     </div>
   );
@@ -1775,6 +1821,7 @@ function TeacherWithdrawalQueue({
   payoutProfiles,
   profiles,
   teachers,
+  onChanged,
 }: {
   withdrawals: TeacherWithdrawalRequest[];
   pendingCount: number;
@@ -1782,6 +1829,7 @@ function TeacherWithdrawalQueue({
   payoutProfiles: TeacherPayoutProfile[];
   profiles: Profile[];
   teachers: TeacherProfile[];
+  onChanged: () => void | Promise<void>;
 }) {
   const profileById = useMemo(() => new Map(profiles.map((item) => [item.id, item])), [profiles]);
   const teacherById = useMemo(() => new Map(teachers.map((item) => [item.id, item])), [teachers]);
@@ -1789,6 +1837,20 @@ function TeacherWithdrawalQueue({
     () => new Map(payoutProfiles.map((item) => [item.teacher_id, item])),
     [payoutProfiles],
   );
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const confirmWithdrawal = async (withdrawalId: string) => {
+    setConfirmingId(withdrawalId);
+    try {
+      await confirmTeacherWithdrawal({ data: { withdrawalId } });
+      toast.success("Saque confirmado e marcado como pago.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel confirmar o saque.");
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   return (
     <section className="rounded-xl border border-border bg-white p-4">
@@ -1870,6 +1932,17 @@ function TeacherWithdrawalQueue({
                       <p className="mt-2 rounded-lg bg-cream px-3 py-2 text-xs text-brown">
                         Pix salvo no cadastro: {payoutProfile.pix_key}
                       </p>
+                    )}
+                    {["pendente", "em_processamento"].includes(withdrawal.status) && (
+                      <Button
+                        type="button"
+                        onClick={() => confirmWithdrawal(withdrawal.id)}
+                        disabled={confirmingId === withdrawal.id}
+                        className="mt-3 w-full rounded-lg bg-wine text-white hover:bg-bronze"
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        {confirmingId === withdrawal.id ? "Confirmando..." : "Confirmar saque"}
+                      </Button>
                     )}
                   </div>
                 </div>

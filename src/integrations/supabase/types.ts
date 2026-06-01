@@ -82,7 +82,7 @@ export type Database = {
       };
       class_assignments: {
         Row: {
-          class_id: string;
+          class_id: string | null;
           created_at: string;
           due_at: string | null;
           external_url: string | null;
@@ -91,12 +91,13 @@ export type Database = {
           file_path: string | null;
           id: string;
           instructions: string | null;
+          student_id: string | null;
           teacher_id: string;
           title: string;
           updated_at: string;
         };
         Insert: {
-          class_id: string;
+          class_id?: string | null;
           created_at?: string;
           due_at?: string | null;
           external_url?: string | null;
@@ -105,12 +106,13 @@ export type Database = {
           file_path?: string | null;
           id?: string;
           instructions?: string | null;
+          student_id?: string | null;
           teacher_id: string;
           title: string;
           updated_at?: string;
         };
         Update: {
-          class_id?: string;
+          class_id?: string | null;
           created_at?: string;
           due_at?: string | null;
           external_url?: string | null;
@@ -119,6 +121,7 @@ export type Database = {
           file_path?: string | null;
           id?: string;
           instructions?: string | null;
+          student_id?: string | null;
           teacher_id?: string;
           title?: string;
           updated_at?: string;
@@ -136,6 +139,13 @@ export type Database = {
             columns: ["teacher_id"];
             isOneToOne: false;
             referencedRelation: "teacher_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_assignments_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "student_profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -641,7 +651,8 @@ export type Database = {
           id: string;
           last_payment_at: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"] | null;
-          plan_id: string;
+          plan_id: string | null;
+          custom_plan_id: string | null;
           status: Database["public"]["Enums"]["subscription_status"];
           student_id: string;
           teacher_id: string | null;
@@ -664,7 +675,8 @@ export type Database = {
           id?: string;
           last_payment_at?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"] | null;
-          plan_id: string;
+          plan_id?: string | null;
+          custom_plan_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
           student_id: string;
           teacher_id?: string | null;
@@ -687,7 +699,8 @@ export type Database = {
           id?: string;
           last_payment_at?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"] | null;
-          plan_id?: string;
+          plan_id?: string | null;
+          custom_plan_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
           student_id?: string;
           teacher_id?: string | null;
@@ -708,6 +721,13 @@ export type Database = {
             columns: ["plan_id"];
             isOneToOne: false;
             referencedRelation: "subscription_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_subscriptions_custom_plan_id_fkey";
+            columns: ["custom_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_custom_plans";
             referencedColumns: ["id"];
           },
           {
@@ -843,6 +863,7 @@ export type Database = {
           original_amount: number;
           paid_at: string | null;
           plan_id: string | null;
+          custom_plan_id: string | null;
           status: string;
           student_id: string;
           subscription_id: string | null;
@@ -857,6 +878,7 @@ export type Database = {
           original_amount: number;
           paid_at?: string | null;
           plan_id?: string | null;
+          custom_plan_id?: string | null;
           status?: string;
           student_id: string;
           subscription_id?: string | null;
@@ -871,6 +893,7 @@ export type Database = {
           original_amount?: number;
           paid_at?: string | null;
           plan_id?: string | null;
+          custom_plan_id?: string | null;
           status?: string;
           student_id?: string;
           subscription_id?: string | null;
@@ -889,6 +912,13 @@ export type Database = {
             columns: ["plan_id"];
             isOneToOne: false;
             referencedRelation: "subscription_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "coupon_redemptions_custom_plan_id_fkey";
+            columns: ["custom_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_custom_plans";
             referencedColumns: ["id"];
           },
           {
@@ -951,6 +981,47 @@ export type Database = {
             columns: ["plan_id"];
             isOneToOne: false;
             referencedRelation: "subscription_plans";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      discounted_teacher_plan_prices: {
+        Row: {
+          created_at: string;
+          custom_plan_id: string;
+          discount_percent: number;
+          final_amount: number;
+          id: string;
+          updated_at: string;
+          validapay_price_id: string | null;
+          validapay_product_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          custom_plan_id: string;
+          discount_percent: number;
+          final_amount: number;
+          id?: string;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          custom_plan_id?: string;
+          discount_percent?: number;
+          final_amount?: number;
+          id?: string;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "discounted_teacher_plan_prices_custom_plan_id_fkey";
+            columns: ["custom_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_custom_plans";
             referencedColumns: ["id"];
           },
         ];
@@ -1227,6 +1298,59 @@ export type Database = {
           use_custom_pricing?: boolean;
         };
         Relationships: [];
+      };
+      teacher_custom_plans: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          interval: Database["public"]["Enums"]["plan_interval"];
+          is_active: boolean;
+          name: string;
+          price: number;
+          sort_order: number;
+          teacher_id: string;
+          updated_at: string;
+          validapay_price_id: string | null;
+          validapay_product_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          description: string;
+          id?: string;
+          interval?: Database["public"]["Enums"]["plan_interval"];
+          is_active?: boolean;
+          name: string;
+          price: number;
+          sort_order?: number;
+          teacher_id: string;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          interval?: Database["public"]["Enums"]["plan_interval"];
+          is_active?: boolean;
+          name?: string;
+          price?: number;
+          sort_order?: number;
+          teacher_id?: string;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "teacher_custom_plans_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       teacher_payout_profiles: {
         Row: {

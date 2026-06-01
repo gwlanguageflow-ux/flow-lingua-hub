@@ -43,8 +43,18 @@ interface TeacherCard {
   languages_taught: string[];
   levels_taught: string[];
   is_active: boolean;
+  use_custom_pricing: boolean;
   rating?: number;
   coupon?: Pick<Tables<"discount_coupons">, "code" | "discount_percent"> | null;
+  customPlans: PlanSummary[];
+  platformPlans: PlanSummary[];
+}
+
+interface PlanSummary {
+  id: string;
+  name: string;
+  price: number;
+  description?: string | null;
 }
 
 function FeedPage() {
@@ -61,7 +71,9 @@ function FeedPage() {
     (async () => {
       const { data: teachersData } = await supabase
         .from("teacher_profiles")
-        .select("id, bio, hourly_rate, languages_taught, levels_taught, is_active")
+        .select(
+          "id, bio, hourly_rate, languages_taught, levels_taught, is_active, use_custom_pricing",
+        )
         .eq("is_active", true);
 
       if (!teachersData?.length) {
@@ -81,6 +93,19 @@ function FeedPage() {
         .from("reviews")
         .select("teacher_id, rating")
         .in("teacher_id", ids);
+      const [{ data: customPlans }, { data: platformPlans }] = await Promise.all([
+        supabase
+          .from("teacher_custom_plans")
+          .select("id, teacher_id, name, description, price, sort_order")
+          .in("teacher_id", ids)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("subscription_plans")
+          .select("id, name, slug, price, sort_order")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+      ]);
       const now = new Date().toISOString();
       const { data: coupons } = await supabase
         .from("discount_coupons")
@@ -91,6 +116,22 @@ function FeedPage() {
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .in("teacher_id", ids);
       const couponMap = new Map(coupons?.map((coupon) => [coupon.teacher_id, coupon]) ?? []);
+      const customPlanMap = new Map<string, PlanSummary[]>();
+      customPlans?.forEach((plan) => {
+        const list = customPlanMap.get(plan.teacher_id) ?? [];
+        list.push({
+          id: plan.id,
+          name: plan.name,
+          description: plan.description,
+          price: Number(plan.price || 0),
+        });
+        customPlanMap.set(plan.teacher_id, list);
+      });
+      const platformPlanList: PlanSummary[] = (platformPlans ?? []).map((plan) => ({
+        id: plan.id,
+        name: canonicalPlanName(plan.name, plan.slug),
+        price: Number(plan.price || 0),
+      }));
       const ratingMap = new Map<string, number>();
       reviews?.forEach((r) => {
         const cur = ratingMap.get(r.teacher_id) || 0;
@@ -113,8 +154,11 @@ function FeedPage() {
           languages_taught: t.languages_taught || [],
           levels_taught: t.levels_taught || [],
           is_active: t.is_active,
+          use_custom_pricing: !!t.use_custom_pricing,
           rating: count > 0 ? sum / count : undefined,
           coupon: couponMap.get(t.id) ?? null,
+          customPlans: customPlanMap.get(t.id) ?? [],
+          platformPlans: platformPlanList,
         };
       });
       setTeachers(cards);
@@ -290,6 +334,14 @@ function FeedPage() {
 function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number }) {
   const avatarUrl = getProfileAvatarUrl(teacher);
   const bannerUrl = getProfileBannerUrl(teacher);
+  const visiblePlans = teacher.use_custom_pricing ? teacher.customPlans : teacher.platformPlans;
+  const positivePrices = visiblePlans
+    .map((plan) => Number(plan.price || 0))
+    .filter((price) => price > 0);
+  const minPrice = positivePrices.length
+    ? Math.min(...positivePrices)
+    : Number(teacher.hourly_rate || 0);
+  const priceSuffix = teacher.use_custom_pricing ? "/mês" : "/mês";
 
   return (
     <motion.div
@@ -356,11 +408,44 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
         <div className="flex items-baseline justify-between pt-1">
           <div>
             <span className="text-xl font-display font-bold text-bronze">
-              R$ {teacher.hourly_rate.toFixed(0)}
+              {minPrice > 0 ? formatMoney(minPrice) : "Sob consulta"}
             </span>
-            <span className="text-xs text-brown-soft">/hora</span>
+            {minPrice > 0 && <span className="text-xs text-brown-soft">{priceSuffix}</span>}
           </div>
         </div>
+        <details className="group/pricing rounded-xl border border-border bg-cream px-3 py-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.12em] text-wine">
+            <span>
+              {teacher.use_custom_pricing ? "Valor do professor" : "Valores da plataforma"}
+            </span>
+            <Sparkles className="h-3.5 w-3.5 text-bronze transition group-open/pricing:rotate-45" />
+          </summary>
+          <div className="mt-3 space-y-2">
+            {visiblePlans.length === 0 ? (
+              <p className="text-xs normal-case tracking-normal text-brown-soft">
+                Planos em configuração.
+              </p>
+            ) : (
+              visiblePlans.map((plan) => (
+                <div key={plan.id} className="rounded-lg bg-white/80 p-2 shadow-soft">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold normal-case tracking-normal text-wine">
+                      {plan.name}
+                    </span>
+                    <span className="text-sm font-bold normal-case tracking-normal text-bronze">
+                      {formatMoney(plan.price)}
+                    </span>
+                  </div>
+                  {plan.description && (
+                    <p className="mt-1 line-clamp-2 text-xs normal-case tracking-normal text-brown-soft">
+                      {plan.description}
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </details>
         <div className="flex gap-2 pt-2">
           <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
             <Button
@@ -380,4 +465,18 @@ function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number
       </div>
     </motion.div>
   );
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function canonicalPlanName(name: string, slug?: string | null) {
+  if (slug === "essencial" || slug === "essential") return "essential";
+  if (slug === "advanced" || slug === "advenced") return "advenced";
+  if (slug === "conversation") return "conversation";
+  return name;
 }

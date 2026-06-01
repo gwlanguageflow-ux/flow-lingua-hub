@@ -122,6 +122,10 @@ function Page() {
       new Set([
         ...(bookingRows || []).map((b) => b.teacher_id),
         ...classRows.map((c) => c.teacher_id),
+        ...(materialRows || []).map((m) => m.teacher_id).filter((id): id is string => Boolean(id)),
+        ...(assignmentRows || [])
+          .map((a) => a.teacher_id)
+          .filter((id): id is string => Boolean(id)),
       ]),
     );
 
@@ -175,15 +179,58 @@ function Page() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "teacher_student_messages",
           filter: `student_id=eq.${user.id}`,
         },
         () => load(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "student_scores",
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => load(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_materials" }, () =>
+        load(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_assignments" }, () =>
+        load(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => load(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "class_members",
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => load(),
+      )
       .subscribe();
+
+    const interval = window.setInterval(load, 20000);
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
+
     return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
       supabase.removeChannel(channel);
     };
   }, [load, user]);
@@ -470,6 +517,13 @@ function StudentAssignmentsSection({
   classes: ClassGroup[];
 }) {
   if (assignments.length === 0) return <Empty msg="Nenhuma atividade enviada ainda." />;
+
+  const assignmentTargetLabel = (item: ClassAssignment) => {
+    if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
+    if (item.student_id) return "Enviado diretamente para você";
+    return "Atividade enviada";
+  };
+
   return (
     <div className="space-y-3">
       {assignments.map((item) => (
@@ -477,7 +531,7 @@ function StudentAssignmentsSection({
           key={item.id}
           icon={GraduationCap}
           title={item.title}
-          subtitle={`${classes.find((cls) => cls.id === item.class_id)?.name || "Turma"}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
+          subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
           description={item.instructions}
           filePath={item.file_path}
           fileName={item.file_name}
@@ -495,6 +549,14 @@ function StudentMaterialsSection({
   materials: ClassMaterial[];
   classes: ClassGroup[];
 }) {
+  const materialTargetLabel = (item: ClassMaterial) => {
+    if (item.source === "platform") return "Material padrão da plataforma";
+    if (item.student_id) return "Enviado diretamente para você";
+    if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
+    if (item.source === "director") return "Enviado pela Diretoria";
+    return "Material disponível";
+  };
+
   const categories = [
     {
       icon: FileText,
@@ -545,11 +607,7 @@ function StudentMaterialsSection({
                 key={item.id}
                 icon={FolderOpen}
                 title={item.title}
-                subtitle={
-                  item.source === "platform"
-                    ? "Material padrão da plataforma"
-                    : classes.find((cls) => cls.id === item.class_id)?.name
-                }
+                subtitle={materialTargetLabel(item)}
                 description={item.description}
                 filePath={item.file_path}
                 fileName={item.file_name}

@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 type Plan = Database["public"]["Tables"]["subscription_plans"]["Row"];
+type CustomPlan = Database["public"]["Tables"]["teacher_custom_plans"]["Row"];
 type Profile = Pick<
   Database["public"]["Tables"]["profiles"]["Row"],
   "full_name" | "age" | "cpf" | "email"
@@ -14,6 +15,31 @@ type StudentProfile = Pick<
   "desired_language" | "comprehension_level"
 >;
 type DiscountCoupon = Database["public"]["Tables"]["discount_coupons"]["Row"];
+type PlanChoice =
+  | {
+      kind: "platform";
+      id: string;
+      name: string;
+      description: string | null;
+      slug: string;
+      price: number;
+      interval: Plan["interval"];
+      validapay_price_id: string | null;
+      validapay_product_id: string | null;
+      row: Plan;
+    }
+  | {
+      kind: "custom";
+      id: string;
+      name: string;
+      description: string | null;
+      slug: string;
+      price: number;
+      interval: CustomPlan["interval"];
+      validapay_price_id: string | null;
+      validapay_product_id: string | null;
+      row: CustomPlan;
+    };
 
 function getValidapayPriceId(response: { prices?: Array<{ priceId?: string }> }) {
   return response.prices?.find((price) => price.priceId)?.priceId ?? null;
@@ -41,12 +67,142 @@ function couponCodeVariants(code: string) {
   return Array.from(variants);
 }
 
+function checkoutSlug(choice: PlanChoice, coupon?: DiscountCoupon | null) {
+  const base =
+    choice.kind === "platform"
+      ? choice.slug
+      : `professor-${choice.row.teacher_id.slice(0, 8)}-${choice.id.slice(0, 8)}`;
+  return coupon ? `${base}-${coupon.code.toLowerCase()}` : base;
+}
+
+async function ensureBasePriceId(choice: PlanChoice) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { createValidapayProduct } = await import("@/server/validapay.server");
+
+  if (choice.validapay_price_id) return choice.validapay_price_id;
+
+  const product = await createValidapayProduct({
+    name: choice.name,
+    description: choice.description,
+    slug: checkoutSlug(choice),
+    amount: Number(choice.price),
+    interval: choice.interval,
+  });
+
+  const priceId = getValidapayPriceId(product);
+  if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano.");
+
+  if (choice.kind === "platform") {
+    const { error } = await supabaseAdmin
+      .from("subscription_plans")
+      .update({
+        validapay_product_id: product.productId,
+        validapay_price_id: priceId,
+      })
+      .eq("id", choice.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabaseAdmin
+      .from("teacher_custom_plans")
+      .update({
+        validapay_product_id: product.productId,
+        validapay_price_id: priceId,
+      })
+      .eq("id", choice.id);
+    if (error) throw new Error(error.message);
+  }
+
+  return priceId;
+}
+
+async function ensureDiscountedPriceId({
+  choice,
+  coupon,
+  finalAmount,
+}: {
+  choice: PlanChoice;
+  coupon: DiscountCoupon;
+  finalAmount: number;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { createValidapayProduct } = await import("@/server/validapay.server");
+
+  if (choice.kind === "platform") {
+    const { data: discountedPrice, error } = await supabaseAdmin
+      .from("discounted_plan_prices")
+      .select("*")
+      .eq("plan_id", choice.id)
+      .eq("discount_percent", coupon.discount_percent)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (discountedPrice?.validapay_price_id) return discountedPrice.validapay_price_id;
+
+    const product = await createValidapayProduct({
+      name: `${choice.name} cupom ${coupon.code}`,
+      description: `${choice.description ?? choice.name} Desconto aplicado: ${coupon.discount_percent}%.`,
+      slug: checkoutSlug(choice, coupon),
+      amount: finalAmount,
+      interval: choice.interval,
+    });
+
+    const priceId = getValidapayPriceId(product);
+    if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano com cupom.");
+
+    const { error: upsertError } = await supabaseAdmin.from("discounted_plan_prices").upsert(
+      {
+        plan_id: choice.id,
+        discount_percent: coupon.discount_percent,
+        final_amount: finalAmount,
+        validapay_product_id: product.productId,
+        validapay_price_id: priceId,
+      },
+      { onConflict: "plan_id,discount_percent" },
+    );
+    if (upsertError) throw new Error(upsertError.message);
+    return priceId;
+  }
+
+  const { data: discountedPrice, error } = await supabaseAdmin
+    .from("discounted_teacher_plan_prices")
+    .select("*")
+    .eq("custom_plan_id", choice.id)
+    .eq("discount_percent", coupon.discount_percent)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (discountedPrice?.validapay_price_id) return discountedPrice.validapay_price_id;
+
+  const product = await createValidapayProduct({
+    name: `${choice.name} cupom ${coupon.code}`,
+    description: `${choice.description ?? choice.name} Desconto aplicado: ${coupon.discount_percent}%.`,
+    slug: checkoutSlug(choice, coupon),
+    amount: finalAmount,
+    interval: choice.interval,
+  });
+
+  const priceId = getValidapayPriceId(product);
+  if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano com cupom.");
+
+  const { error: upsertError } = await supabaseAdmin.from("discounted_teacher_plan_prices").upsert(
+    {
+      custom_plan_id: choice.id,
+      discount_percent: coupon.discount_percent,
+      final_amount: finalAmount,
+      validapay_product_id: product.productId,
+      validapay_price_id: priceId,
+    },
+    { onConflict: "custom_plan_id,discount_percent" },
+  );
+  if (upsertError) throw new Error(upsertError.message);
+  return priceId;
+}
+
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
-        planSlug: z.string().min(1).max(60),
+        planSlug: z.string().min(1).max(60).optional().nullable(),
+        customPlanId: z.string().uuid().optional().nullable(),
         teacherId: z.string().uuid(),
         termsAccepted: z.literal(true),
         couponCode: z.string().trim().max(20).optional().nullable(),
@@ -55,25 +211,17 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createValidapayCheckoutSession, createValidapayProduct } =
-      await import("@/server/validapay.server");
+    const { createValidapayCheckoutSession } = await import("@/server/validapay.server");
     const { userId } = context;
 
     const [
-      { data: plan, error: planError },
       { data: teacherProfile, error: teacherProfileError },
       { data: student, error: studentError },
       { data: studentProfile, error: studentProfileError },
     ] = await Promise.all([
       supabaseAdmin
-        .from("subscription_plans")
-        .select("*")
-        .eq("slug", data.planSlug)
-        .eq("is_active", true)
-        .maybeSingle(),
-      supabaseAdmin
         .from("teacher_profiles")
-        .select("id, is_active")
+        .select("id, is_active, use_custom_pricing")
         .eq("id", data.teacherId)
         .eq("is_active", true)
         .maybeSingle(),
@@ -89,7 +237,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         .maybeSingle<StudentProfile>(),
     ]);
 
-    if (planError || !plan) throw new Error("Plano nao encontrado.");
     if (teacherProfileError || !teacherProfile)
       throw new Error("Professor nao encontrado ou inativo.");
     if (studentError || !student)
@@ -97,10 +244,62 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (studentProfileError || !studentProfile)
       throw new Error("Complete seu perfil de aluno antes de solicitar a assinatura.");
 
+    let choice: PlanChoice;
+    if (teacherProfile.use_custom_pricing) {
+      if (!data.customPlanId) {
+        throw new Error("Escolha um plano criado pelo professor antes de pagar.");
+      }
+      const { data: customPlan, error } = await supabaseAdmin
+        .from("teacher_custom_plans")
+        .select("*")
+        .eq("id", data.customPlanId)
+        .eq("teacher_id", data.teacherId)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error || !customPlan) {
+        throw new Error(error?.message ?? "Plano do professor nao encontrado.");
+      }
+      choice = {
+        kind: "custom",
+        id: customPlan.id,
+        name: customPlan.name,
+        description: customPlan.description,
+        slug: `custom-${customPlan.id}`,
+        price: Number(customPlan.price),
+        interval: customPlan.interval,
+        validapay_price_id: customPlan.validapay_price_id,
+        validapay_product_id: customPlan.validapay_product_id,
+        row: customPlan,
+      };
+    } else {
+      if (!data.planSlug) {
+        throw new Error("Escolha um plano da plataforma antes de pagar.");
+      }
+      const { data: plan, error } = await supabaseAdmin
+        .from("subscription_plans")
+        .select("*")
+        .eq("slug", data.planSlug)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error || !plan) throw new Error(error?.message ?? "Plano nao encontrado.");
+      choice = {
+        kind: "platform",
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        slug: plan.slug,
+        price: Number(plan.price),
+        interval: plan.interval,
+        validapay_price_id: plan.validapay_price_id,
+        validapay_product_id: plan.validapay_product_id,
+        row: plan,
+      };
+    }
+
     const now = new Date().toISOString();
     const requestedCouponCode = normalizeCouponCode(data.couponCode);
     let coupon: DiscountCoupon | null = null;
-    const originalAmount = toMoney(Number(plan.price));
+    const originalAmount = toMoney(Number(choice.price));
     let finalAmount = originalAmount;
     let discountAmount = 0;
 
@@ -127,80 +326,27 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       finalAmount = toMoney(originalAmount - discountAmount);
     }
 
-    const { data: existingPending, error: existingError } = await supabaseAdmin
+    let pendingQuery = supabaseAdmin
       .from("student_subscriptions")
       .select("id")
       .eq("student_id", userId)
       .eq("teacher_id", data.teacherId)
-      .eq("plan_id", plan.id)
       .eq("status", "pendente")
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
 
+    pendingQuery =
+      choice.kind === "platform"
+        ? pendingQuery.eq("plan_id", choice.id).is("custom_plan_id", null)
+        : pendingQuery.eq("custom_plan_id", choice.id).is("plan_id", null);
+
+    const { data: existingPending, error: existingError } = await pendingQuery.maybeSingle();
     if (existingError) throw new Error(existingError.message);
 
     let subscriptionId = existingPending?.id;
-    let priceId = plan.validapay_price_id;
-
-    if (coupon) {
-      const { data: discountedPrice, error: discountedPriceError } = await supabaseAdmin
-        .from("discounted_plan_prices")
-        .select("*")
-        .eq("plan_id", plan.id)
-        .eq("discount_percent", coupon.discount_percent)
-        .maybeSingle();
-      if (discountedPriceError) throw new Error(discountedPriceError.message);
-
-      priceId = discountedPrice?.validapay_price_id ?? null;
-      if (!priceId) {
-        const product = await createValidapayProduct({
-          name: `${plan.name} cupom ${coupon.code}`,
-          description: `${plan.description ?? plan.name} Desconto aplicado: ${coupon.discount_percent}%.`,
-          slug: `${plan.slug}-${coupon.code.toLowerCase()}`,
-          amount: finalAmount,
-          interval: plan.interval,
-        });
-
-        priceId = getValidapayPriceId(product);
-        if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano com cupom.");
-
-        const { error: discountedUpdateError } = await supabaseAdmin
-          .from("discounted_plan_prices")
-          .upsert(
-            {
-              plan_id: plan.id,
-              discount_percent: coupon.discount_percent,
-              final_amount: finalAmount,
-              validapay_product_id: product.productId,
-              validapay_price_id: priceId,
-            },
-            { onConflict: "plan_id,discount_percent" },
-          );
-        if (discountedUpdateError) throw new Error(discountedUpdateError.message);
-      }
-    } else if (!priceId) {
-      const product = await createValidapayProduct({
-        name: plan.name,
-        description: plan.description,
-        slug: plan.slug,
-        amount: Number(plan.price),
-        interval: plan.interval,
-      });
-
-      priceId = getValidapayPriceId(product);
-      if (!priceId) throw new Error("ValidaPay nao retornou o priceId do plano.");
-
-      const { error: planUpdateError } = await supabaseAdmin
-        .from("subscription_plans")
-        .update({
-          validapay_product_id: product.productId,
-          validapay_price_id: priceId,
-        })
-        .eq("id", plan.id);
-
-      if (planUpdateError) throw new Error(planUpdateError.message);
-    }
+    const priceId = coupon
+      ? await ensureDiscountedPriceId({ choice, coupon, finalAmount })
+      : await ensureBasePriceId(choice);
 
     if (!subscriptionId) {
       const { data: created, error: createError } = await supabaseAdmin
@@ -208,7 +354,8 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         .insert({
           student_id: userId,
           teacher_id: data.teacherId,
-          plan_id: plan.id,
+          plan_id: choice.kind === "platform" ? choice.id : null,
+          custom_plan_id: choice.kind === "custom" ? choice.id : null,
           status: "pendente",
           payment_method: null,
           terms_accepted_at: now,
@@ -232,7 +379,8 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         student_id: userId,
         teacher_id: data.teacherId,
         subscription_id: subscriptionId,
-        plan_id: plan.id,
+        plan_id: choice.kind === "platform" ? choice.id : null,
+        custom_plan_id: choice.kind === "custom" ? choice.id : null,
         original_amount: originalAmount,
         discount_amount: discountAmount,
         final_amount: finalAmount,
@@ -276,7 +424,10 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       channel: "checkout_session",
       requested_at: now,
       checkout_session: session,
-      plan_slug: plan.slug,
+      plan_kind: choice.kind,
+      plan_id: choice.kind === "platform" ? choice.id : null,
+      custom_plan_id: choice.kind === "custom" ? choice.id : null,
+      plan_slug: choice.kind === "platform" ? choice.slug : null,
       teacher_id: data.teacherId,
       pricing: {
         original_amount: originalAmount,
@@ -311,6 +462,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       subscriptionId,
       channel: "validapay",
       status: "pendente",
+      planKind: choice.kind,
       coupon: coupon
         ? {
             code: coupon.code,
@@ -330,7 +482,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
     const { data } = await supabaseAdmin
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, subscription_plans(*)",
+        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, plan_id, custom_plan_id, subscription_plans(*), teacher_custom_plans(*)",
       )
       .eq("student_id", userId)
       .order("created_at", { ascending: false })

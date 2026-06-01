@@ -55,22 +55,16 @@ interface TeacherFull {
   custom_prices: Record<string, number>;
 }
 
+type TeacherCustomPlan = Pick<
+  Tables<"teacher_custom_plans">,
+  "id" | "name" | "description" | "price" | "interval" | "sort_order"
+>;
+
 const PLATFORM_PRICES: { key: string; label: string; value: number }[] = [
   { key: "plan_essencial", label: "Plano essential (mensal)", value: 179.9 },
   { key: "plan_advanced", label: "Plano advenced (mensal)", value: 299.9 },
   { key: "plan_conversation", label: "Plano conversation (mensal)", value: 169.9 },
-  { key: "plan_anual", label: "Plano anual desativado (12x R$ 269,90)", value: 3238.8 },
 ];
-
-const PRICE_LABELS: Record<string, string> = {
-  hourly: "Aula avulsa (1h)",
-  monthly: "Mensal",
-  package_8: "Pacote 8 aulas",
-  plan_essencial: "Plano essential",
-  plan_advanced: "Plano advenced",
-  plan_conversation: "Plano conversation",
-  plan_anual: "Plano anual desativado",
-};
 
 function TeacherProfilePage() {
   const { id } = useParams({ from: "/professor/$id" });
@@ -83,6 +77,7 @@ function TeacherProfilePage() {
   const [availability, setAvailability] = useState<
     { day_of_week: number; start_time: string; end_time: string }[]
   >([]);
+  const [customPlans, setCustomPlans] = useState<TeacherCustomPlan[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -155,6 +150,14 @@ function TeacherProfilePage() {
         .eq("teacher_id", id)
         .order("created_at", { ascending: false });
       setPosts(postRows || []);
+
+      const { data: planRows } = await supabase
+        .from("teacher_custom_plans")
+        .select("id, name, description, price, interval, sort_order")
+        .eq("teacher_id", id)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      setCustomPlans(planRows || []);
       setLoading(false);
     })();
   }, [id]);
@@ -378,16 +381,22 @@ function TeacherProfilePage() {
                 >
                   <ul className="space-y-2 text-sm">
                     {teacher.use_custom_pricing
-                      ? Object.entries(teacher.custom_prices)
-                          .filter(([, v]) => Number(v) > 0)
-                          .map(([k, v]) => (
-                            <li key={k} className="flex justify-between gap-3">
-                              <span className="text-brown">{PRICE_LABELS[k] ?? k}</span>
+                      ? customPlans.map((plan) => (
+                          <li
+                            key={plan.id}
+                            className="rounded-xl border border-border bg-cream p-3"
+                          >
+                            <div className="flex justify-between gap-3">
+                              <span className="font-semibold text-brown">{plan.name}</span>
                               <span className="font-semibold text-wine">
-                                R$ {Number(v).toFixed(2).replace(".", ",")}
+                                {formatMoney(Number(plan.price))}
                               </span>
-                            </li>
-                          ))
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-brown-soft">
+                              {plan.description}
+                            </p>
+                          </li>
+                        ))
                       : PLATFORM_PRICES.map((p) => (
                           <li key={p.key} className="flex justify-between gap-3">
                             <span className="text-brown">{p.label}</span>
@@ -396,10 +405,9 @@ function TeacherProfilePage() {
                             </span>
                           </li>
                         ))}
-                    {teacher.use_custom_pricing &&
-                      Object.values(teacher.custom_prices).every((v) => !Number(v)) && (
-                        <li className="text-xs text-brown-soft">Sem valores cadastrados.</li>
-                      )}
+                    {teacher.use_custom_pricing && customPlans.length === 0 && (
+                      <li className="text-xs text-brown-soft">Sem valores cadastrados.</li>
+                    )}
                   </ul>
                 </Card>
                 <Card title="Disponibilidade">
@@ -439,6 +447,13 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
       {children}
     </div>
   );
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
 function PostComposer({

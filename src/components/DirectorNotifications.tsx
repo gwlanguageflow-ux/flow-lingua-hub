@@ -9,6 +9,7 @@ import {
   replyToDirector,
 } from "@/functions/admin.functions";
 import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,9 +63,29 @@ export function DirectorNotifications({ mobile = false }: { mobile?: boolean }) 
 
   useEffect(() => {
     if (!shouldRender) return;
-    const interval = window.setInterval(loadInbox, 60000);
-    return () => window.clearInterval(interval);
-  }, [loadInbox, shouldRender]);
+    const channel = supabase
+      .channel(`director-inbox-live-${user?.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "director_alerts" }, () =>
+        loadInbox(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "director_messages" }, () =>
+        loadInbox(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "director_user_messages" },
+        () => loadInbox(),
+      )
+      .subscribe();
+    const interval = window.setInterval(loadInbox, 15000);
+    const onFocus = () => loadInbox();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      supabase.removeChannel(channel);
+    };
+  }, [loadInbox, shouldRender, user?.id]);
 
   const directMessages = useMemo(() => inbox.directMessages.slice(-12), [inbox.directMessages]);
 
