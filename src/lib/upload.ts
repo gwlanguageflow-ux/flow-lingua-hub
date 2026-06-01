@@ -41,21 +41,130 @@ export async function uploadLearningFile(
   lastLearningUploadError = null;
   const path = `${userId}/materials/${Date.now()}-${safeFileName(file.name)}`;
   const contentType = file.type || "application/octet-stream";
-  const { error } = await supabase.storage.from("learning-materials").upload(path, file, {
-    cacheControl: "3600",
-    contentType,
-  });
-  if (error) {
-    lastLearningUploadError = error.message;
-    console.error("[learning-materials] upload failed", {
-      message: error.message,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-    });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    lastLearningUploadError = "Sessao expirada. Entre novamente.";
     return null;
   }
-  return { path, name: file.name, mimeType: contentType };
+
+  try {
+    const signedResponse = await fetch("/api/private/learning-upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        path,
+        name: file.name,
+        mimeType: contentType,
+        size: file.size,
+      }),
+    });
+
+    if (signedResponse.ok) {
+      const signed = (await signedResponse.json()) as {
+        path: string;
+        token: string;
+        name: string;
+        mimeType: string;
+      };
+      const { error } = await supabase.storage
+        .from("learning-materials")
+        .uploadToSignedUrl(signed.path, signed.token, file, {
+          cacheControl: "3600",
+          contentType,
+        });
+
+      if (!error) {
+        return { path: signed.path, name: signed.name, mimeType: signed.mimeType };
+      }
+
+      lastLearningUploadError = error.message;
+      console.error("[learning-materials] signed upload failed", {
+        message: error.message,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
+    } else {
+      lastLearningUploadError = await readUploadError(signedResponse);
+    }
+  } catch (error) {
+    lastLearningUploadError = error instanceof Error ? error.message : "Falha de rede no upload.";
+  }
+
+  const fallback = await uploadLearningFileThroughAppServer({
+    token: session.access_token,
+    path,
+    file,
+    contentType,
+  });
+  if (fallback) return fallback;
+
+  console.error("[learning-materials] upload failed", {
+    message: lastLearningUploadError,
+    name: file.name,
+    type: file.type,
+    size: file.size,
+  });
+  return null;
+}
+
+async function uploadLearningFileThroughAppServer({
+  token,
+  path,
+  file,
+  contentType,
+}: {
+  token: string;
+  path: string;
+  file: File;
+  contentType: string;
+}): Promise<UploadedLearningFile | null> {
+  try {
+    const formData = new FormData();
+    formData.append("path", path);
+    formData.append("file", file, file.name);
+    formData.append("mimeType", contentType);
+
+    const response = await fetch("/api/private/learning-upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      lastLearningUploadError = await readUploadError(response);
+      return null;
+    }
+
+    const uploaded = (await response.json()) as UploadedLearningFile;
+    return uploaded;
+  } catch (error) {
+    lastLearningUploadError = error instanceof Error ? error.message : "Falha de rede no upload.";
+    return null;
+  }
+}
+
+async function readUploadError(response: Response) {
+  const fallback = `Upload retornou HTTP ${response.status}`;
+  try {
+    const payload = (await response.json()) as { error?: string };
+    return payload.error || fallback;
+  } catch {
+    try {
+      return (await response.text()) || fallback;
+    } catch {
+      return fallback;
+    }
+  }
 }
 
 export async function openLearningFile(path: string) {
