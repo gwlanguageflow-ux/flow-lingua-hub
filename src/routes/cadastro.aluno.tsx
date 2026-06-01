@@ -24,7 +24,7 @@ import { Camera } from "lucide-react";
 export const Route = createFileRoute("/cadastro/aluno")({
   head: () => ({ meta: [{ title: "Cadastro de Aluno — GWLanguageFlow" }] }),
   component: () => (
-    <RequireAuth>
+    <RequireAuth fallback="/auth/signup">
       <Page />
     </RequireAuth>
   ),

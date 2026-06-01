@@ -147,11 +147,11 @@ function SignupPage() {
               disabled={loading || googleEnabled !== true}
               className="h-11 w-full gap-2 rounded-lg border-brown/20 bg-white text-sm font-semibold text-brown shadow-soft hover:border-bronze hover:bg-white hover:text-wine sm:h-12"
             >
-              <GoogleIcon /> Continuar com Google
+              <GoogleIcon /> Cadastrar-se com Google
             </Button>
             {googleEnabled === false && (
               <div className="mt-3 rounded-xl border border-bronze/25 bg-cream px-4 py-3 text-center text-xs leading-5 text-brown-soft">
-                Google aguardando ativação no painel da GWLanguageFlow.
+                Cadastro com Google aguardando ativação no painel da GWLanguageFlow.
               </div>
             )}
 

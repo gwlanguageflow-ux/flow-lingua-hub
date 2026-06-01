@@ -22,7 +22,7 @@ import type { Database, Tables } from "@/integrations/supabase/types";
 export const Route = createFileRoute("/cadastro/professor")({
   head: () => ({ meta: [{ title: "Cadastro de Professor — GWLanguageFlow" }] }),
   component: () => (
-    <RequireAuth>
+    <RequireAuth fallback="/auth/signup">
       <Page />
     </RequireAuth>
   ),
