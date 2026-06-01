@@ -51,7 +51,7 @@ import { MeetingLinkEditor } from "@/components/MeetingLinkEditor";
 import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
 import { upsertTeacherCoupon } from "@/functions/coupon.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
-import { openLearningFile, uploadLearningFile } from "@/lib/upload";
+import { getLastLearningUploadError, openLearningFile, uploadLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/dashboard")({
@@ -110,7 +110,7 @@ const emptyWalletSummary: WalletSummary = {
 const TEACHER_GUIDE_VIDEO_SRC = "/videos/guia-professor.mp4";
 const TEACHER_GUIDE_POSTER_SRC = "/videos/guia-professor-poster.jpg";
 const LEARNING_FILE_ACCEPT =
-  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.mp3,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp,audio/mpeg,video/mp4";
+  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip,.rar,.png,.jpg,.jpeg,.webp,.mp3,.mp4,.m4a,.wav,.aac,.mov,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,application/x-zip-compressed,application/vnd.rar,image/png,image/jpeg,image/webp,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav,video/mp4,video/quicktime,application/octet-stream";
 
 type TeacherGuideVideoStatus = "checking" | "available" | "missing";
 type TeacherGuideIntroState = "checking" | "show" | "hide";
@@ -1644,7 +1644,12 @@ function AssignmentsPanel({
     const uploaded = file ? await uploadLearningFile(teacherId, file) : null;
     if (file && !uploaded) {
       setSubmitting(false);
-      toast.error("Não foi possível enviar o arquivo.");
+      const reason = getLastLearningUploadError();
+      toast.error(
+        reason
+          ? `Não foi possível enviar o arquivo: ${reason}`
+          : "Não foi possível enviar o arquivo.",
+      );
       return;
     }
     const { error } = await supabase.from("class_assignments").insert({
@@ -1885,7 +1890,12 @@ function MaterialsPanel({
     const uploaded = file ? await uploadLearningFile(teacherId, file) : null;
     if (file && !uploaded) {
       setSubmitting(false);
-      toast.error("Não foi possível enviar o arquivo.");
+      const reason = getLastLearningUploadError();
+      toast.error(
+        reason
+          ? `Não foi possível enviar o arquivo: ${reason}`
+          : "Não foi possível enviar o arquivo.",
+      );
       return;
     }
     const { error } = await supabase.from("class_materials").insert({

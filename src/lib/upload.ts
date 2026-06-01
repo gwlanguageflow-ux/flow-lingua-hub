@@ -18,6 +18,12 @@ export type UploadedLearningFile = {
   mimeType: string;
 };
 
+let lastLearningUploadError: string | null = null;
+
+export function getLastLearningUploadError() {
+  return lastLearningUploadError;
+}
+
 function safeFileName(name: string) {
   return name
     .normalize("NFD")
@@ -32,12 +38,24 @@ export async function uploadLearningFile(
   userId: string,
   file: File,
 ): Promise<UploadedLearningFile | null> {
+  lastLearningUploadError = null;
   const path = `${userId}/materials/${Date.now()}-${safeFileName(file.name)}`;
+  const contentType = file.type || "application/octet-stream";
   const { error } = await supabase.storage.from("learning-materials").upload(path, file, {
     cacheControl: "3600",
+    contentType,
   });
-  if (error) return null;
-  return { path, name: file.name, mimeType: file.type || "application/octet-stream" };
+  if (error) {
+    lastLearningUploadError = error.message;
+    console.error("[learning-materials] upload failed", {
+      message: error.message,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+    return null;
+  }
+  return { path, name: file.name, mimeType: contentType };
 }
 
 export async function openLearningFile(path: string) {

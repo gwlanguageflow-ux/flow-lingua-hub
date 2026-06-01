@@ -66,7 +66,7 @@ import { createDirectorCoupon } from "@/functions/coupon.functions";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadLearningFile } from "@/lib/upload";
+import { getLastLearningUploadError, uploadLearningFile } from "@/lib/upload";
 
 type Profile = Tables<"profiles">;
 type TeacherProfile = Tables<"teacher_profiles">;
@@ -135,7 +135,7 @@ const roleLabels: Record<AppRole, string> = {
 };
 
 const LEARNING_FILE_ACCEPT =
-  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.mp3,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp,audio/mpeg,video/mp4";
+  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip,.rar,.png,.jpg,.jpeg,.webp,.mp3,.mp4,.m4a,.wav,.aac,.mov,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,application/x-zip-compressed,application/vnd.rar,image/png,image/jpeg,image/webp,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav,video/mp4,video/quicktime,application/octet-stream";
 
 const priorityLabels: Record<string, string> = {
   normal: "Normal",
@@ -1298,7 +1298,12 @@ function DirectorMaterialsPanel({
     const uploaded = file ? await uploadLearningFile(user.id, file) : null;
     if (file && !uploaded) {
       setSubmitting(false);
-      toast.error("Nao foi possivel enviar o arquivo.");
+      const reason = getLastLearningUploadError();
+      toast.error(
+        reason
+          ? `Não foi possível enviar o arquivo: ${reason}`
+          : "Não foi possível enviar o arquivo.",
+      );
       return;
     }
 
