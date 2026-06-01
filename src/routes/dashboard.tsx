@@ -86,6 +86,7 @@ type TeacherPayoutProfile = Pick<
   "pix_key" | "account_holder_name" | "account_holder_document"
 >;
 type TeacherIdentity = Pick<Tables<"profiles">, "full_name" | "cpf">;
+type TeacherStudentSubscription = Pick<Tables<"student_subscriptions">, "student_id" | "status">;
 
 type StudentProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url"> & {
   desired_language?: string | null;
@@ -108,6 +109,8 @@ const emptyWalletSummary: WalletSummary = {
 
 const TEACHER_GUIDE_VIDEO_SRC = "/videos/guia-professor.mp4";
 const TEACHER_GUIDE_POSTER_SRC = "/videos/guia-professor-poster.jpg";
+const LEARNING_FILE_ACCEPT =
+  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.mp3,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp,audio/mpeg,video/mp4";
 
 type TeacherGuideVideoStatus = "checking" | "available" | "missing";
 type TeacherGuideIntroState = "checking" | "show" | "hide";
@@ -204,6 +207,7 @@ function DashboardPage() {
       { data: summary },
       { data: transactions },
       { data: withdrawalRows },
+      { data: subscriptionRows },
       { data: couponRow },
     ] = await Promise.all([
       supabase
@@ -273,6 +277,11 @@ function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(20),
       supabase
+        .from("student_subscriptions")
+        .select("student_id, status")
+        .eq("teacher_id", user.id)
+        .eq("status", "ativa"),
+      supabase
         .from("discount_coupons")
         .select("*")
         .eq("teacher_id", user.id)
@@ -316,7 +325,13 @@ function DashboardPage() {
     }
 
     const studentIds = Array.from(
-      new Set([...(bks || []).map((b) => b.student_id), ...memberRows.map((m) => m.student_id)]),
+      new Set([
+        ...(bks || []).map((b) => b.student_id),
+        ...memberRows.map((m) => m.student_id),
+        ...((subscriptionRows || []) as TeacherStudentSubscription[]).map(
+          (item) => item.student_id,
+        ),
+      ]),
     );
 
     if (studentIds.length) {
@@ -1595,6 +1610,15 @@ function AssignmentsPanel({
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (targetType === "class" && !classes.some((item) => item.id === classId)) {
+      setClassId(classes[0]?.id ?? "");
+    }
+    if (targetType === "student" && !students.some((item) => item.id === studentId)) {
+      setStudentId(students[0]?.id ?? "");
+    }
+  }, [targetType, classes, students, classId, studentId]);
+
   const submitAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teacherId) return;
@@ -1675,8 +1699,8 @@ function AssignmentsPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="class">Turma</SelectItem>
-              <SelectItem value="student">Aluno específico</SelectItem>
+              <SelectItem value="class">Enviar para turma</SelectItem>
+              <SelectItem value="student">Enviar somente para aluno</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1688,11 +1712,17 @@ function AssignmentsPanel({
                 <SelectValue placeholder="Selecione a turma" />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
+                {classes.length === 0 ? (
+                  <SelectItem value="no-classes" disabled>
+                    Nenhuma turma disponivel
                   </SelectItem>
-                ))}
+                ) : (
+                  classes.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -1704,11 +1734,17 @@ function AssignmentsPanel({
                 <SelectValue placeholder="Selecione o aluno" />
               </SelectTrigger>
               <SelectContent>
-                {students.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.full_name || "Aluno"}
+                {students.length === 0 ? (
+                  <SelectItem value="no-students" disabled>
+                    Nenhum aluno ativo encontrado
                   </SelectItem>
-                ))}
+                ) : (
+                  students.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.full_name || "Aluno"}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -1734,10 +1770,10 @@ function AssignmentsPanel({
           <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>PDF, Word ou link</Label>
+          <Label>Arquivo ou link</Label>
           <Input
             type="file"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept={LEARNING_FILE_ACCEPT}
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
           <Input
@@ -1808,6 +1844,15 @@ function MaterialsPanel({
   const [file, setFile] = useState<File | null>(null);
   const [requestText, setRequestText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (targetType === "class" && !classes.some((item) => item.id === classId)) {
+      setClassId(classes[0]?.id ?? "");
+    }
+    if (targetType === "student" && !students.some((item) => item.id === studentId)) {
+      setStudentId(students[0]?.id ?? "");
+    }
+  }, [targetType, classes, students, classId, studentId]);
 
   const platformMaterials = materials.filter((item) => item.source === "platform");
   const directorMaterials = materials.filter((item) => item.source === "director");
@@ -1914,8 +1959,8 @@ function MaterialsPanel({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="class">Turma</SelectItem>
-                <SelectItem value="student">Aluno específico</SelectItem>
+                <SelectItem value="class">Enviar para turma</SelectItem>
+                <SelectItem value="student">Enviar somente para aluno</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1927,11 +1972,17 @@ function MaterialsPanel({
                   <SelectValue placeholder="Selecione a turma" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
+                  {classes.length === 0 ? (
+                    <SelectItem value="no-classes" disabled>
+                      Nenhuma turma disponivel
                     </SelectItem>
-                  ))}
+                  ) : (
+                    classes.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1943,11 +1994,17 @@ function MaterialsPanel({
                   <SelectValue placeholder="Selecione o aluno" />
                 </SelectTrigger>
                 <SelectContent>
-                  {students.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.full_name || "Aluno"}
+                  {students.length === 0 ? (
+                    <SelectItem value="no-students" disabled>
+                      Nenhum aluno ativo encontrado
                     </SelectItem>
-                  ))}
+                  ) : (
+                    students.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.full_name || "Aluno"}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1965,10 +2022,10 @@ function MaterialsPanel({
             />
           </div>
           <div className="space-y-2">
-            <Label>PDF, Word ou link</Label>
+            <Label>Arquivo ou link</Label>
             <Input
               type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept={LEARNING_FILE_ACCEPT}
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
             <Input

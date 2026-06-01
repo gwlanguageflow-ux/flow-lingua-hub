@@ -134,6 +134,9 @@ const roleLabels: Record<AppRole, string> = {
   aluno: "Aluno",
 };
 
+const LEARNING_FILE_ACCEPT =
+  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.mp3,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg,image/webp,audio/mpeg,video/mp4";
+
 const priorityLabels: Record<string, string> = {
   normal: "Normal",
   important: "Importante",
@@ -1324,7 +1327,8 @@ function DirectorMaterialsPanel({
       <form onSubmit={submitMaterial} className="rounded-xl border border-border bg-white p-4">
         <SectionTitle icon={Upload} title="Enviar material pela Diretoria" />
         <p className="mt-2 text-sm text-brown-soft">
-          Envie arquivo ou link para todos, um perfil, uma turma ou um usuario especifico.
+          Envie arquivo ou link para professores, alunos, todos os usuarios, uma turma ou uma pessoa
+          especifica.
         </p>
 
         <TargetControls
@@ -1357,7 +1361,7 @@ function DirectorMaterialsPanel({
           <Field label="Arquivo">
             <Input
               type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept={LEARNING_FILE_ACCEPT}
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
           </Field>
@@ -2302,10 +2306,10 @@ function TargetControls<T extends TargetForm>({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="role">Perfil</SelectItem>
-            <SelectItem value="user">Usuário</SelectItem>
-            <SelectItem value="class">Turma</SelectItem>
+            <SelectItem value="all">Para todos</SelectItem>
+            <SelectItem value="role">Para professor / para aluno</SelectItem>
+            <SelectItem value="user">Usuario especifico</SelectItem>
+            <SelectItem value="class">Para turma</SelectItem>
           </SelectContent>
         </Select>
       </Field>
@@ -2322,8 +2326,8 @@ function TargetControls<T extends TargetForm>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="aluno">Alunos</SelectItem>
-              <SelectItem value="professor">Professores</SelectItem>
+              <SelectItem value="aluno">Para alunos</SelectItem>
+              <SelectItem value="professor">Para professores</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -2339,11 +2343,17 @@ function TargetControls<T extends TargetForm>({
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              {targetableUsers.map((profile) => (
-                <SelectItem key={profile.id} value={profile.id}>
-                  {profileDisplayName(profile)}
+              {targetableUsers.length === 0 ? (
+                <SelectItem value="no-users" disabled>
+                  Nenhum usuario encontrado
                 </SelectItem>
-              ))}
+              ) : (
+                targetableUsers.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profileDisplayName(profile)}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </Field>
@@ -2359,11 +2369,17 @@ function TargetControls<T extends TargetForm>({
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              {classes.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.name}
+              {classes.length === 0 ? (
+                <SelectItem value="no-classes" disabled>
+                  Nenhuma turma encontrada
                 </SelectItem>
-              ))}
+              ) : (
+                classes.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </Field>
