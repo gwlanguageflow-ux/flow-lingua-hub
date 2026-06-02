@@ -37,6 +37,7 @@ import { MeetingLinkButton } from "@/components/MeetingLinkEditor";
 import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
 import { StudyStreakBanner } from "@/components/StudyStreakBanner";
 import { WEEKDAYS } from "@/lib/constants";
+import { normalizeExternalUrl } from "@/lib/resource-links";
 import { openLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -842,8 +843,13 @@ function ResourceRow({
   externalUrl?: string | null;
 }) {
   const open = async () => {
-    if (externalUrl) {
-      window.open(externalUrl, "_blank", "noopener,noreferrer");
+    const normalizedUrl = normalizeExternalUrl(externalUrl);
+    if (normalizedUrl) {
+      window.open(normalizedUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (externalUrl && !normalizedUrl) {
+      toast.error("Link externo invalido.");
       return;
     }
     if (filePath) {

@@ -65,6 +65,7 @@ import {
 import { createDirectorCoupon } from "@/functions/coupon.functions";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
+import { normalizeExternalUrl } from "@/lib/resource-links";
 import { supabase } from "@/integrations/supabase/client";
 import { getLastLearningUploadError, uploadLearningFile } from "@/lib/upload";
 
@@ -1229,10 +1230,11 @@ function DirectorMaterialsPanel({
     uploaded: Awaited<ReturnType<typeof uploadLearningFile>> | null,
     creatorId: string,
   ): TablesInsert<"class_materials">[] => {
+    const normalizedUrl = normalizeExternalUrl(form.externalUrl);
     const base = {
       title: form.title.trim(),
       description: form.description.trim() || null,
-      external_url: form.externalUrl.trim() || null,
+      external_url: normalizedUrl,
       file_path: uploaded?.path ?? null,
       file_name: uploaded?.name ?? null,
       file_mime_type: uploaded?.mimeType ?? null,
@@ -1282,6 +1284,10 @@ function DirectorMaterialsPanel({
     }
     if (!file && !form.externalUrl.trim()) {
       toast.error("Adicione um arquivo ou link.");
+      return;
+    }
+    if (form.externalUrl.trim() && !normalizeExternalUrl(form.externalUrl)) {
+      toast.error("Informe um link externo valido.");
       return;
     }
 

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { writeSecurityEvent } from "@/server/compliance.server";
+import { activateStudentSubscriptionServer } from "@/server/subscription-activation.server";
 import { getValidapayWebhookSecret } from "@/server/validapay.server";
 
 type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
@@ -24,9 +25,6 @@ type ValidapayWebhookPayload = {
   };
   [key: string]: unknown;
 };
-
-type ActivateSubscriptionArgs =
-  Database["public"]["Functions"]["activate_paid_student_subscription"]["Args"];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -126,27 +124,6 @@ function normalizeProviderEvent(event: string | null | undefined) {
   }
 
   return normalized || "unknown";
-}
-
-async function activatePaidSubscription(args: ActivateSubscriptionArgs) {
-  const { error } = await supabaseAdmin.rpc("activate_paid_student_subscription", args);
-  if (!error) return;
-
-  const canRetryLegacy =
-    "_payment_reference" in args &&
-    (error.code === "PGRST202" ||
-      /payment_reference|schema cache|function .*activate_paid_student_subscription/i.test(
-        error.message,
-      ));
-
-  if (!canRetryLegacy) throw error;
-
-  const { _payment_reference: _ignored, ...legacyArgs } = args;
-  const { error: legacyError } = await supabaseAdmin.rpc(
-    "activate_paid_student_subscription",
-    legacyArgs,
-  );
-  if (legacyError) throw legacyError;
 }
 
 function addPlanInterval(startIso: string, interval: string | null | undefined) {
@@ -351,11 +328,11 @@ async function updateSubscriptionFromPayload(
   const end = await getSubscriptionPeriodEnd(subscriptionId, start);
   const method = paymentMethodFromPayload(payload.paymentMethod);
 
-  await activatePaidSubscription({
-    _subscription_id: subscriptionId,
-    _period_start: start,
-    _period_end: end,
-    _payment_reference: reference,
+  await activateStudentSubscriptionServer({
+    subscriptionId,
+    periodStart: start,
+    periodEnd: end,
+    paymentReference: reference,
   });
 
   const { error } = await supabaseAdmin

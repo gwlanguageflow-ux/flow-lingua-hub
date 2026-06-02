@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { activateStudentSubscriptionServer } from "@/server/subscription-activation.server";
 import type { Enums, Tables } from "@/integrations/supabase/types";
 
 type AppRole = Enums<"app_role">;
@@ -495,26 +496,16 @@ export const activateStudentSubscriptionManually = createServerFn({ method: "POS
       throw new Error("Apenas assinaturas no aguardo podem ser ativadas manualmente.");
     }
 
-    const periodStart = new Date().toISOString();
-    const { data: activation, error: activationError } = await supabaseAdmin.rpc(
-      "activate_paid_student_subscription",
-      {
-        _subscription_id: data.subscriptionId,
-        _period_start: periodStart,
-        _period_end: null,
-        _payment_reference: `manual-admin-${data.subscriptionId}`,
-      },
-    );
+    const activation = await activateStudentSubscriptionServer({
+      subscriptionId: data.subscriptionId,
+      periodStart: new Date().toISOString(),
+      periodEnd: null,
+      paymentReference: `manual-admin-${data.subscriptionId}`,
+      teacherDescription: "Credito de assinatura paga manualmente",
+      platformDescription: "Taxa da plataforma sobre assinatura paga manualmente",
+    });
 
-    if (activationError) throw new Error(activationError.message);
-
-    const activationRows = Array.isArray(activation) ? activation : [];
-    const activationResult = activationRows[0] as
-      | {
-          teacher_transaction_id?: string | null;
-          platform_transaction_id?: string | null;
-        }
-      | undefined;
+    const activationResult = activation[0];
 
     await Promise.all([
       activationResult?.teacher_transaction_id

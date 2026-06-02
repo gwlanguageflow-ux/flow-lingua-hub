@@ -51,6 +51,7 @@ import { MeetingLinkEditor } from "@/components/MeetingLinkEditor";
 import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
 import { upsertTeacherCoupon } from "@/functions/coupon.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
+import { normalizeExternalUrl } from "@/lib/resource-links";
 import { getLastLearningUploadError, openLearningFile, uploadLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -1640,6 +1641,10 @@ function AssignmentsPanel({
       toast.error("Adicione um arquivo, link ou instrução.");
       return;
     }
+    if (externalUrl.trim() && !normalizeExternalUrl(externalUrl)) {
+      toast.error("Informe um link externo valido.");
+      return;
+    }
     setSubmitting(true);
     const uploaded = file ? await uploadLearningFile(teacherId, file) : null;
     if (file && !uploaded) {
@@ -1652,6 +1657,7 @@ function AssignmentsPanel({
       );
       return;
     }
+    const normalizedUrl = normalizeExternalUrl(externalUrl);
     const { error } = await supabase.from("class_assignments").insert({
       class_id: selectedClassId || null,
       student_id: selectedStudentId || null,
@@ -1661,7 +1667,7 @@ function AssignmentsPanel({
       file_path: uploaded?.path ?? null,
       file_name: uploaded?.name ?? null,
       file_mime_type: uploaded?.mimeType ?? null,
-      external_url: externalUrl.trim() || null,
+      external_url: normalizedUrl,
       due_at: dueAt ? new Date(dueAt).toISOString() : null,
     });
     setSubmitting(false);
@@ -1886,6 +1892,10 @@ function MaterialsPanel({
       toast.error("Adicione um arquivo ou link.");
       return;
     }
+    if (externalUrl.trim() && !normalizeExternalUrl(externalUrl)) {
+      toast.error("Informe um link externo valido.");
+      return;
+    }
     setSubmitting(true);
     const uploaded = file ? await uploadLearningFile(teacherId, file) : null;
     if (file && !uploaded) {
@@ -1898,6 +1908,7 @@ function MaterialsPanel({
       );
       return;
     }
+    const normalizedUrl = normalizeExternalUrl(externalUrl);
     const { error } = await supabase.from("class_materials").insert({
       class_id: selectedClassId || null,
       student_id: selectedStudentId || null,
@@ -1908,7 +1919,7 @@ function MaterialsPanel({
       file_path: uploaded?.path ?? null,
       file_name: uploaded?.name ?? null,
       file_mime_type: uploaded?.mimeType ?? null,
-      external_url: externalUrl.trim() || null,
+      external_url: normalizedUrl,
       created_by: teacherId,
     });
     setSubmitting(false);
@@ -2344,8 +2355,13 @@ function ResourceRow({
   externalUrl?: string | null;
 }) {
   const open = async () => {
-    if (externalUrl) {
-      window.open(externalUrl, "_blank", "noopener,noreferrer");
+    const normalizedUrl = normalizeExternalUrl(externalUrl);
+    if (normalizedUrl) {
+      window.open(normalizedUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (externalUrl && !normalizedUrl) {
+      toast.error("Link externo invalido.");
       return;
     }
     if (filePath) {
@@ -2380,9 +2396,12 @@ function ResourceRow({
 }
 
 function ExternalButton({ url, label }: { url: string; label: string }) {
+  const normalizedUrl = normalizeExternalUrl(url);
+  if (!normalizedUrl) return null;
+
   return (
     <a
-      href={url}
+      href={normalizedUrl}
       target="_blank"
       rel="noreferrer"
       className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-bronze hover:text-wine"
