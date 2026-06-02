@@ -39,6 +39,7 @@ import { Route as ApiPublicValidapayWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
 import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
 import { Route as ApiPrivateLearningUploadRouteImport } from './routes/api/private/learning-upload'
+import { Route as ApiPrivateLearningFileRouteImport } from './routes/api/private/learning-file'
 import { Route as ApiInternalPixRenewalMonitorRouteImport } from './routes/api/internal/pix-renewal-monitor'
 import { Route as ApiInternalLgpdRetentionRouteImport } from './routes/api/internal/lgpd-retention'
 
@@ -195,6 +196,11 @@ const ApiPrivateLearningUploadRoute =
     path: '/api/private/learning-upload',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPrivateLearningFileRoute = ApiPrivateLearningFileRouteImport.update({
+  id: '/api/private/learning-file',
+  path: '/api/private/learning-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiInternalPixRenewalMonitorRoute =
   ApiInternalPixRenewalMonitorRouteImport.update({
     id: '/api/internal/pix-renewal-monitor',
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
+  '/api/private/learning-file': typeof ApiPrivateLearningFileRoute
   '/api/private/learning-upload': typeof ApiPrivateLearningUploadRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
+  '/api/private/learning-file': typeof ApiPrivateLearningFileRoute
   '/api/private/learning-upload': typeof ApiPrivateLearningUploadRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -305,6 +313,7 @@ export interface FileRoutesById {
   '/professor/$id': typeof ProfessorIdRoute
   '/api/internal/lgpd-retention': typeof ApiInternalLgpdRetentionRoute
   '/api/internal/pix-renewal-monitor': typeof ApiInternalPixRenewalMonitorRoute
+  '/api/private/learning-file': typeof ApiPrivateLearningFileRoute
   '/api/private/learning-upload': typeof ApiPrivateLearningUploadRoute
   '/api/public/consent': typeof ApiPublicConsentRoute
   '/api/public/security-event': typeof ApiPublicSecurityEventRoute
@@ -341,6 +350,7 @@ export interface FileRouteTypes {
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
     | '/api/internal/pix-renewal-monitor'
+    | '/api/private/learning-file'
     | '/api/private/learning-upload'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
     | '/api/internal/pix-renewal-monitor'
+    | '/api/private/learning-file'
     | '/api/private/learning-upload'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/professor/$id'
     | '/api/internal/lgpd-retention'
     | '/api/internal/pix-renewal-monitor'
+    | '/api/private/learning-file'
     | '/api/private/learning-upload'
     | '/api/public/consent'
     | '/api/public/security-event'
@@ -443,6 +455,7 @@ export interface RootRouteChildren {
   ProfessorIdRoute: typeof ProfessorIdRoute
   ApiInternalLgpdRetentionRoute: typeof ApiInternalLgpdRetentionRoute
   ApiInternalPixRenewalMonitorRoute: typeof ApiInternalPixRenewalMonitorRoute
+  ApiPrivateLearningFileRoute: typeof ApiPrivateLearningFileRoute
   ApiPrivateLearningUploadRoute: typeof ApiPrivateLearningUploadRoute
   ApiPublicConsentRoute: typeof ApiPublicConsentRoute
   ApiPublicSecurityEventRoute: typeof ApiPublicSecurityEventRoute
@@ -662,6 +675,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPrivateLearningUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/private/learning-file': {
+      id: '/api/private/learning-file'
+      path: '/api/private/learning-file'
+      fullPath: '/api/private/learning-file'
+      preLoaderRoute: typeof ApiPrivateLearningFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/internal/pix-renewal-monitor': {
       id: '/api/internal/pix-renewal-monitor'
       path: '/api/internal/pix-renewal-monitor'
@@ -716,6 +736,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfessorIdRoute: ProfessorIdRoute,
   ApiInternalLgpdRetentionRoute: ApiInternalLgpdRetentionRoute,
   ApiInternalPixRenewalMonitorRoute: ApiInternalPixRenewalMonitorRoute,
+  ApiPrivateLearningFileRoute: ApiPrivateLearningFileRoute,
   ApiPrivateLearningUploadRoute: ApiPrivateLearningUploadRoute,
   ApiPublicConsentRoute: ApiPublicConsentRoute,
   ApiPublicSecurityEventRoute: ApiPublicSecurityEventRoute,

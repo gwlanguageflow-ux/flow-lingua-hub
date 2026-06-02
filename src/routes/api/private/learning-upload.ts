@@ -7,6 +7,7 @@ type AppRole = Enums<"app_role">;
 
 const BUCKET = "learning-materials";
 const MAX_SERVER_UPLOAD_BYTES = 20 * 1024 * 1024;
+const PDF_MIME_TYPE = "application/pdf";
 const allowedUploadRoles = new Set<AppRole>(["dev", "professor"]);
 
 type AuthenticatedUploader = {
@@ -37,7 +38,22 @@ function safeFileName(name: string) {
 function isSafeLearningPath(path: string, userId: string) {
   if (!path.startsWith(`${userId}/materials/`)) return false;
   if (path.includes("..") || path.includes("\\")) return false;
-  return path.length <= 500;
+  return path.length <= 500 && path.toLowerCase().endsWith(".pdf");
+}
+
+function isPdfMetadata(name: string | undefined, mimeType: string | undefined) {
+  return mimeType === PDF_MIME_TYPE || Boolean(name?.toLowerCase().endsWith(".pdf"));
+}
+
+function isPdfBytes(bytes: Uint8Array) {
+  return (
+    bytes.length >= 5 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46 &&
+    bytes[4] === 0x2d
+  );
 }
 
 async function requireUploader(request: Request): Promise<AuthenticatedUploader | Response> {
@@ -90,8 +106,13 @@ async function createSignedUpload(request: Request, uploader: AuthenticatedUploa
   } | null;
 
   const fileName = safeFileName(payload?.name ?? "arquivo");
-  const path = payload?.path || `${uploader.id}/materials/${Date.now()}-${fileName}`;
-  const mimeType = payload?.mimeType || "application/octet-stream";
+  const pdfFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+  const path = payload?.path || `${uploader.id}/materials/${Date.now()}-${pdfFileName}`;
+  const mimeType = payload?.mimeType || PDF_MIME_TYPE;
+
+  if (!isPdfMetadata(payload?.name, mimeType) || !path.toLowerCase().endsWith(".pdf")) {
+    return jsonResponse({ error: "Envie apenas arquivos em PDF." }, { status: 415 });
+  }
 
   if (!isSafeLearningPath(path, uploader.id)) {
     return jsonResponse({ error: "Caminho de arquivo invalido." }, { status: 400 });
@@ -113,7 +134,7 @@ async function createSignedUpload(request: Request, uploader: AuthenticatedUploa
     path,
     token: data.token,
     name: payload?.name || fileName || "arquivo",
-    mimeType,
+    mimeType: PDF_MIME_TYPE,
   });
 }
 
@@ -138,23 +159,34 @@ async function uploadThroughServer(request: Request, uploader: AuthenticatedUplo
   }
 
   const fileName = safeFileName(file.name || "arquivo");
+  const pdfFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
   const path =
     typeof requestedPath === "string" && requestedPath
       ? requestedPath
-      : `${uploader.id}/materials/${Date.now()}-${fileName}`;
+      : `${uploader.id}/materials/${Date.now()}-${pdfFileName}`;
+
+  const requestedMime =
+    typeof requestedMimeType === "string" && requestedMimeType ? requestedMimeType : file.type;
+
+  if (!isPdfMetadata(file.name, requestedMime || PDF_MIME_TYPE) || !path.endsWith(".pdf")) {
+    return jsonResponse({ error: "Envie apenas arquivos em PDF." }, { status: 415 });
+  }
 
   if (!isSafeLearningPath(path, uploader.id)) {
     return jsonResponse({ error: "Caminho de arquivo invalido." }, { status: 400 });
   }
 
-  const mimeType =
-    typeof requestedMimeType === "string" && requestedMimeType
-      ? requestedMimeType
-      : file.type || "application/octet-stream";
   const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!isPdfBytes(bytes)) {
+    return jsonResponse(
+      { error: "O arquivo enviado nao parece ser um PDF valido." },
+      { status: 415 },
+    );
+  }
+
   const { error } = await supabaseAdmin.storage.from(BUCKET).upload(path, bytes, {
     cacheControl: "3600",
-    contentType: mimeType,
+    contentType: PDF_MIME_TYPE,
     upsert: true,
   });
 
@@ -165,7 +197,7 @@ async function uploadThroughServer(request: Request, uploader: AuthenticatedUplo
   return jsonResponse({
     path,
     name: file.name || fileName || "arquivo",
-    mimeType,
+    mimeType: PDF_MIME_TYPE,
   });
 }
 

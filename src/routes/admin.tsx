@@ -67,7 +67,7 @@ import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types"
 import { getProfileAvatarUrl } from "@/lib/profile-media";
 import { normalizeExternalUrl } from "@/lib/resource-links";
 import { supabase } from "@/integrations/supabase/client";
-import { getLastLearningUploadError, uploadLearningFile } from "@/lib/upload";
+import { LEARNING_FILE_ACCEPT, getLastLearningUploadError, uploadLearningFile } from "@/lib/upload";
 
 type Profile = Tables<"profiles">;
 type TeacherProfile = Tables<"teacher_profiles">;
@@ -134,9 +134,6 @@ const roleLabels: Record<AppRole, string> = {
   professor: "Professor",
   aluno: "Aluno",
 };
-
-const LEARNING_FILE_ACCEPT =
-  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip,.rar,.png,.jpg,.jpeg,.webp,.mp3,.mp4,.m4a,.wav,.aac,.mov,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,application/x-zip-compressed,application/vnd.rar,image/png,image/jpeg,image/webp,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav,video/mp4,video/quicktime,application/octet-stream";
 
 const priorityLabels: Record<string, string> = {
   normal: "Normal",
@@ -1369,7 +1366,7 @@ function DirectorMaterialsPanel({
               placeholder="Explique como o material deve ser usado."
             />
           </Field>
-          <Field label="Arquivo">
+          <Field label="Arquivo PDF">
             <Input
               type="file"
               accept={LEARNING_FILE_ACCEPT}

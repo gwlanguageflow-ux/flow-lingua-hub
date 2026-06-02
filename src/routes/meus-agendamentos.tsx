@@ -38,7 +38,7 @@ import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner"
 import { StudyStreakBanner } from "@/components/StudyStreakBanner";
 import { WEEKDAYS } from "@/lib/constants";
 import { normalizeExternalUrl } from "@/lib/resource-links";
-import { openLearningFile } from "@/lib/upload";
+import { getLastLearningOpenError, openLearningFile } from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Booking = Tables<"bookings">;
@@ -854,7 +854,14 @@ function ResourceRow({
     }
     if (filePath) {
       const ok = await openLearningFile(filePath);
-      if (!ok) toast.error("Não foi possível abrir o arquivo.");
+      if (!ok) {
+        const reason = getLastLearningOpenError();
+        toast.error(
+          reason
+            ? `Não foi possível abrir o arquivo: ${reason}`
+            : "Não foi possível abrir o arquivo.",
+        );
+      }
     }
   };
 

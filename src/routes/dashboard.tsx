@@ -52,7 +52,13 @@ import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
 import { upsertTeacherCoupon } from "@/functions/coupon.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
 import { normalizeExternalUrl } from "@/lib/resource-links";
-import { getLastLearningUploadError, openLearningFile, uploadLearningFile } from "@/lib/upload";
+import {
+  LEARNING_FILE_ACCEPT,
+  getLastLearningOpenError,
+  getLastLearningUploadError,
+  openLearningFile,
+  uploadLearningFile,
+} from "@/lib/upload";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/dashboard")({
@@ -110,8 +116,6 @@ const emptyWalletSummary: WalletSummary = {
 
 const TEACHER_GUIDE_VIDEO_SRC = "/videos/guia-professor.mp4";
 const TEACHER_GUIDE_POSTER_SRC = "/videos/guia-professor-poster.jpg";
-const LEARNING_FILE_ACCEPT =
-  ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.zip,.rar,.png,.jpg,.jpeg,.webp,.mp3,.mp4,.m4a,.wav,.aac,.mov,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,application/x-zip-compressed,application/vnd.rar,image/png,image/jpeg,image/webp,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav,video/mp4,video/quicktime,application/octet-stream";
 
 type TeacherGuideVideoStatus = "checking" | "available" | "missing";
 type TeacherGuideIntroState = "checking" | "show" | "hide";
@@ -1781,7 +1785,7 @@ function AssignmentsPanel({
           <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Arquivo ou link</Label>
+          <Label>Arquivo PDF ou link</Label>
           <Input
             type="file"
             accept={LEARNING_FILE_ACCEPT}
@@ -2043,7 +2047,7 @@ function MaterialsPanel({
             />
           </div>
           <div className="space-y-2">
-            <Label>Arquivo ou link</Label>
+            <Label>Arquivo PDF ou link</Label>
             <Input
               type="file"
               accept={LEARNING_FILE_ACCEPT}
@@ -2366,7 +2370,14 @@ function ResourceRow({
     }
     if (filePath) {
       const ok = await openLearningFile(filePath);
-      if (!ok) toast.error("Não foi possível abrir o arquivo.");
+      if (!ok) {
+        const reason = getLastLearningOpenError();
+        toast.error(
+          reason
+            ? `Não foi possível abrir o arquivo: ${reason}`
+            : "Não foi possível abrir o arquivo.",
+        );
+      }
     }
   };
 

@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export const LEARNING_PDF_MIME_TYPE = "application/pdf";
+export const LEARNING_FILE_ACCEPT = ".pdf,application/pdf";
+
 export async function uploadAvatar(userId: string, file: File): Promise<string | null> {
   const ext = file.name.split(".").pop() || "jpg";
   const path = `${userId}/avatar-${Date.now()}.${ext}`;
@@ -19,9 +22,18 @@ export type UploadedLearningFile = {
 };
 
 let lastLearningUploadError: string | null = null;
+let lastLearningOpenError: string | null = null;
 
 export function getLastLearningUploadError() {
   return lastLearningUploadError;
+}
+
+export function getLastLearningOpenError() {
+  return lastLearningOpenError;
+}
+
+export function isLearningPdfFile(file: File) {
+  return file.type === LEARNING_PDF_MIME_TYPE || file.name.toLowerCase().endsWith(".pdf");
 }
 
 function safeFileName(name: string) {
@@ -39,8 +51,15 @@ export async function uploadLearningFile(
   file: File,
 ): Promise<UploadedLearningFile | null> {
   lastLearningUploadError = null;
-  const path = `${userId}/materials/${Date.now()}-${safeFileName(file.name)}`;
-  const contentType = file.type || "application/octet-stream";
+  if (!isLearningPdfFile(file)) {
+    lastLearningUploadError = "Envie apenas arquivos em PDF.";
+    return null;
+  }
+
+  const fileName = safeFileName(file.name || "material.pdf");
+  const pdfFileName = fileName.endsWith(".pdf") ? fileName : `${fileName}.pdf`;
+  const path = `${userId}/materials/${Date.now()}-${pdfFileName}`;
+  const contentType = LEARNING_PDF_MIME_TYPE;
 
   const {
     data: { session },
@@ -51,60 +70,13 @@ export async function uploadLearningFile(
     return null;
   }
 
-  try {
-    const signedResponse = await fetch("/api/private/learning-upload", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        path,
-        name: file.name,
-        mimeType: contentType,
-        size: file.size,
-      }),
-    });
-
-    if (signedResponse.ok) {
-      const signed = (await signedResponse.json()) as {
-        path: string;
-        token: string;
-        name: string;
-        mimeType: string;
-      };
-      const { error } = await supabase.storage
-        .from("learning-materials")
-        .uploadToSignedUrl(signed.path, signed.token, file, {
-          cacheControl: "3600",
-          contentType,
-        });
-
-      if (!error) {
-        return { path: signed.path, name: signed.name, mimeType: signed.mimeType };
-      }
-
-      lastLearningUploadError = error.message;
-      console.error("[learning-materials] signed upload failed", {
-        message: error.message,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      });
-    } else {
-      lastLearningUploadError = await readUploadError(signedResponse);
-    }
-  } catch (error) {
-    lastLearningUploadError = error instanceof Error ? error.message : "Falha de rede no upload.";
-  }
-
-  const fallback = await uploadLearningFileThroughAppServer({
+  const uploaded = await uploadLearningFileThroughAppServer({
     token: session.access_token,
     path,
     file,
     contentType,
   });
-  if (fallback) return fallback;
+  if (uploaded) return uploaded;
 
   console.error("[learning-materials] upload failed", {
     message: lastLearningUploadError,
@@ -168,12 +140,67 @@ async function readUploadError(response: Response) {
 }
 
 export async function openLearningFile(path: string) {
-  const { data, error } = await supabase.storage
-    .from("learning-materials")
-    .createSignedUrl(path, 60 * 30);
-  if (error || !data?.signedUrl) return false;
-  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  return true;
+  lastLearningOpenError = null;
+  const pendingWindow = typeof window !== "undefined" ? window.open("", "_blank") : null;
+  if (pendingWindow) {
+    pendingWindow.document.title = "Abrindo PDF";
+    pendingWindow.document.body.innerHTML =
+      '<p style="font-family: Arial, sans-serif; padding: 24px;">Abrindo PDF...</p>';
+  }
+
+  const closePendingWindow = () => {
+    try {
+      pendingWindow?.close();
+    } catch {
+      // Some in-app browsers block window management; ignore and keep the real error.
+    }
+  };
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    closePendingWindow();
+    lastLearningOpenError = "Sessao expirada. Entre novamente.";
+    return false;
+  }
+
+  try {
+    const response = await fetch("/api/private/learning-file", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ path }),
+    });
+
+    if (!response.ok) {
+      closePendingWindow();
+      lastLearningOpenError = await readUploadError(response);
+      return false;
+    }
+
+    const data = (await response.json()) as { signedUrl?: string };
+    if (!data.signedUrl) {
+      closePendingWindow();
+      lastLearningOpenError = "Link do arquivo nao foi gerado.";
+      return false;
+    }
+
+    if (pendingWindow) {
+      pendingWindow.opener = null;
+      pendingWindow.location.href = data.signedUrl;
+    } else {
+      window.location.assign(data.signedUrl);
+    }
+    return true;
+  } catch (error) {
+    closePendingWindow();
+    lastLearningOpenError = error instanceof Error ? error.message : "Falha de rede ao abrir.";
+    return false;
+  }
 }
 
 export async function uploadTeacherPostImage(userId: string, file: File): Promise<string | null> {
