@@ -36,7 +36,7 @@ function percentSuffix(percent: number) {
 
 function teacherCouponPrefix(name: string | null | undefined) {
   const normalized = normalizeLetters(name ?? "");
-  return (normalized + "GWLF").slice(0, 4);
+  return (normalized + "GWL").slice(0, 3);
 }
 
 async function requireRole(userId: string, roles: Array<"dev" | "professor">) {

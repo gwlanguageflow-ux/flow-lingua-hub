@@ -861,7 +861,7 @@ function TeacherCouponPanel({
             </p>
             <p className="mt-1 font-display text-3xl font-bold text-wine">{codePreview}</p>
             <p className="mt-1 text-xs text-brown-soft">
-              As 4 letras saem do seu nome. Os numeros acompanham a porcentagem do desconto.
+              As 3 letras saem do seu nome. Os numeros acompanham a porcentagem do desconto.
             </p>
           </div>
 
@@ -2964,5 +2964,5 @@ function teacherCouponPrefix(name: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z]/g, "")
     .toUpperCase();
-  return (normalized + "GWLF").slice(0, 4);
+  return (normalized + "GWL").slice(0, 3);
 }

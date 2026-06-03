@@ -669,11 +669,12 @@ function CheckoutDialog({
                 <Input
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                  placeholder="Ex: GWLF10"
+                  placeholder="Ex: ELO10"
                   className="uppercase"
                 />
                 <p className="text-xs text-brown-soft">
-                  Cupons da diretoria seguem o formato 4 letras + 2 numeros.
+                  Cupons do professor usam 3 letras + 2 numeros. Cupons da diretoria usam 4 letras +
+                  2 numeros.
                 </p>
               </div>
             )}

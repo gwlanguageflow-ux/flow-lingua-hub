@@ -60,6 +60,10 @@ function normalizeCouponCode(value: string | null | undefined) {
 function couponCodeVariants(code: string) {
   const variants = new Set([code]);
   const compact = code.replace(/-/g, "");
+  if (/^[A-Z]{3}[0-9]{2}$/.test(compact)) {
+    variants.add(compact);
+    variants.add(`${compact.slice(0, 3)}-${compact.slice(3)}`);
+  }
   if (/^[A-Z]{4}[0-9]{2}$/.test(compact)) {
     variants.add(compact);
     variants.add(`${compact.slice(0, 4)}-${compact.slice(4)}`);
