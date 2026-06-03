@@ -194,6 +194,7 @@ function PlansPage() {
         .eq("scope", "teacher")
         .eq("teacher_id", professor)
         .eq("active", true)
+        .is("deleted_at", null)
         .lte("starts_at", now)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at", { ascending: false })

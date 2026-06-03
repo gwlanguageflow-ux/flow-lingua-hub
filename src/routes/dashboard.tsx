@@ -21,6 +21,7 @@ import {
   Plus,
   Send,
   Sparkles,
+  Trash2,
   Upload,
   UserPlus,
   Users,
@@ -49,7 +50,7 @@ import {
 import { AvailabilityManager } from "@/components/AvailabilityManager";
 import { MeetingLinkEditor } from "@/components/MeetingLinkEditor";
 import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
-import { upsertTeacherCoupon } from "@/functions/coupon.functions";
+import { deleteTeacherCoupon, upsertTeacherCoupon } from "@/functions/coupon.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
 import { normalizeExternalUrl } from "@/lib/resource-links";
 import {
@@ -119,6 +120,19 @@ const TEACHER_GUIDE_POSTER_SRC = "/videos/guia-professor-poster.jpg";
 
 type TeacherGuideVideoStatus = "checking" | "available" | "missing";
 type TeacherGuideIntroState = "checking" | "show" | "hide";
+type ClassModality = "turma" | "particular";
+
+function classModality(item: Pick<ClassGroup, "modality"> | { modality?: string | null }) {
+  return item.modality === "particular" ? "particular" : "turma";
+}
+
+function classKindLabel(item: Pick<ClassGroup, "modality"> | { modality?: string | null }) {
+  return classModality(item) === "particular" ? "Aula particular" : "Turma";
+}
+
+function classOptionLabel(item: Pick<ClassGroup, "name" | "modality">) {
+  return `${item.name} (${classKindLabel(item).toLowerCase()})`;
+}
 
 function teacherGuideSeenKey(userId: string) {
   return `gwl:teacher-guide-seen:${userId}`;
@@ -291,6 +305,7 @@ function DashboardPage() {
         .select("*")
         .eq("teacher_id", user.id)
         .eq("scope", "teacher")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -781,6 +796,7 @@ function TeacherCouponPanel({
   const [discountPercent, setDiscountPercent] = useState(String(coupon?.discount_percent ?? 10));
   const [active, setActive] = useState(coupon?.active ?? false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setDiscountPercent(String(coupon?.discount_percent ?? 10));
@@ -807,6 +823,22 @@ function TeacherCouponPanel({
       toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o cupom.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeCoupon = async () => {
+    if (!coupon || deleting) return;
+    const confirmed = window.confirm("Excluir este cupom do feed e do checkout?");
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await deleteTeacherCoupon();
+      toast.success("Cupom excluido.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel excluir o cupom.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -854,9 +886,21 @@ function TeacherCouponPanel({
             {active ? "Cupom ativo" : "Cupom pausado"}
           </Button>
 
-          <Button disabled={saving} className="bg-wine text-white hover:bg-bronze">
-            {saving ? "Salvando..." : "Salvar cupom"}
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button disabled={saving || deleting} className="bg-wine text-white hover:bg-bronze">
+              {saving ? "Salvando..." : coupon ? "Salvar alteracoes" : "Criar cupom"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!coupon || saving || deleting}
+              onClick={removeCoupon}
+              className="border-red-200 text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {deleting ? "Excluindo..." : "Excluir cupom"}
+            </Button>
+          </div>
         </div>
       </form>
 
@@ -1053,6 +1097,8 @@ function ClassroomPanel({
   const [startTime, setStartTime] = useState("19:00");
   const [endTime, setEndTime] = useState("20:00");
   const [meetingUrl, setMeetingUrl] = useState("");
+  const [modality, setModality] = useState<ClassModality>("turma");
+  const [privateStudentId, setPrivateStudentId] = useState("");
   const [selectedStudentByClass, setSelectedStudentByClass] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -1060,33 +1106,60 @@ function ClassroomPanel({
     e.preventDefault();
     if (!teacherId) return;
     if (name.trim().length < 3) {
-      toast.error("Informe o nome da turma.");
+      toast.error(
+        modality === "particular"
+          ? "Informe o nome da aula particular."
+          : "Informe o nome da turma.",
+      );
+      return;
+    }
+    if (modality === "particular" && !privateStudentId) {
+      toast.error("Escolha o aluno da aula particular.");
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("class_groups").insert({
-      teacher_id: teacherId,
-      name: name.trim(),
-      language,
-      level,
-      day_of_week: Number(day),
-      start_time: startTime,
-      end_time: endTime,
-      meeting_url: meetingUrl.trim() || null,
-    });
+    const { data: createdClass, error } = await supabase
+      .from("class_groups")
+      .insert({
+        teacher_id: teacherId,
+        name: name.trim(),
+        language,
+        level,
+        day_of_week: Number(day),
+        start_time: startTime,
+        end_time: endTime,
+        meeting_url: meetingUrl.trim() || null,
+        modality,
+      })
+      .select("id")
+      .single();
+    if (!error && createdClass?.id && modality === "particular") {
+      const { error: memberError } = await supabase.from("class_members").insert({
+        class_id: createdClass.id,
+        student_id: privateStudentId,
+      });
+      if (memberError) {
+        setSubmitting(false);
+        toast.error(memberError.message);
+        return;
+      }
+    }
     setSubmitting(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Turma criada.");
+    toast.success(modality === "particular" ? "Aula particular criada." : "Turma criada.");
     setName("");
     setMeetingUrl("");
+    setPrivateStudentId("");
     await onChanged();
   };
 
   const addStudentToClass = async (classId: string) => {
     const studentId = selectedStudentByClass[classId];
+    const selectedClass = classes.find((item) => item.id === classId);
+    const isPrivate = selectedClass ? classModality(selectedClass) === "particular" : false;
     if (!studentId) {
       toast.error("Escolha um aluno.");
       return;
@@ -1098,7 +1171,7 @@ function ClassroomPanel({
       toast.error(error.message);
       return;
     }
-    toast.success("Aluno adicionado à turma.");
+    toast.success(isPrivate ? "Aluno vinculado a aula particular." : "Aluno adicionado à turma.");
     setSelectedStudentByClass((prev) => ({ ...prev, [classId]: "" }));
     await onChanged();
   };
@@ -1108,13 +1181,29 @@ function ClassroomPanel({
       <form onSubmit={createClass} className="gw-app-card gw-input-shell rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Plus className="h-5 w-5 text-bronze" />
-          <h3 className="font-display text-xl text-wine">Criar turma</h3>
+          <h3 className="font-display text-xl text-wine">Criar turma ou aula particular</h3>
         </div>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>Modalidade</Label>
+            <Select value={modality} onValueChange={(value) => setModality(value as ClassModality)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="turma">Turma</SelectItem>
+                <SelectItem value="particular">Aula particular</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2 lg:col-span-2">
-            <Label>Nome da turma</Label>
+            <Label>{modality === "particular" ? "Nome da aula particular" : "Nome da turma"}</Label>
             <Input
-              placeholder="Ex: Inglês B1 - Terça 19h"
+              placeholder={
+                modality === "particular"
+                  ? "Ex: Particular - Eloiza - Conversation"
+                  : "Ex: Inglês B1 - Terça 19h"
+              }
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -1183,10 +1272,37 @@ function ClassroomPanel({
               onChange={(e) => setMeetingUrl(e.target.value)}
             />
           </div>
+          {modality === "particular" && (
+            <div className="space-y-2 lg:col-span-2">
+              <Label>Aluno da aula particular</Label>
+              <Select value={privateStudentId} onValueChange={setPrivateStudentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar aluno" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.length === 0 ? (
+                    <SelectItem value="no-students" disabled>
+                      Nenhum aluno ativo encontrado
+                    </SelectItem>
+                  ) : (
+                    students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.full_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <Button disabled={submitting} className="mt-4 bg-bronze text-white hover:bg-wine gap-2">
           <Plus className="h-4 w-4" />
-          {submitting ? "Criando..." : "Criar turma"}
+          {submitting
+            ? "Criando..."
+            : modality === "particular"
+              ? "Criar aula particular"
+              : "Criar turma"}
         </Button>
       </form>
 
@@ -1195,14 +1311,22 @@ function ClassroomPanel({
           {classes.map((item) => {
             const classMembers = members.filter((member) => member.class_id === item.id);
             const classStudentIds = new Set(classMembers.map((member) => member.student_id));
+            const isPrivate = classModality(item) === "particular";
             const availableStudents = students.filter(
-              (student) => !classStudentIds.has(student.id),
+              (student) =>
+                !classStudentIds.has(student.id) && (!isPrivate || classMembers.length === 0),
             );
+            const rosterLabel = isPrivate ? "Aluno da aula particular" : "Alunos da turma";
             return (
               <div key={item.id} className="gw-app-card rounded-xl p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-display text-xl text-wine">{item.name}</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-display text-xl text-wine">{item.name}</h3>
+                      <span className="rounded-full bg-wine/10 px-2.5 py-1 text-[11px] font-semibold text-wine">
+                        {classKindLabel(item)}
+                      </span>
+                    </div>
                     <p className="text-sm text-brown">
                       {item.language} ·{" "}
                       {item.level
@@ -1212,54 +1336,62 @@ function ClassroomPanel({
                     <p className="text-sm text-brown-soft mt-1">{formatClassSchedule(item)}</p>
                   </div>
                   <span className="rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
-                    {classMembers.length} alunos
+                    {isPrivate
+                      ? classMembers.length > 0
+                        ? "1 aluno"
+                        : "sem aluno"
+                      : `${classMembers.length} alunos`}
                   </span>
                 </div>
 
                 <ClassMeetingLinkEditor item={item} onChanged={onChanged} />
 
-                <div className="rounded-xl bg-cream p-3">
-                  <Label className="text-xs">Adicionar aluno à turma</Label>
-                  <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                    <Select
-                      value={selectedStudentByClass[item.id] || ""}
-                      onValueChange={(value) =>
-                        setSelectedStudentByClass((prev) => ({ ...prev, [item.id]: value }))
-                      }
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Selecionar aluno" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableStudents.length === 0 ? (
-                          <SelectItem value="none" disabled>
-                            Todos os alunos já estão na turma
-                          </SelectItem>
-                        ) : (
-                          availableStudents.map((student) => (
-                            <SelectItem key={student.id} value={student.id}>
-                              {student.full_name}
+                {(!isPrivate || classMembers.length === 0) && (
+                  <div className="rounded-xl bg-cream p-3">
+                    <Label className="text-xs">
+                      {isPrivate ? "Definir aluno da aula particular" : "Adicionar aluno à turma"}
+                    </Label>
+                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                      <Select
+                        value={selectedStudentByClass[item.id] || ""}
+                        onValueChange={(value) =>
+                          setSelectedStudentByClass((prev) => ({ ...prev, [item.id]: value }))
+                        }
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecionar aluno" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableStudents.length === 0 ? (
+                            <SelectItem value="none" disabled>
+                              {isPrivate
+                                ? "Esta aula particular já tem aluno"
+                                : "Todos os alunos já estão na turma"}
                             </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-wine text-wine gap-2"
-                      onClick={() => addStudentToClass(item.id)}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Adicionar
-                    </Button>
+                          ) : (
+                            availableStudents.map((student) => (
+                              <SelectItem key={student.id} value={student.id}>
+                                {student.full_name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-wine text-wine gap-2"
+                        onClick={() => addStudentToClass(item.id)}
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        Adicionar
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wider text-brown-soft">
-                    Alunos da turma
-                  </p>
+                  <p className="text-xs uppercase tracking-wider text-brown-soft">{rosterLabel}</p>
                   {classMembers.length === 0 ? (
                     <p className="text-sm text-brown-soft">Nenhum aluno vinculado ainda.</p>
                   ) : (
@@ -1693,7 +1825,10 @@ function AssignmentsPanel({
   };
 
   const assignmentTargetLabel = (item: ClassAssignment) => {
-    if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
+    if (item.class_id) {
+      const cls = classes.find((entry) => entry.id === item.class_id);
+      return cls ? classOptionLabel(cls) : "Turma";
+    }
     if (item.student_id) {
       return students.find((student) => student.id === item.student_id)?.full_name || "Aluno";
     }
@@ -1734,7 +1869,7 @@ function AssignmentsPanel({
                 ) : (
                   classes.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.name}
+                      {classOptionLabel(item)}
                     </SelectItem>
                   ))
                 )}
@@ -1961,7 +2096,10 @@ function MaterialsPanel({
   };
 
   const materialTargetLabel = (item: ClassMaterial) => {
-    if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
+    if (item.class_id) {
+      const cls = classes.find((entry) => entry.id === item.class_id);
+      return cls ? classOptionLabel(cls) : "Turma";
+    }
     if (item.student_id) {
       return students.find((student) => student.id === item.student_id)?.full_name || "Aluno";
     }
@@ -2004,7 +2142,7 @@ function MaterialsPanel({
                   ) : (
                     classes.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
-                        {item.name}
+                        {classOptionLabel(item)}
                       </SelectItem>
                     ))
                   )}

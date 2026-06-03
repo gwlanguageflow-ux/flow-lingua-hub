@@ -160,6 +160,7 @@ export type Database = {
           language: string;
           level: Database["public"]["Enums"]["language_level"] | null;
           meeting_url: string | null;
+          modality: string;
           name: string;
           start_time: string | null;
           status: string;
@@ -175,6 +176,7 @@ export type Database = {
           language: string;
           level?: Database["public"]["Enums"]["language_level"] | null;
           meeting_url?: string | null;
+          modality?: string;
           name: string;
           start_time?: string | null;
           status?: string;
@@ -190,6 +192,7 @@ export type Database = {
           language?: string;
           level?: Database["public"]["Enums"]["language_level"] | null;
           meeting_url?: string | null;
+          modality?: string;
           name?: string;
           start_time?: string | null;
           status?: string;
@@ -799,6 +802,7 @@ export type Database = {
           code: string;
           created_at: string;
           created_by: string | null;
+          deleted_at: string | null;
           discount_percent: number;
           expires_at: string | null;
           id: string;
@@ -813,6 +817,7 @@ export type Database = {
           code: string;
           created_at?: string;
           created_by?: string | null;
+          deleted_at?: string | null;
           discount_percent: number;
           expires_at?: string | null;
           id?: string;
@@ -827,6 +832,7 @@ export type Database = {
           code?: string;
           created_at?: string;
           created_by?: string | null;
+          deleted_at?: string | null;
           discount_percent?: number;
           expires_at?: string | null;
           id?: string;

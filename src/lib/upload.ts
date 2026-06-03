@@ -21,6 +21,10 @@ export type UploadedLearningFile = {
   mimeType: string;
 };
 
+type SignedLearningUpload = UploadedLearningFile & {
+  token: string;
+};
+
 let lastLearningUploadError: string | null = null;
 let lastLearningOpenError: string | null = null;
 
@@ -70,13 +74,21 @@ export async function uploadLearningFile(
     return null;
   }
 
-  const uploaded = await uploadLearningFileThroughAppServer({
+  const uploaded = await uploadLearningFileWithSignedUrl({
     token: session.access_token,
     path,
     file,
     contentType,
   });
   if (uploaded) return uploaded;
+
+  const fallbackUploaded = await uploadLearningFileThroughAppServer({
+    token: session.access_token,
+    path,
+    file,
+    contentType,
+  });
+  if (fallbackUploaded) return fallbackUploaded;
 
   console.error("[learning-materials] upload failed", {
     message: lastLearningUploadError,
@@ -85,6 +97,66 @@ export async function uploadLearningFile(
     size: file.size,
   });
   return null;
+}
+
+async function uploadLearningFileWithSignedUrl({
+  token,
+  path,
+  file,
+  contentType,
+}: {
+  token: string;
+  path: string;
+  file: File;
+  contentType: string;
+}): Promise<UploadedLearningFile | null> {
+  try {
+    const response = await fetch("/api/private/learning-upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        path,
+        name: file.name,
+        mimeType: contentType,
+        size: file.size,
+      }),
+    });
+
+    if (!response.ok) {
+      lastLearningUploadError = await readUploadError(response);
+      return null;
+    }
+
+    const signed = (await response.json()) as SignedLearningUpload;
+    if (!signed.path || !signed.token) {
+      lastLearningUploadError = "Nao foi possivel preparar o envio do arquivo.";
+      return null;
+    }
+
+    const { error } = await supabase.storage
+      .from("learning-materials")
+      .uploadToSignedUrl(signed.path, signed.token, file, {
+        contentType,
+      });
+
+    if (error) {
+      lastLearningUploadError = error.message;
+      return null;
+    }
+
+    return {
+      path: signed.path,
+      name: file.name || signed.name,
+      mimeType: contentType,
+    };
+  } catch (error) {
+    lastLearningUploadError =
+      error instanceof Error ? error.message : "Falha de rede no upload assinado.";
+    return null;
+  }
 }
 
 async function uploadLearningFileThroughAppServer({

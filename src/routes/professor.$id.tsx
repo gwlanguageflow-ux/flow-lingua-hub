@@ -4,7 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Languages, Sparkles, Calendar, ImagePlus, PencilLine } from "lucide-react";
+import {
+  Calendar,
+  ImagePlus,
+  Languages,
+  MapPin,
+  PencilLine,
+  Sparkles,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { LEVELS, WEEKDAYS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -262,6 +271,17 @@ function TeacherProfilePage() {
                     onCreated={(post) => setPosts((prev) => [post, ...prev])}
                   />
                 )}
+                <TeacherFeedSection
+                  posts={posts}
+                  isOwner={isOwner}
+                  teacherId={id}
+                  onUpdated={(post) =>
+                    setPosts((prev) => prev.map((item) => (item.id === post.id ? post : item)))
+                  }
+                  onDeleted={(postId) =>
+                    setPosts((prev) => prev.filter((item) => item.id !== postId))
+                  }
+                />
                 <Card title="Sobre">
                   <p className="text-brown whitespace-pre-line">{teacher.bio || "—"}</p>
                 </Card>
@@ -295,30 +315,6 @@ function TeacherProfilePage() {
                           </div>
                           {r.comment && <p className="text-sm text-brown">{r.comment}</p>}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
-                <Card title="Posts do professor">
-                  {posts.length === 0 ? (
-                    <p className="text-sm text-brown-soft">Nenhum post publicado ainda.</p>
-                  ) : (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {posts.map((post) => (
-                        <article
-                          key={post.id}
-                          className="overflow-hidden rounded-xl border border-border bg-cream"
-                        >
-                          {post.image_url && (
-                            <img src={post.image_url} alt="" className="h-48 w-full object-cover" />
-                          )}
-                          <div className="p-4">
-                            <p className="text-sm text-brown whitespace-pre-line">{post.caption}</p>
-                            <p className="text-[11px] text-brown-soft mt-3">
-                              {new Date(post.created_at).toLocaleDateString("pt-BR")}
-                            </p>
-                          </div>
-                        </article>
                       ))}
                     </div>
                   )}
@@ -454,6 +450,181 @@ function formatMoney(value: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function TeacherFeedSection({
+  posts,
+  isOwner,
+  teacherId,
+  onUpdated,
+  onDeleted,
+}: {
+  posts: Tables<"teacher_posts">[];
+  isOwner: boolean;
+  teacherId: string;
+  onUpdated: (post: Tables<"teacher_posts">) => void;
+  onDeleted: (postId: string) => void;
+}) {
+  return (
+    <Card title="Feed do professor">
+      {posts.length === 0 ? (
+        <p className="text-sm text-brown-soft">
+          Nenhum post publicado ainda. Quando o professor publicar, o feed aparece aqui.
+        </p>
+      ) : (
+        <div className="space-y-5">
+          {posts.map((post) => (
+            <TeacherPostCard
+              key={post.id}
+              post={post}
+              isOwner={isOwner}
+              teacherId={teacherId}
+              onUpdated={onUpdated}
+              onDeleted={onDeleted}
+            />
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function TeacherPostCard({
+  post,
+  isOwner,
+  teacherId,
+  onUpdated,
+  onDeleted,
+}: {
+  post: Tables<"teacher_posts">;
+  isOwner: boolean;
+  teacherId: string;
+  onUpdated: (post: Tables<"teacher_posts">) => void;
+  onDeleted: (postId: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [caption, setCaption] = useState(post.caption || "");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    setCaption(post.caption || "");
+  }, [post.caption]);
+
+  const savePost = async () => {
+    if (caption.trim().length < 3) {
+      toast.error("Escreva uma legenda para o post.");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("teacher_posts")
+      .update({ caption: caption.trim() })
+      .eq("id", post.id)
+      .eq("teacher_id", teacherId)
+      .select("*")
+      .single();
+    setSaving(false);
+    if (error || !data) {
+      toast.error(error?.message || "Nao foi possivel salvar o post.");
+      return;
+    }
+    onUpdated(data);
+    setEditing(false);
+    toast.success("Post atualizado.");
+  };
+
+  const deletePost = async () => {
+    const confirmed = window.confirm("Excluir esta publicacao do feed?");
+    if (!confirmed) return;
+    setDeleting(true);
+    const { error } = await supabase
+      .from("teacher_posts")
+      .delete()
+      .eq("id", post.id)
+      .eq("teacher_id", teacherId);
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    onDeleted(post.id);
+    toast.success("Post excluido.");
+  };
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-border bg-cream shadow-soft">
+      {post.image_url && (
+        <img src={post.image_url} alt="" className="max-h-[520px] w-full object-cover" />
+      )}
+      <div className="space-y-3 p-4">
+        {editing ? (
+          <Textarea rows={3} value={caption} onChange={(event) => setCaption(event.target.value)} />
+        ) : (
+          <p className="text-sm leading-6 text-brown whitespace-pre-line">{post.caption}</p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-brown-soft">
+            {new Date(post.created_at).toLocaleDateString("pt-BR")}
+          </p>
+          {isOwner && (
+            <div className="flex flex-wrap gap-2">
+              {editing ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={savePost}
+                    disabled={saving || deleting}
+                    className="bg-wine text-white hover:bg-bronze"
+                  >
+                    {saving ? "Salvando..." : "Salvar"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setCaption(post.caption || "");
+                      setEditing(false);
+                    }}
+                    disabled={saving || deleting}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditing(true)}
+                    disabled={deleting}
+                    className="border-wine text-wine"
+                  >
+                    <PencilLine className="mr-2 h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={deletePost}
+                    disabled={deleting}
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    {deleting ? "Excluindo..." : "Excluir"}
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function PostComposer({

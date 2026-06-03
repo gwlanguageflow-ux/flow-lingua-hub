@@ -112,6 +112,7 @@ function FeedPage() {
         .select("teacher_id, code, discount_percent")
         .eq("scope", "teacher")
         .eq("active", true)
+        .is("deleted_at", null)
         .lte("starts_at", now)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .in("teacher_id", ids);

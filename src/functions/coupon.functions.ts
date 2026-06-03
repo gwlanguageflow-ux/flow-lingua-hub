@@ -74,7 +74,8 @@ export const upsertTeacherCoupon = createServerFn({ method: "POST" })
         .from("discount_coupons")
         .update({ active: false, updated_at: now })
         .eq("teacher_id", context.userId)
-        .eq("scope", "teacher");
+        .eq("scope", "teacher")
+        .is("deleted_at", null);
     }
 
     const { data: existing, error: existingError } = await supabaseAdmin
@@ -82,6 +83,7 @@ export const upsertTeacherCoupon = createServerFn({ method: "POST" })
       .select("id")
       .eq("teacher_id", context.userId)
       .eq("scope", "teacher")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -97,6 +99,7 @@ export const upsertTeacherCoupon = createServerFn({ method: "POST" })
         ? `Cupom do professor com ${data.discountPercent}%`
         : "Cupom do professor pausado",
       created_by: context.userId,
+      deleted_at: null,
       updated_at: now,
     };
 
@@ -108,6 +111,28 @@ export const upsertTeacherCoupon = createServerFn({ method: "POST" })
     if (error || !coupon) throw new Error(error?.message ?? "Nao foi possivel salvar o cupom.");
 
     return { coupon };
+  });
+
+export const deleteTeacherCoupon = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabaseAdmin = await requireRole(context.userId, ["professor", "dev"]);
+    const now = new Date().toISOString();
+
+    const { error } = await supabaseAdmin
+      .from("discount_coupons")
+      .update({
+        active: false,
+        deleted_at: now,
+        updated_at: now,
+        title: "Cupom removido pelo professor",
+      })
+      .eq("teacher_id", context.userId)
+      .eq("scope", "teacher")
+      .is("deleted_at", null);
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const createDirectorCoupon = createServerFn({ method: "POST" })

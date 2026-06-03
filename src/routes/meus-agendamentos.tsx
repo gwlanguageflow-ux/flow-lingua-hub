@@ -104,8 +104,6 @@ function Page() {
 
     setItems(bookingRows || []);
     setMemberships(memberRows || []);
-    setMaterials(materialRows || []);
-    setAssignments(assignmentRows || []);
     setMessages(messageRows || []);
     setScores(scoreRows || []);
 
@@ -119,14 +117,26 @@ function Page() {
       setClasses([]);
     }
 
+    const activeClassIds = new Set((memberRows || []).map((item) => item.class_id));
+    const visibleMaterials = (materialRows || []).filter((item) => {
+      if (item.source === "platform") return true;
+      if (item.student_id === user.id) return true;
+      return Boolean(item.class_id && activeClassIds.has(item.class_id));
+    });
+    const visibleAssignments = (assignmentRows || []).filter((item) => {
+      if (item.student_id === user.id) return true;
+      return Boolean(item.class_id && activeClassIds.has(item.class_id));
+    });
+
+    setMaterials(visibleMaterials);
+    setAssignments(visibleAssignments);
+
     const teacherIds = Array.from(
       new Set([
         ...(bookingRows || []).map((b) => b.teacher_id),
         ...classRows.map((c) => c.teacher_id),
-        ...(materialRows || []).map((m) => m.teacher_id).filter((id): id is string => Boolean(id)),
-        ...(assignmentRows || [])
-          .map((a) => a.teacher_id)
-          .filter((id): id is string => Boolean(id)),
+        ...visibleMaterials.map((m) => m.teacher_id).filter((id): id is string => Boolean(id)),
+        ...visibleAssignments.map((a) => a.teacher_id).filter((id): id is string => Boolean(id)),
       ]),
     );
 
