@@ -19,7 +19,7 @@ WHERE slug IN ('essencial', 'essential');
 
 UPDATE public.subscription_plans
 SET
-  name = 'advenced',
+  name = 'advanced',
   description = 'Para quem busca evolucao acelerada com mais horas de acompanhamento.',
   features = ARRAY[
     'Todos os beneficios do plano essential',

@@ -477,7 +477,7 @@ function formatMoney(value: number) {
 
 function canonicalPlanName(name: string, slug?: string | null) {
   if (slug === "essencial" || slug === "essential") return "essential";
-  if (slug === "advanced" || slug === "advenced") return "advenced";
+  if (slug === "advanced") return "advanced";
   if (slug === "conversation") return "conversation";
   return name;
 }

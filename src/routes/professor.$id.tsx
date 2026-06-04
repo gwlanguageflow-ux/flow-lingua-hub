@@ -71,7 +71,7 @@ type TeacherCustomPlan = Pick<
 
 const PLATFORM_PRICES: { key: string; label: string; value: number }[] = [
   { key: "plan_essencial", label: "Plano essential (mensal)", value: 179.9 },
-  { key: "plan_advanced", label: "Plano advenced (mensal)", value: 299.9 },
+  { key: "plan_advanced", label: "Plano advanced (mensal)", value: 299.9 },
   { key: "plan_conversation", label: "Plano conversation (mensal)", value: 169.9 },
 ];
 

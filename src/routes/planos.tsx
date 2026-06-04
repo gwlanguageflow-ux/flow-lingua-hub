@@ -83,7 +83,6 @@ const planDisplayOrder: Record<string, number> = {
   essencial: 1,
   essential: 1,
   advanced: 2,
-  advenced: 2,
   conversation: 3,
 };
 
@@ -725,7 +724,7 @@ function formatMoney(value: number) {
 
 function canonicalPlanName(plan: Pick<Plan, "slug" | "name">) {
   if (plan.slug === "essencial" || plan.slug === "essential") return "essential";
-  if (plan.slug === "advanced" || plan.slug === "advenced") return "advenced";
+  if (plan.slug === "advanced") return "advanced";
   if (plan.slug === "conversation") return "conversation";
   return plan.name;
 }
