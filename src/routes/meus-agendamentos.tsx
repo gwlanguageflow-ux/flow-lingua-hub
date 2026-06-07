@@ -346,7 +346,13 @@ function Page() {
           </TabsList>
 
           <TabsContent value="aulas" className="mt-6">
-            <LessonsSection items={items} teachers={teachers} reviews={reviews} onDone={load} />
+            <LessonsSection
+              items={items}
+              teachers={teachers}
+              reviews={reviews}
+              studentId={user?.id}
+              onDone={load}
+            />
           </TabsContent>
 
           <TabsContent value="turmas" className="mt-6">
@@ -416,13 +422,37 @@ function LessonsSection({
   items,
   teachers,
   reviews,
+  studentId,
   onDone,
 }: {
   items: Booking[];
   teachers: Map<string, TeacherProfile>;
   reviews: Set<string>;
+  studentId?: string;
   onDone: () => void;
 }) {
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const confirmPresence = async (booking: Booking) => {
+    if (!studentId) return;
+    setConfirmingId(booking.id);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "confirmado" })
+      .eq("id", booking.id)
+      .eq("student_id", studentId)
+      .eq("status", "pendente");
+    setConfirmingId(null);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Presenca confirmada. Boa aula!");
+    onDone();
+  };
+
   if (items.length === 0) {
     return (
       <div className="text-center py-16">
@@ -459,9 +489,19 @@ function LessonsSection({
             </div>
             <div className="flex flex-col items-stretch md:items-end gap-2">
               <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
-                {b.status}
+                {studentBookingStatusLabel(b.status)}
               </span>
               {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
+              {!past && b.status === "pendente" && (
+                <Button
+                  size="sm"
+                  onClick={() => confirmPresence(b)}
+                  disabled={confirmingId === b.id}
+                  className="bg-wine text-white hover:bg-bronze"
+                >
+                  {confirmingId === b.id ? "Confirmando..." : "Confirmar presenca"}
+                </Button>
+              )}
               {canReview && <ReviewDialog booking={b} onDone={onDone} />}
             </div>
           </div>
@@ -910,6 +950,16 @@ function Empty({ msg }: { msg: string }) {
       {msg}
     </div>
   );
+}
+
+function studentBookingStatusLabel(status: Booking["status"]) {
+  const labels: Record<Booking["status"], string> = {
+    pendente: "Confirmacao pendente",
+    confirmado: "Presenca confirmada",
+    concluido: "Concluida",
+    cancelado: "Cancelada",
+  };
+  return labels[status] ?? status;
 }
 
 function formatClassSchedule(item: ClassGroup) {

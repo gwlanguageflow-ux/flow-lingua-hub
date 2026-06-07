@@ -1100,7 +1100,13 @@ function ClassroomPanel({
   const [modality, setModality] = useState<ClassModality>("turma");
   const [privateStudentId, setPrivateStudentId] = useState("");
   const [selectedStudentByClass, setSelectedStudentByClass] = useState<Record<string, string>>({});
+  const [lessonStudentId, setLessonStudentId] = useState("");
+  const [lessonDate, setLessonDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [lessonTime, setLessonTime] = useState("19:00");
+  const [lessonDuration, setLessonDuration] = useState("60");
+  const [lessonMeetingUrl, setLessonMeetingUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [schedulingLesson, setSchedulingLesson] = useState(false);
 
   const createClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1176,8 +1182,211 @@ function ClassroomPanel({
     await onChanged();
   };
 
+  const scheduleLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!teacherId) return;
+    if (!lessonStudentId) {
+      toast.error("Escolha o aluno para a aula.");
+      return;
+    }
+    if (!lessonDate || !lessonTime) {
+      toast.error("Informe data e horario da aula.");
+      return;
+    }
+
+    const scheduledAt = new Date(`${lessonDate}T${lessonTime}:00`);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      toast.error("Data ou horario invalido.");
+      return;
+    }
+    if (scheduledAt <= new Date()) {
+      toast.error("Escolha um horario futuro para a aula.");
+      return;
+    }
+
+    setSchedulingLesson(true);
+    const { error } = await supabase.from("bookings").insert({
+      teacher_id: teacherId,
+      student_id: lessonStudentId,
+      scheduled_at: scheduledAt.toISOString(),
+      duration_minutes: Number(lessonDuration),
+      meeting_url: lessonMeetingUrl.trim() || null,
+      status: "pendente",
+    });
+    setSchedulingLesson(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Aula enviada para confirmacao do aluno.");
+    setLessonMeetingUrl("");
+    await onChanged();
+  };
+
   return (
     <div className="space-y-6">
+      <form onSubmit={scheduleLesson} className="gw-app-card gw-input-shell rounded-xl p-5">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-bronze" />
+              <h3 className="font-display text-xl text-wine">Agendar aula para confirmacao</h3>
+            </div>
+            <p className="mt-1 text-sm text-brown-soft">
+              A aula aparece no painel do aluno como pendente ate ele confirmar a presenca.
+            </p>
+          </div>
+          <span className="rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
+            Professor agenda, aluno confirma
+          </span>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <div className="space-y-2 lg:col-span-2">
+            <Label>Aluno</Label>
+            <Select value={lessonStudentId} onValueChange={setLessonStudentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar aluno ativo" />
+              </SelectTrigger>
+              <SelectContent>
+                {students.length === 0 ? (
+                  <SelectItem value="no-students" disabled>
+                    Nenhum aluno ativo encontrado
+                  </SelectItem>
+                ) : (
+                  students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.full_name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Data</Label>
+            <Input
+              type="date"
+              min={new Date().toISOString().split("T")[0]}
+              value={lessonDate}
+              onChange={(e) => setLessonDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Horario</Label>
+            <Input type="time" value={lessonTime} onChange={(e) => setLessonTime(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Duracao</Label>
+            <Select value={lessonDuration} onValueChange={setLessonDuration}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30">30 min</SelectItem>
+                <SelectItem value="60">1 hora</SelectItem>
+                <SelectItem value="90">1h30</SelectItem>
+                <SelectItem value="120">2 horas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 lg:col-span-4">
+            <Label>Link da videoaula</Label>
+            <Input
+              placeholder="Google Meet, Zoom..."
+              value={lessonMeetingUrl}
+              onChange={(e) => setLessonMeetingUrl(e.target.value)}
+            />
+          </div>
+        </div>
+        {students.length === 0 && (
+          <p className="mt-3 text-sm text-brown-soft">
+            Alunos aparecem aqui quando possuem assinatura ativa com voce.
+          </p>
+        )}
+        <Button
+          disabled={schedulingLesson || students.length === 0}
+          className="mt-4 bg-wine text-white hover:bg-bronze gap-2"
+        >
+          <Calendar className="h-4 w-4" />
+          {schedulingLesson ? "Agendando..." : "Enviar aula para o aluno"}
+        </Button>
+      </form>
+
+      {bookings.length > 0 && (
+        <div className="gw-app-card rounded-xl p-5">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="font-display text-xl text-wine">Agenda enviada aos alunos</h3>
+              <p className="text-sm text-brown-soft">
+                Acompanhe as aulas pendentes, confirmadas e prontas para finalizacao.
+              </p>
+            </div>
+            <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-wine">
+              {bookings.length} aulas ativas
+            </span>
+          </div>
+          <div className="space-y-3">
+            {bookings.map((booking) => {
+              const student = studentMap.get(booking.student_id);
+              const isPast = new Date(booking.scheduled_at) <= new Date();
+              const canComplete = isPast && booking.status === "confirmado";
+              return (
+                <div
+                  key={booking.id}
+                  className="flex flex-col gap-4 rounded-xl border border-border p-4 md:flex-row md:items-center"
+                >
+                  <Avatar name={student?.full_name || "Aluno"} url={student?.avatar_url} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-wine">
+                      {student?.full_name || "Aluno"} - {student?.desired_language || "idiomas"}
+                    </p>
+                    <p className="text-sm text-brown">
+                      {format(new Date(booking.scheduled_at), "EEEE, d 'de' MMMM 'as' HH:mm", {
+                        locale: ptBR,
+                      })}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
+                        {bookingStatusLabel(booking.status)}
+                      </span>
+                      {booking.status === "pendente" && (
+                        <span className="text-xs text-brown-soft">
+                          Aguardando confirmacao do aluno
+                        </span>
+                      )}
+                    </div>
+                    {booking.meeting_url && (
+                      <p className="mt-1 truncate text-xs text-bronze">{booking.meeting_url}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <MeetingLinkEditor
+                      bookingId={booking.id}
+                      initialUrl={booking.meeting_url}
+                      onSaved={onChanged}
+                    />
+                    {canComplete && (
+                      <Button
+                        size="sm"
+                        onClick={() => onCompleteBooking(booking.id)}
+                        disabled={creditingBookingId === booking.id}
+                        className="bg-wine text-white hover:bg-bronze gap-2"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {creditingBookingId === booking.id ? "Creditando..." : "Marcar concluida"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <form onSubmit={createClass} className="gw-app-card gw-input-shell rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Plus className="h-5 w-5 text-bronze" />
@@ -1420,7 +1629,8 @@ function ClassroomPanel({
             <div className="space-y-3">
               {bookings.map((booking) => {
                 const student = studentMap.get(booking.student_id);
-                const canComplete = new Date(booking.scheduled_at) <= new Date();
+                const canComplete =
+                  new Date(booking.scheduled_at) <= new Date() && booking.status === "confirmado";
                 return (
                   <div
                     key={booking.id}
@@ -2949,6 +3159,16 @@ function requestStatusLabel(status: string) {
     em_preparo: "Em preparo",
     entregue: "Entregue",
     cancelado: "Cancelado",
+  };
+  return labels[status] ?? status;
+}
+
+function bookingStatusLabel(status: Booking["status"]) {
+  const labels: Record<Booking["status"], string> = {
+    pendente: "Aguardando aluno",
+    confirmado: "Presenca confirmada",
+    concluido: "Concluida",
+    cancelado: "Cancelada",
   };
   return labels[status] ?? status;
 }

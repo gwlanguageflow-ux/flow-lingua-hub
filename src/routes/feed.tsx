@@ -1,483 +1,485 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
-import { useAuth } from "@/contexts/AuthContext";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { LEVELS, sortLanguagesByCatalog } from "@/lib/constants";
-import { getProfileAvatarUrl, getProfileBannerUrl } from "@/lib/profile-media";
+import { format, formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   BookOpenCheck,
   CalendarCheck,
-  Filter,
-  Globe2,
+  Image as ImageIcon,
   Languages,
   Search,
   Sparkles,
   Star,
+  UserRound,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeader } from "@/components/SiteHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import { getProfileAvatarUrl } from "@/lib/profile-media";
 
 export const Route = createFileRoute("/feed")({
-  head: () => ({ meta: [{ title: "Encontre seu professor — GWLanguageFlow" }] }),
+  head: () => ({ meta: [{ title: "Feed dos professores - GWLanguageFlow" }] }),
   component: FeedPage,
 });
 
-interface TeacherCard {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-  email: string | null;
-  bio: string | null;
-  hourly_rate: number;
-  languages_taught: string[];
-  levels_taught: string[];
-  is_active: boolean;
-  use_custom_pricing: boolean;
-  rating?: number;
-  coupon?: Pick<Tables<"discount_coupons">, "code" | "discount_percent"> | null;
-  customPlans: PlanSummary[];
-  platformPlans: PlanSummary[];
-}
+type TeacherPost = Tables<"teacher_posts">;
+type PublicProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url" | "email">;
+type TeacherProfile = Pick<
+  Tables<"teacher_profiles">,
+  "id" | "bio" | "languages_taught" | "levels_taught" | "is_active"
+>;
 
-interface PlanSummary {
-  id: string;
-  name: string;
-  price: number;
-  description?: string | null;
-}
+type FeedPost = TeacherPost & {
+  profile?: PublicProfile;
+  teacher?: TeacherProfile;
+  rating?: number;
+  reviewCount?: number;
+};
+
+type TeacherSuggestion = TeacherProfile & {
+  profile?: PublicProfile;
+  rating?: number;
+  reviewCount?: number;
+  postCount: number;
+};
 
 function FeedPage() {
-  const { user } = useAuth();
-  const [teachers, setTeachers] = useState<TeacherCard[]>([]);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [teachers, setTeachers] = useState<TeacherSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [language, setLanguage] = useState<string>("all");
-  const [level, setLevel] = useState<string>("all");
-  const [maxPrice, setMaxPrice] = useState<string>("");
-  const [preferredLanguage, setPreferredLanguage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { data: teachersData } = await supabase
-        .from("teacher_profiles")
-        .select(
-          "id, bio, hourly_rate, languages_taught, levels_taught, is_active, use_custom_pricing",
-        )
-        .eq("is_active", true);
+    let active = true;
 
-      if (!teachersData?.length) {
+    const loadFeed = async () => {
+      setLoading(true);
+      setErrorMessage(null);
+
+      const [{ data: postRows, error: postsError }, { data: teacherRows }] = await Promise.all([
+        supabase
+          .from("teacher_posts")
+          .select("*")
+          .eq("visibility", "public")
+          .order("created_at", { ascending: false })
+          .limit(80),
+        supabase
+          .from("teacher_profiles")
+          .select("id, bio, languages_taught, levels_taught, is_active")
+          .eq("is_active", true),
+      ]);
+
+      if (!active) return;
+
+      if (postsError) {
+        setErrorMessage(postsError.message);
+        setPosts([]);
         setTeachers([]);
         setLoading(false);
         return;
       }
 
-      const ids = teachersData.map((t) => t.id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url, email")
-        .in("id", ids);
-      const profMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
+      const teacherIds = Array.from(
+        new Set([
+          ...(postRows ?? []).map((post) => post.teacher_id),
+          ...(teacherRows ?? []).map((teacher) => teacher.id),
+        ]),
+      );
 
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("teacher_id, rating")
-        .in("teacher_id", ids);
-      const [{ data: customPlans }, { data: platformPlans }] = await Promise.all([
-        supabase
-          .from("teacher_custom_plans")
-          .select("id, teacher_id, name, description, price, sort_order")
-          .in("teacher_id", ids)
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("subscription_plans")
-          .select("id, name, slug, price, sort_order")
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true }),
-      ]);
-      const now = new Date().toISOString();
-      const { data: coupons } = await supabase
-        .from("discount_coupons")
-        .select("teacher_id, code, discount_percent")
-        .eq("scope", "teacher")
-        .eq("active", true)
-        .is("deleted_at", null)
-        .lte("starts_at", now)
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
-        .in("teacher_id", ids);
-      const couponMap = new Map(coupons?.map((coupon) => [coupon.teacher_id, coupon]) ?? []);
-      const customPlanMap = new Map<string, PlanSummary[]>();
-      customPlans?.forEach((plan) => {
-        const list = customPlanMap.get(plan.teacher_id) ?? [];
-        list.push({
-          id: plan.id,
-          name: plan.name,
-          description: plan.description,
-          price: Number(plan.price || 0),
-        });
-        customPlanMap.set(plan.teacher_id, list);
-      });
-      const platformPlanList: PlanSummary[] = (platformPlans ?? []).map((plan) => ({
-        id: plan.id,
-        name: canonicalPlanName(plan.name, plan.slug),
-        price: Number(plan.price || 0),
-      }));
-      const ratingMap = new Map<string, number>();
-      reviews?.forEach((r) => {
-        const cur = ratingMap.get(r.teacher_id) || 0;
-        const c = (ratingMap.get(`${r.teacher_id}__c`) as never as number) || 0;
-        ratingMap.set(r.teacher_id, cur + r.rating);
-        ratingMap.set(`${r.teacher_id}__c` as never, (c + 1) as never);
+      const [{ data: profiles }, { data: reviews }] = teacherIds.length
+        ? await Promise.all([
+            supabase
+              .from("profiles")
+              .select("id, full_name, avatar_url, email")
+              .in("id", teacherIds),
+            supabase.from("reviews").select("teacher_id, rating").in("teacher_id", teacherIds),
+          ])
+        : [{ data: [] }, { data: [] }];
+
+      if (!active) return;
+
+      const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+      const teacherMap = new Map((teacherRows ?? []).map((teacher) => [teacher.id, teacher]));
+      const ratingMap = buildRatingMap(reviews ?? []);
+      const postCountMap = new Map<string, number>();
+      (postRows ?? []).forEach((post) => {
+        postCountMap.set(post.teacher_id, (postCountMap.get(post.teacher_id) ?? 0) + 1);
       });
 
-      const cards: TeacherCard[] = teachersData.map((t) => {
-        const p = profMap.get(t.id);
-        const sum = ratingMap.get(t.id) || 0;
-        const count = (ratingMap.get(`${t.id}__c` as never) as never as number) || 0;
-        return {
-          id: t.id,
-          full_name: p?.full_name || "Professor",
-          avatar_url: p?.avatar_url ?? null,
-          email: p?.email ?? null,
-          bio: t.bio,
-          hourly_rate: Number(t.hourly_rate || 0),
-          languages_taught: t.languages_taught || [],
-          levels_taught: t.levels_taught || [],
-          is_active: t.is_active,
-          use_custom_pricing: !!t.use_custom_pricing,
-          rating: count > 0 ? sum / count : undefined,
-          coupon: couponMap.get(t.id) ?? null,
-          customPlans: customPlanMap.get(t.id) ?? [],
-          platformPlans: platformPlanList,
-        };
-      });
-      setTeachers(cards);
+      setPosts(
+        (postRows ?? []).map((post) => {
+          const rating = ratingMap.get(post.teacher_id);
+          return {
+            ...post,
+            profile: profileMap.get(post.teacher_id),
+            teacher: teacherMap.get(post.teacher_id),
+            rating: rating?.average,
+            reviewCount: rating?.count,
+          };
+        }),
+      );
+
+      setTeachers(
+        (teacherRows ?? []).map((teacher) => {
+          const rating = ratingMap.get(teacher.id);
+          return {
+            ...teacher,
+            profile: profileMap.get(teacher.id),
+            rating: rating?.average,
+            reviewCount: rating?.count,
+            postCount: postCountMap.get(teacher.id) ?? 0,
+          };
+        }),
+      );
+
       setLoading(false);
-    })();
+    };
+
+    loadFeed();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requested = params.get("idioma") ?? params.get("language");
-
-    if (requested) {
-      setPreferredLanguage(requested);
-      return;
-    }
-
-    if (!user) return;
-
-    supabase
-      .from("student_profiles")
-      .select("desired_language")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.desired_language) setPreferredLanguage(data.desired_language);
-      });
-  }, [user]);
-
-  const availableLanguages = useMemo(
-    () => sortLanguagesByCatalog(teachers.flatMap((teacher) => teacher.languages_taught)),
-    [teachers],
-  );
-
-  useEffect(() => {
-    if (!preferredLanguage || availableLanguages.length === 0) return;
-
-    const match = availableLanguages.find(
-      (item) => item.toLocaleLowerCase("pt-BR") === preferredLanguage.toLocaleLowerCase("pt-BR"),
-    );
-
-    if (match) setLanguage(match);
-  }, [availableLanguages, preferredLanguage]);
-
-  const filtered = useMemo(() => {
-    return teachers.filter((t) => {
-      if (
-        search &&
-        !t.full_name.toLowerCase().includes(search.toLowerCase()) &&
-        !(t.bio || "").toLowerCase().includes(search.toLowerCase())
-      )
-        return false;
-      if (language !== "all" && !t.languages_taught.includes(language)) return false;
-      if (level !== "all" && !t.levels_taught.includes(level)) return false;
-      if (maxPrice && t.hourly_rate > Number(maxPrice)) return false;
-      return true;
+  const filteredPosts = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase("pt-BR");
+    if (!term) return posts;
+    return posts.filter((post) => {
+      const name = post.profile?.full_name ?? "Professor";
+      const languages = post.teacher?.languages_taught?.join(" ") ?? "";
+      return [post.caption, name, languages].some((value) =>
+        value.toLocaleLowerCase("pt-BR").includes(term),
+      );
     });
-  }, [teachers, search, language, level, maxPrice]);
+  }, [posts, search]);
+
+  const highlightedTeachers = useMemo(() => {
+    return [...teachers]
+      .sort((a, b) => b.postCount - a.postCount || (b.rating ?? 0) - (a.rating ?? 0))
+      .slice(0, 5);
+  }, [teachers]);
 
   return (
     <div className="gw-app-shell flex min-h-screen flex-col">
       <SiteHeader />
       <main className="container mx-auto max-w-7xl flex-1 px-4 py-8 md:py-10">
-        <section className="gw-command-hero gw-appear mb-6 overflow-hidden rounded-xl">
-          <div className="grid gap-px bg-border/70 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="gw-command-hero mb-6 overflow-hidden rounded-xl">
+          <div className="grid gap-px bg-border/70 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="bg-white/92 p-6 md:p-9">
-              <p className="gw-section-kicker">Professores GWLanguageFlow</p>
+              <p className="gw-section-kicker">Feed GWLanguageFlow</p>
               <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-wine md:text-5xl">
-                Encontre o especialista certo para sua jornada.
+                Posts, bastidores e método dos professores.
               </h1>
               <p className="mt-3 max-w-2xl leading-7 text-brown-soft">
-                Veja perfis, idiomas, níveis e planos antes de iniciar sua assinatura com o
-                professor escolhido.
+                Acompanhe publicações dos professores, veja a personalidade de cada profissional e
+                abra o perfil para ver o feed completo antes de escolher sua jornada.
               </p>
-            </div>
-
-            <div className="gw-ink-panel p-6 md:p-8">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <div className="rounded-lg border border-white/10 bg-white/8 p-5">
-                  <CalendarCheck className="mb-3 h-5 w-5 text-bronze" />
-                  <p className="font-display text-xl font-bold text-white">Agenda online</p>
-                  <p className="mt-1 text-sm text-white/66">Aulas com link e horário registrados</p>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/8 p-5">
-                  <BookOpenCheck className="mb-3 h-5 w-5 text-bronze" />
-                  <p className="font-display text-xl font-bold text-white">Método guiado</p>
-                  <p className="mt-1 text-sm text-white/66">
-                    Materiais, atividades e acompanhamento
-                  </p>
+              <div className="mt-6 max-w-xl">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brown-soft" />
+                  <Input
+                    className="h-12 rounded-xl pl-10"
+                    placeholder="Buscar por professor, idioma ou legenda..."
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
                 </div>
               </div>
             </div>
+
+            <aside className="gw-ink-panel p-6 md:p-8">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FeedStat icon={ImageIcon} label="Posts publicados" value={posts.length} />
+                <FeedStat icon={UserRound} label="Professores ativos" value={teachers.length} />
+                <FeedStat icon={CalendarCheck} label="Agenda integrada" value="Aluno confirma" />
+                <FeedStat icon={BookOpenCheck} label="Perfil completo" value="Feed individual" />
+              </div>
+            </aside>
           </div>
         </section>
 
-        <div className="gw-app-card gw-input-shell mb-8 rounded-xl p-4 md:p-5">
-          <div className="mb-4 flex items-center gap-2 text-wine">
-            <Filter className="h-4 w-4 text-bronze" />{" "}
-            <span className="text-sm font-bold">Filtros de busca</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brown-soft" />
-              <Input
-                className="pl-9"
-                placeholder="Buscar..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger>
-                <SelectValue placeholder="Idioma" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os idiomas</SelectItem>
-                {availableLanguages.map((l) => (
-                  <SelectItem key={l} value={l}>
-                    {l}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={level} onValueChange={setLevel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Nível" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os níveis</SelectItem>
-                {LEVELS.map((l) => (
-                  <SelectItem key={l.value} value={l.value}>
-                    {l.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Preço máx. (R$/h)"
-              type="number"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="h-80 animate-pulse rounded-xl border border-border bg-white"
-              />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="gw-empty-state rounded-xl py-20 text-center">
-            <Globe2 className="h-12 w-12 text-bronze mx-auto mb-4" />
-            <h3 className="font-display text-xl text-wine mb-2">Nenhum professor encontrado</h3>
-            <p className="text-brown text-sm">Ajuste os filtros para ver mais resultados.</p>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((t, i) => (
-              <TeacherCardEl key={t.id} teacher={t} index={i} />
-            ))}
+        {errorMessage && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {errorMessage}
           </div>
         )}
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="space-y-5">
+            {loading ? (
+              <FeedSkeleton />
+            ) : filteredPosts.length === 0 ? (
+              <EmptyFeed hasSearch={!!search.trim()} teachers={highlightedTeachers} />
+            ) : (
+              filteredPosts.map((post, index) => (
+                <PostCard key={post.id} post={post} index={index} />
+              ))
+            )}
+          </section>
+
+          <aside className="space-y-5 lg:sticky lg:top-24 lg:h-fit">
+            <div className="gw-app-card rounded-xl p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-bronze" />
+                <h2 className="font-display text-xl font-bold text-wine">
+                  Professores em destaque
+                </h2>
+              </div>
+              <div className="mt-4 space-y-3">
+                {loading ? (
+                  [1, 2, 3].map((item) => (
+                    <div key={item} className="h-16 animate-pulse rounded-xl bg-cream" />
+                  ))
+                ) : highlightedTeachers.length === 0 ? (
+                  <p className="text-sm text-brown-soft">Nenhum professor ativo encontrado.</p>
+                ) : (
+                  highlightedTeachers.map((teacher) => (
+                    <TeacherMiniCard key={teacher.id} teacher={teacher} />
+                  ))
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
       </main>
       <SiteFooter />
     </div>
   );
 }
 
-function TeacherCardEl({ teacher, index }: { teacher: TeacherCard; index: number }) {
-  const avatarUrl = getProfileAvatarUrl(teacher);
-  const bannerUrl = getProfileBannerUrl(teacher);
-  const visiblePlans = teacher.use_custom_pricing ? teacher.customPlans : teacher.platformPlans;
-  const positivePrices = visiblePlans
-    .map((plan) => Number(plan.price || 0))
-    .filter((price) => price > 0);
-  const minPrice = positivePrices.length
-    ? Math.min(...positivePrices)
-    : Number(teacher.hourly_rate || 0);
-  const priceSuffix = teacher.use_custom_pricing ? "/mês" : "/mês";
+function PostCard({ post, index }: { post: FeedPost; index: number }) {
+  const teacherName = post.profile?.full_name || "Professor GW";
+  const avatarUrl = getProfileAvatarUrl(post.profile ?? {});
+  const languages = post.teacher?.languages_taught ?? [];
+  const createdAt = new Date(post.created_at);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
+    <motion.article
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
-      className={`gw-app-card group relative overflow-hidden rounded-xl transition hover:-translate-y-1 hover:shadow-warm ${
-        teacher.coupon ? "ring-2 ring-emerald-300/80 shadow-[0_0_34px_rgba(16,185,129,0.32)]" : ""
-      }`}
+      transition={{ delay: index * 0.035 }}
+      className="gw-app-card overflow-hidden rounded-xl"
     >
-      {teacher.coupon && (
-        <div className="pointer-events-none absolute inset-0 rounded-xl bg-emerald-300/10 opacity-70" />
-      )}
-      <div
-        className="gw-profile-banner relative h-36 bg-cover bg-center"
-        style={
-          bannerUrl
-            ? {
-                backgroundImage: `linear-gradient(120deg, rgba(34, 13, 17, 0.78), rgba(114, 47, 55, 0.55), rgba(205, 127, 50, 0.28)), url(${bannerUrl})`,
-                backgroundPosition: "center 38%",
-              }
-            : undefined
-        }
-      >
-        {teacher.rating && (
-          <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-lg bg-background/95 px-2.5 py-1 shadow-soft backdrop-blur">
-            <Star className="h-3.5 w-3.5 fill-bronze text-bronze" />
-            <span className="text-xs font-semibold text-wine">{teacher.rating.toFixed(1)}</span>
-          </div>
-        )}
-        {teacher.coupon && (
-          <div className="absolute left-3 top-3 z-10 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold uppercase text-white shadow-[0_0_20px_rgba(16,185,129,0.45)]">
-            Cupom {teacher.coupon.discount_percent}%
-          </div>
-        )}
-      </div>
-      <div className="space-y-3 p-5 pt-0">
-        <div className="-mt-10 relative z-10 flex flex-col gap-3">
-          <div className="gw-avatar-frame flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={teacher.full_name}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <span className="text-2xl font-bold text-wine">{teacher.full_name.charAt(0)}</span>
-            )}
-          </div>
+      <header className="flex items-center justify-between gap-3 border-b border-border/80 p-4 md:p-5">
+        <Link
+          to="/professor/$id"
+          params={{ id: post.teacher_id }}
+          className="group flex min-w-0 items-center gap-3"
+        >
+          <AvatarBlock name={teacherName} url={avatarUrl} />
           <div className="min-w-0">
-            <h3 className="line-clamp-2 break-words text-lg font-bold leading-tight text-wine">
-              {teacher.full_name}
-            </h3>
-            <p className="mt-1 flex items-center gap-1 text-xs text-brown-soft">
+            <p className="truncate font-semibold text-wine group-hover:text-bronze">
+              {teacherName}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-brown-soft">
               <Languages className="h-3.5 w-3.5 text-bronze" />
-              {teacher.languages_taught.slice(0, 3).join(" · ") || "Idioma a confirmar"}
+              {languages.slice(0, 3).join(", ") || "Idioma a confirmar"}
             </p>
           </div>
-        </div>
-        <p className="text-sm text-brown line-clamp-2 min-h-[2.5rem]">
-          {teacher.bio || "Professor apaixonado por idiomas."}
-        </p>
-        <div className="flex items-baseline justify-between pt-1">
-          <div>
-            <span className="text-xl font-display font-bold text-bronze">
-              {minPrice > 0 ? formatMoney(minPrice) : "Sob consulta"}
-            </span>
-            {minPrice > 0 && <span className="text-xs text-brown-soft">{priceSuffix}</span>}
+        </Link>
+        {post.rating && (
+          <div className="flex shrink-0 items-center gap-1 rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
+            <Star className="h-3.5 w-3.5 fill-bronze" />
+            {post.rating.toFixed(1)}
           </div>
-        </div>
-        <details className="group/pricing rounded-xl border border-border bg-cream px-3 py-2">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.12em] text-wine">
-            <span>
-              {teacher.use_custom_pricing ? "Valor do professor" : "Valores da plataforma"}
-            </span>
-            <Sparkles className="h-3.5 w-3.5 text-bronze transition group-open/pricing:rotate-45" />
-          </summary>
-          <div className="mt-3 space-y-2">
-            {visiblePlans.length === 0 ? (
-              <p className="text-xs normal-case tracking-normal text-brown-soft">
-                Planos em configuração.
-              </p>
-            ) : (
-              visiblePlans.map((plan) => (
-                <div key={plan.id} className="rounded-lg bg-white/80 p-2 shadow-soft">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold normal-case tracking-normal text-wine">
-                      {plan.name}
-                    </span>
-                    <span className="text-sm font-bold normal-case tracking-normal text-bronze">
-                      {formatMoney(plan.price)}
-                    </span>
-                  </div>
-                  {plan.description && (
-                    <p className="mt-1 line-clamp-2 text-xs normal-case tracking-normal text-brown-soft">
-                      {plan.description}
-                    </p>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </details>
-        <div className="flex gap-2 pt-2">
-          <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full rounded-lg border-wine/30 text-wine hover:bg-cream"
+        )}
+      </header>
+
+      {post.image_url ? (
+        <Link to="/professor/$id" params={{ id: post.teacher_id }} className="block bg-ink">
+          <img
+            src={post.image_url}
+            alt={`Post de ${teacherName}`}
+            className="max-h-[720px] w-full object-cover"
+            loading="lazy"
+          />
+        </Link>
+      ) : (
+        <Link
+          to="/professor/$id"
+          params={{ id: post.teacher_id }}
+          className="block bg-gradient-warm px-6 py-14 text-white md:px-10"
+        >
+          <p className="font-display text-3xl font-bold leading-tight md:text-5xl">
+            {post.caption}
+          </p>
+        </Link>
+      )}
+
+      <div className="space-y-4 p-4 md:p-5">
+        {post.image_url && (
+          <p className="leading-7 text-brown">
+            <Link
+              to="/professor/$id"
+              params={{ id: post.teacher_id }}
+              className="font-semibold text-wine hover:text-bronze"
             >
-              Ver perfil
-            </Button>
-          </Link>
-          <Link to="/professor/$id" params={{ id: teacher.id }} className="flex-1">
-            <Button className="w-full rounded-lg bg-wine text-white hover:bg-bronze">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Escolher
-            </Button>
-          </Link>
+              {teacherName}
+            </Link>{" "}
+            {post.caption}
+          </p>
+        )}
+        <div className="flex flex-col gap-3 border-t border-border/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs uppercase tracking-[0.18em] text-brown-soft">
+            {format(createdAt, "dd/MM/yyyy")} -{" "}
+            {formatDistanceToNow(createdAt, { addSuffix: true, locale: ptBR })}
+          </p>
+          <div className="flex gap-2">
+            <Link to="/professor/$id" params={{ id: post.teacher_id }}>
+              <Button variant="outline" className="border-wine/30 text-wine hover:bg-cream">
+                Ver perfil
+              </Button>
+            </Link>
+            <Link to="/professor/$id" params={{ id: post.teacher_id }}>
+              <Button className="bg-wine text-white hover:bg-bronze">Ver feed completo</Button>
+            </Link>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }
 
-function formatMoney(value: number) {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+function TeacherMiniCard({ teacher }: { teacher: TeacherSuggestion }) {
+  const name = teacher.profile?.full_name || "Professor GW";
+  const avatarUrl = getProfileAvatarUrl(teacher.profile ?? {});
+
+  return (
+    <Link
+      to="/professor/$id"
+      params={{ id: teacher.id }}
+      className="flex items-center gap-3 rounded-xl border border-border bg-white/80 p-3 transition hover:-translate-y-0.5 hover:border-bronze/50 hover:shadow-soft"
+    >
+      <AvatarBlock name={name} url={avatarUrl} compact />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-wine">{name}</p>
+        <p className="truncate text-xs text-brown-soft">
+          {(teacher.languages_taught ?? []).slice(0, 2).join(", ") || "Idioma a confirmar"}
+        </p>
+      </div>
+      <span className="rounded-full bg-cream px-2.5 py-1 text-[11px] font-semibold text-bronze">
+        {teacher.postCount} posts
+      </span>
+    </Link>
+  );
 }
 
-function canonicalPlanName(name: string, slug?: string | null) {
-  if (slug === "essencial" || slug === "essential") return "essential";
-  if (slug === "advanced") return "advanced";
-  if (slug === "conversation") return "conversation";
-  return name;
+function EmptyFeed({ hasSearch, teachers }: { hasSearch: boolean; teachers: TeacherSuggestion[] }) {
+  return (
+    <div className="gw-empty-state rounded-xl px-5 py-14 text-center">
+      <ImageIcon className="mx-auto mb-4 h-12 w-12 text-bronze" />
+      <h2 className="font-display text-2xl font-bold text-wine">
+        {hasSearch ? "Nenhum post encontrado" : "Nenhum post publicado ainda"}
+      </h2>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-brown-soft">
+        {hasSearch
+          ? "Tente buscar por outro professor, idioma ou palavra da legenda."
+          : "Quando os professores publicarem no perfil, as postagens aparecem aqui em ordem recente."}
+      </p>
+      {teachers.length > 0 && (
+        <div className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2">
+          {teachers.slice(0, 4).map((teacher) => (
+            <TeacherMiniCard key={teacher.id} teacher={teacher} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeedSkeleton() {
+  return (
+    <>
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="gw-app-card overflow-hidden rounded-xl">
+          <div className="flex items-center gap-3 border-b border-border/80 p-5">
+            <div className="h-12 w-12 animate-pulse rounded-2xl bg-cream" />
+            <div className="space-y-2">
+              <div className="h-4 w-48 animate-pulse rounded bg-cream" />
+              <div className="h-3 w-32 animate-pulse rounded bg-cream" />
+            </div>
+          </div>
+          <div className="h-[420px] animate-pulse bg-cream" />
+          <div className="space-y-2 p-5">
+            <div className="h-4 w-full animate-pulse rounded bg-cream" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-cream" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function FeedStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof ImageIcon;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/8 p-5">
+      <Icon className="mb-3 h-5 w-5 text-bronze" />
+      <p className="font-display text-2xl font-bold text-white">{value}</p>
+      <p className="mt-1 text-sm text-white/66">{label}</p>
+    </div>
+  );
+}
+
+function AvatarBlock({
+  name,
+  url,
+  compact = false,
+}: {
+  name: string;
+  url?: string | null;
+  compact?: boolean;
+}) {
+  const size = compact ? "h-11 w-11 rounded-xl" : "h-12 w-12 rounded-2xl";
+  return (
+    <div
+      className={`${size} flex shrink-0 items-center justify-center overflow-hidden bg-gradient-warm font-display font-bold text-white shadow-soft`}
+    >
+      {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : initials(name)}
+    </div>
+  );
+}
+
+function buildRatingMap(reviews: Array<{ teacher_id: string; rating: number }>) {
+  const ratingMap = new Map<string, { average: number; count: number }>();
+  const totals = new Map<string, { sum: number; count: number }>();
+
+  reviews.forEach((review) => {
+    const current = totals.get(review.teacher_id) ?? { sum: 0, count: 0 };
+    current.sum += Number(review.rating || 0);
+    current.count += 1;
+    totals.set(review.teacher_id, current);
+  });
+
+  totals.forEach((value, teacherId) => {
+    ratingMap.set(teacherId, {
+      average: value.count ? value.sum / value.count : 0,
+      count: value.count,
+    });
+  });
+
+  return ratingMap;
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toLocaleUpperCase("pt-BR");
 }
