@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   BookOpen,
   CalendarCheck,
+  CheckCircle2,
   Download,
   FileText,
   FolderOpen,
@@ -46,6 +47,7 @@ type ClassGroup = Tables<"class_groups">;
 type ClassMember = Tables<"class_members">;
 type ClassMaterial = Tables<"class_materials">;
 type ClassAssignment = Tables<"class_assignments">;
+type ClassAssignmentSubmission = Tables<"class_assignment_submissions">;
 type StudentMessage = Tables<"teacher_student_messages">;
 type StudentScore = Tables<"student_scores">;
 type TeacherProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url">;
@@ -68,6 +70,9 @@ function Page() {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [materials, setMaterials] = useState<ClassMaterial[]>([]);
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const [assignmentSubmissions, setAssignmentSubmissions] = useState<ClassAssignmentSubmission[]>(
+    [],
+  );
   const [messages, setMessages] = useState<StudentMessage[]>([]);
   const [scores, setScores] = useState<StudentScore[]>([]);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
@@ -79,6 +84,7 @@ function Page() {
       { data: memberRows },
       { data: materialRows },
       { data: assignmentRows },
+      { data: submissionRows },
       { data: messageRows },
       { data: scoreRows },
     ] = await Promise.all([
@@ -90,6 +96,11 @@ function Page() {
       supabase.from("class_members").select("*").eq("student_id", user.id).eq("status", "ativo"),
       supabase.from("class_materials").select("*").order("created_at", { ascending: false }),
       supabase.from("class_assignments").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("class_assignment_submissions")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("completed_at", { ascending: false }),
       supabase
         .from("teacher_student_messages")
         .select("*")
@@ -106,6 +117,7 @@ function Page() {
     setMemberships(memberRows || []);
     setMessages(messageRows || []);
     setScores(scoreRows || []);
+    setAssignmentSubmissions(submissionRows || []);
 
     let classRows: ClassGroup[] = [];
     if (memberRows?.length) {
@@ -218,6 +230,16 @@ function Page() {
         {
           event: "*",
           schema: "public",
+          table: "class_assignment_submissions",
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => load(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
           table: "bookings",
           filter: `student_id=eq.${user.id}`,
         },
@@ -250,8 +272,12 @@ function Page() {
     (item) => new Date(item.scheduled_at) > new Date() && item.status !== "cancelado",
   );
   const completedItems = items.filter((item) => item.status === "concluido");
+  const completedAssignmentIds = new Set(
+    assignmentSubmissions.map((submission) => submission.assignment_id),
+  );
   const pendingAssignments = assignments.filter(
-    (item) => !item.due_at || new Date(item.due_at) >= new Date(),
+    (item) =>
+      !completedAssignmentIds.has(item.id) && (!item.due_at || new Date(item.due_at) >= new Date()),
   );
 
   return (
@@ -360,7 +386,13 @@ function Page() {
           </TabsContent>
 
           <TabsContent value="atividades" className="mt-6">
-            <StudentAssignmentsSection assignments={assignments} classes={classes} />
+            <StudentAssignmentsSection
+              assignments={assignments}
+              classes={classes}
+              submissions={assignmentSubmissions}
+              studentId={user?.id}
+              onChanged={load}
+            />
           </TabsContent>
 
           <TabsContent value="materiais" className="mt-6">
@@ -491,7 +523,7 @@ function LessonsSection({
               <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
                 {studentBookingStatusLabel(b.status)}
               </span>
-              {b.meeting_url && !past && <MeetingLinkButton url={b.meeting_url} />}
+              {b.meeting_url && <MeetingLinkButton url={b.meeting_url} />}
               {!past && b.status === "pendente" && (
                 <Button
                   size="sm"
@@ -563,11 +595,19 @@ function StudentClassesSection({
 function StudentAssignmentsSection({
   assignments,
   classes,
+  submissions,
+  studentId,
+  onChanged,
 }: {
   assignments: ClassAssignment[];
   classes: ClassGroup[];
+  submissions: ClassAssignmentSubmission[];
+  studentId?: string;
+  onChanged: () => void | Promise<void>;
 }) {
   if (assignments.length === 0) return <Empty msg="Nenhuma atividade enviada ainda." />;
+
+  const submissionMap = new Map(submissions.map((item) => [item.assignment_id, item]));
 
   const assignmentTargetLabel = (item: ClassAssignment) => {
     if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
@@ -575,20 +615,75 @@ function StudentAssignmentsSection({
     return "Atividade enviada";
   };
 
+  const confirmAssignmentDone = async (item: ClassAssignment) => {
+    if (!studentId) return;
+    if (submissionMap.has(item.id)) {
+      toast.info("Esta atividade ja foi marcada como feita.");
+      return;
+    }
+    const confirmed = window.confirm("Confirmar que voce fez esta atividade?");
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("class_assignment_submissions").insert({
+      assignment_id: item.id,
+      student_id: studentId,
+      teacher_id: item.teacher_id,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        toast.info("Esta atividade ja estava marcada como feita.");
+        await onChanged();
+        return;
+      }
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Atividade marcada como feita. O professor foi avisado.");
+    await onChanged();
+  };
+
   return (
     <div className="space-y-3">
-      {assignments.map((item) => (
-        <ResourceRow
-          key={item.id}
-          icon={GraduationCap}
-          title={item.title}
-          subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
-          description={item.instructions}
-          filePath={item.file_path}
-          fileName={item.file_name}
-          externalUrl={item.external_url}
-        />
-      ))}
+      {assignments.map((item) => {
+        const submission = submissionMap.get(item.id);
+        return (
+          <div key={item.id} className="space-y-2">
+            <ResourceRow
+              icon={GraduationCap}
+              title={item.title}
+              subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
+              description={item.instructions}
+              filePath={item.file_path}
+              fileName={item.file_name}
+              externalUrl={item.external_url}
+            />
+            <div className="flex flex-col gap-2 rounded-xl border border-border bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between">
+              {submission ? (
+                <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Feita em {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
+                </p>
+              ) : (
+                <p className="text-sm text-brown-soft">
+                  Quando terminar, marque como feita para avisar o professor.
+                </p>
+              )}
+              {!submission && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => confirmAssignmentDone(item)}
+                  className="bg-wine text-white hover:bg-bronze"
+                >
+                  Fiz atividades
+                </Button>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

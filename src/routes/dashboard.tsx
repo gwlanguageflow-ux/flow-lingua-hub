@@ -76,6 +76,7 @@ type ClassGroup = Tables<"class_groups">;
 type ClassMember = Tables<"class_members">;
 type ClassMaterial = Tables<"class_materials">;
 type ClassAssignment = Tables<"class_assignments">;
+type ClassAssignmentSubmission = Tables<"class_assignment_submissions">;
 type StudentScore = Tables<"student_scores">;
 type StudentMessage = Tables<"teacher_student_messages">;
 type MaterialRequest = Tables<"material_requests">;
@@ -195,6 +196,9 @@ function DashboardPage() {
   const [materials, setMaterials] = useState<ClassMaterial[]>([]);
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const [assignmentSubmissions, setAssignmentSubmissions] = useState<ClassAssignmentSubmission[]>(
+    [],
+  );
   const [scores, setScores] = useState<StudentScore[]>([]);
   const [messages, setMessages] = useState<StudentMessage[]>([]);
   const [secretariatMessages, setSecretariatMessages] = useState<SecretariatMessage[]>([]);
@@ -218,6 +222,7 @@ function DashboardPage() {
       { data: materialRows },
       { data: requestRows },
       { data: assignmentRows },
+      { data: assignmentSubmissionRows },
       { data: scoreRows },
       { data: messageRows },
       { data: secretariatRows },
@@ -262,6 +267,11 @@ function DashboardPage() {
         .select("*")
         .eq("teacher_id", user.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("class_assignment_submissions")
+        .select("*")
+        .eq("teacher_id", user.id)
+        .order("completed_at", { ascending: false }),
       supabase
         .from("student_scores")
         .select("*")
@@ -320,6 +330,7 @@ function DashboardPage() {
     setMaterials(materialRows || []);
     setMaterialRequests(requestRows || []);
     setAssignments(assignmentRows || []);
+    setAssignmentSubmissions(assignmentSubmissionRows || []);
     setScores(scoreRows || []);
     setMessages(messageRows || []);
     setSecretariatMessages(secretariatRows || []);
@@ -434,6 +445,16 @@ function DashboardPage() {
         {
           event: "*",
           schema: "public",
+          table: "class_assignment_submissions",
+          filter: `teacher_id=eq.${user.id}`,
+        },
+        () => loadDashboard(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
           table: "material_requests",
           filter: `teacher_id=eq.${user.id}`,
         },
@@ -476,9 +497,7 @@ function DashboardPage() {
   const upcoming = bookings.filter(
     (b) => new Date(b.scheduled_at) > new Date() && b.status !== "cancelado",
   );
-  const classroomBookings = bookings.filter(
-    (b) => b.status !== "cancelado" && b.status !== "concluido",
-  );
+  const classroomBookings = bookings.filter((b) => b.status !== "cancelado");
   const completedLessons = bookings.filter((b) => b.status === "concluido").length;
 
   const handleCompleteBooking = async (bookingId: string) => {
@@ -634,6 +653,7 @@ function DashboardPage() {
               classes={classes}
               students={students}
               assignments={assignments}
+              assignmentSubmissions={assignmentSubmissions}
               onChanged={loadDashboard}
               teacherId={user?.id}
             />
@@ -1205,12 +1225,13 @@ function ClassroomPanel({
     }
 
     setSchedulingLesson(true);
+    const trimmedMeetingUrl = lessonMeetingUrl.trim();
     const { error } = await supabase.from("bookings").insert({
       teacher_id: teacherId,
       student_id: lessonStudentId,
       scheduled_at: scheduledAt.toISOString(),
       duration_minutes: Number(lessonDuration),
-      meeting_url: lessonMeetingUrl.trim() || null,
+      meeting_url: trimmedMeetingUrl || null,
       status: "pendente",
     });
     setSchedulingLesson(false);
@@ -1218,6 +1239,16 @@ function ClassroomPanel({
     if (error) {
       toast.error(error.message);
       return;
+    }
+
+    if (trimmedMeetingUrl) {
+      const { data: authData } = await supabase.auth.getUser();
+      await supabase.from("teacher_student_messages").insert({
+        teacher_id: teacherId,
+        student_id: lessonStudentId,
+        sender_id: authData.user?.id ?? teacherId,
+        body: `Link da aula de ${format(scheduledAt, "dd/MM/yyyy 'as' HH:mm")}: ${trimmedMeetingUrl}`,
+      });
     }
 
     toast.success("Aula enviada para confirmacao do aluno.");
@@ -1553,7 +1584,7 @@ function ClassroomPanel({
                   </span>
                 </div>
 
-                <ClassMeetingLinkEditor item={item} onChanged={onChanged} />
+                <ClassMeetingLinkEditor item={item} members={classMembers} onChanged={onChanged} />
 
                 {(!isPrivate || classMembers.length === 0) && (
                   <div className="rounded-xl bg-cream p-3">
@@ -1938,12 +1969,14 @@ function AssignmentsPanel({
   classes,
   students,
   assignments,
+  assignmentSubmissions,
   teacherId,
   onChanged,
 }: {
   classes: ClassGroup[];
   students: StudentProfile[];
   assignments: ClassAssignment[];
+  assignmentSubmissions: ClassAssignmentSubmission[];
   teacherId?: string;
   onChanged: () => void | Promise<void>;
 }) {
@@ -2044,6 +2077,13 @@ function AssignmentsPanel({
     }
     return "Destino direto";
   };
+
+  const submissionsByAssignment = new Map<string, ClassAssignmentSubmission[]>();
+  assignmentSubmissions.forEach((submission) => {
+    const current = submissionsByAssignment.get(submission.assignment_id) || [];
+    current.push(submission);
+    submissionsByAssignment.set(submission.assignment_id, current);
+  });
 
   return (
     <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
@@ -2161,16 +2201,52 @@ function AssignmentsPanel({
           <Empty msg="Nenhuma atividade enviada ainda." />
         ) : (
           <div className="space-y-3">
-            {assignments.map((item) => (
-              <ResourceRow
-                key={item.id}
-                title={item.title}
-                subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
-                filePath={item.file_path}
-                fileName={item.file_name}
-                externalUrl={item.external_url}
-              />
-            ))}
+            {assignments.map((item) => {
+              const submissions = submissionsByAssignment.get(item.id) || [];
+              return (
+                <div key={item.id} className="space-y-2">
+                  <ResourceRow
+                    title={item.title}
+                    subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
+                    filePath={item.file_path}
+                    fileName={item.file_name}
+                    externalUrl={item.external_url}
+                  />
+                  <div className="rounded-xl border border-border bg-white/80 p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brown-soft">
+                      Retorno dos alunos
+                    </p>
+                    {submissions.length === 0 ? (
+                      <p className="text-sm text-brown-soft">
+                        Nenhum aluno marcou esta atividade como feita ainda.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {submissions.map((submission) => {
+                          const student = students.find(
+                            (item) => item.id === submission.student_id,
+                          );
+                          return (
+                            <div
+                              key={submission.id}
+                              className="flex flex-col gap-1 rounded-lg bg-cream px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <span className="text-sm font-semibold text-wine">
+                                {student?.full_name || "Aluno"}
+                              </span>
+                              <span className="text-xs text-brown-soft">
+                                Feita em{" "}
+                                {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -2646,9 +2722,11 @@ function SecretariatPanel({
 
 function ClassMeetingLinkEditor({
   item,
+  members,
   onChanged,
 }: {
   item: ClassGroup;
+  members: ClassMember[];
   onChanged: () => void | Promise<void>;
 }) {
   const [url, setUrl] = useState(item.meeting_url || "");
@@ -2656,14 +2734,32 @@ function ClassMeetingLinkEditor({
 
   const save = async () => {
     setSaving(true);
+    const trimmed = url.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      toast.error("Link deve comecar com http:// ou https://");
+      setSaving(false);
+      return;
+    }
+    const shouldNotifyStudents = Boolean(trimmed && trimmed !== (item.meeting_url || "").trim());
     const { error } = await supabase
       .from("class_groups")
-      .update({ meeting_url: url.trim() || null })
+      .update({ meeting_url: trimmed || null })
       .eq("id", item.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
+    }
+    if (shouldNotifyStudents && members.length > 0) {
+      const { data: authData } = await supabase.auth.getUser();
+      await supabase.from("teacher_student_messages").insert(
+        members.map((member) => ({
+          teacher_id: item.teacher_id,
+          student_id: member.student_id,
+          sender_id: authData.user?.id ?? item.teacher_id,
+          body: `Link da aula ${item.name}: ${trimmed}`,
+        })),
+      );
     }
     toast.success("Link da turma atualizado.");
     await onChanged();

@@ -33,6 +33,7 @@ export function MeetingLinkEditor({
       setSaving(false);
       return;
     }
+    const shouldNotifyStudent = Boolean(trimmed && trimmed !== (initialUrl || "").trim());
     const { error } = await supabase
       .from("bookings")
       .update({ meeting_url: trimmed || null })
@@ -41,6 +42,25 @@ export function MeetingLinkEditor({
     if (error) {
       toast.error(error.message);
       return;
+    }
+    if (shouldNotifyStudent) {
+      const [{ data: booking }, { data: authData }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("teacher_id, student_id, scheduled_at")
+          .eq("id", bookingId)
+          .maybeSingle(),
+        supabase.auth.getUser(),
+      ]);
+
+      if (booking) {
+        await supabase.from("teacher_student_messages").insert({
+          teacher_id: booking.teacher_id,
+          student_id: booking.student_id,
+          sender_id: authData.user?.id ?? booking.teacher_id,
+          body: `Link da aula: ${trimmed}`,
+        });
+      }
     }
     toast.success("Link salvo");
     onSaved?.(trimmed);

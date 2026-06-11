@@ -150,6 +150,61 @@ export type Database = {
           },
         ];
       };
+      class_assignment_submissions: {
+        Row: {
+          assignment_id: string;
+          completed_at: string;
+          created_at: string;
+          id: string;
+          note: string | null;
+          student_id: string;
+          teacher_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          assignment_id: string;
+          completed_at?: string;
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          student_id: string;
+          teacher_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          assignment_id?: string;
+          completed_at?: string;
+          created_at?: string;
+          id?: string;
+          note?: string | null;
+          student_id?: string;
+          teacher_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "class_assignment_submissions_assignment_id_fkey";
+            columns: ["assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "class_assignments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_assignment_submissions_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "student_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "class_assignment_submissions_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       class_groups: {
         Row: {
           created_at: string;
