@@ -50,6 +50,7 @@ import {
 import { AvailabilityManager } from "@/components/AvailabilityManager";
 import { MeetingLinkEditor } from "@/components/MeetingLinkEditor";
 import { requestTeacherWithdrawal } from "@/functions/wallet.functions";
+import { scheduleTeacherLesson } from "@/functions/lesson.functions";
 import { deleteTeacherCoupon, upsertTeacherCoupon } from "@/functions/coupon.functions";
 import { LANGUAGES, LEVELS, WEEKDAYS } from "@/lib/constants";
 import { normalizeExternalUrl } from "@/lib/resource-links";
@@ -651,6 +652,7 @@ function DashboardPage() {
           <TabsContent value="atividades" className="mt-6">
             <AssignmentsPanel
               classes={classes}
+              members={members}
               students={students}
               assignments={assignments}
               assignmentSubmissions={assignmentSubmissions}
@@ -1225,35 +1227,23 @@ function ClassroomPanel({
     }
 
     setSchedulingLesson(true);
-    const trimmedMeetingUrl = lessonMeetingUrl.trim();
-    const { error } = await supabase.from("bookings").insert({
-      teacher_id: teacherId,
-      student_id: lessonStudentId,
-      scheduled_at: scheduledAt.toISOString(),
-      duration_minutes: Number(lessonDuration),
-      meeting_url: trimmedMeetingUrl || null,
-      status: "pendente",
-    });
-    setSchedulingLesson(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    if (trimmedMeetingUrl) {
-      const { data: authData } = await supabase.auth.getUser();
-      await supabase.from("teacher_student_messages").insert({
-        teacher_id: teacherId,
-        student_id: lessonStudentId,
-        sender_id: authData.user?.id ?? teacherId,
-        body: `Link da aula de ${format(scheduledAt, "dd/MM/yyyy 'as' HH:mm")}: ${trimmedMeetingUrl}`,
+    try {
+      await scheduleTeacherLesson({
+        data: {
+          studentId: lessonStudentId,
+          scheduledAt: scheduledAt.toISOString(),
+          durationMinutes: Number(lessonDuration),
+          meetingUrl: lessonMeetingUrl.trim(),
+        },
       });
+      toast.success("Aula enviada para confirmacao do aluno.");
+      setLessonMeetingUrl("");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel agendar a aula.");
+    } finally {
+      setSchedulingLesson(false);
     }
-
-    toast.success("Aula enviada para confirmacao do aluno.");
-    setLessonMeetingUrl("");
-    await onChanged();
   };
 
   return (
@@ -1967,6 +1957,7 @@ function PrivateChat({
 
 function AssignmentsPanel({
   classes,
+  members,
   students,
   assignments,
   assignmentSubmissions,
@@ -1974,6 +1965,7 @@ function AssignmentsPanel({
   onChanged,
 }: {
   classes: ClassGroup[];
+  members: ClassMember[];
   students: StudentProfile[];
   assignments: ClassAssignment[];
   assignmentSubmissions: ClassAssignmentSubmission[];
@@ -2084,6 +2076,26 @@ function AssignmentsPanel({
     current.push(submission);
     submissionsByAssignment.set(submission.assignment_id, current);
   });
+
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+
+  const assignmentTargetStudents = (item: ClassAssignment) => {
+    if (item.student_id) {
+      const student = studentsById.get(item.student_id);
+      return student ? [student] : [];
+    }
+
+    if (item.class_id) {
+      const classStudentIds = members
+        .filter((member) => member.class_id === item.class_id && member.status === "ativo")
+        .map((member) => member.student_id);
+      return classStudentIds
+        .map((studentId) => studentsById.get(studentId))
+        .filter((student): student is StudentProfile => Boolean(student));
+    }
+
+    return [];
+  };
 
   return (
     <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
@@ -2203,6 +2215,10 @@ function AssignmentsPanel({
           <div className="space-y-3">
             {assignments.map((item) => {
               const submissions = submissionsByAssignment.get(item.id) || [];
+              const submissionByStudent = new Map(
+                submissions.map((submission) => [submission.student_id, submission]),
+              );
+              const targetStudents = assignmentTargetStudents(item);
               return (
                 <div key={item.id} className="space-y-2">
                   <ResourceRow
@@ -2214,29 +2230,37 @@ function AssignmentsPanel({
                   />
                   <div className="rounded-xl border border-border bg-white/80 p-3">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brown-soft">
-                      Retorno dos alunos
+                      Status dos alunos
                     </p>
-                    {submissions.length === 0 ? (
+                    {targetStudents.length === 0 ? (
                       <p className="text-sm text-brown-soft">
-                        Nenhum aluno marcou esta atividade como feita ainda.
+                        Nenhum aluno destinatario encontrado para esta atividade.
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {submissions.map((submission) => {
-                          const student = students.find(
-                            (item) => item.id === submission.student_id,
-                          );
+                        {targetStudents.map((student) => {
+                          const submission = submissionByStudent.get(student.id);
                           return (
                             <div
-                              key={submission.id}
+                              key={`${item.id}-${student.id}`}
                               className="flex flex-col gap-1 rounded-lg bg-cream px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                             >
                               <span className="text-sm font-semibold text-wine">
-                                {student?.full_name || "Aluno"}
+                                {student.full_name || "Aluno"}
                               </span>
-                              <span className="text-xs text-brown-soft">
-                                Feita em{" "}
-                                {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                  submission
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-800"
+                                }`}
+                              >
+                                {submission
+                                  ? `Pronto - ${format(
+                                      new Date(submission.completed_at),
+                                      "dd/MM/yyyy HH:mm",
+                                    )}`
+                                  : "Pendente"}
                               </span>
                             </div>
                           );

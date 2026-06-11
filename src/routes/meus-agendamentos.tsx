@@ -524,7 +524,7 @@ function LessonsSection({
                 {studentBookingStatusLabel(b.status)}
               </span>
               {b.meeting_url && <MeetingLinkButton url={b.meeting_url} />}
-              {!past && b.status === "pendente" && (
+              {b.status === "pendente" && (
                 <Button
                   size="sm"
                   onClick={() => confirmPresence(b)}
@@ -663,11 +663,11 @@ function StudentAssignmentsSection({
               {submission ? (
                 <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
-                  Feita em {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
+                  Pronto em {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
                 </p>
               ) : (
-                <p className="text-sm text-brown-soft">
-                  Quando terminar, marque como feita para avisar o professor.
+                <p className="text-sm font-semibold text-amber-800">
+                  Pendente - marque quando terminar para avisar o professor.
                 </p>
               )}
               {!submission && (
