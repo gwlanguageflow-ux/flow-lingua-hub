@@ -2888,6 +2888,10 @@ function WalletPanel({
     payoutProfile?.account_holder_name ?? teacherIdentity?.full_name ?? "",
   );
   const [submitting, setSubmitting] = useState(false);
+  const [lastWithdrawalWhatsapp, setLastWithdrawalWhatsapp] = useState<{
+    url: string;
+    message: string;
+  } | null>(null);
   const document = payoutProfile?.account_holder_document ?? teacherIdentity?.cpf ?? "";
   const payoutReady = pixKey.trim().length >= 3 && holderName.trim().length >= 2;
   const financialTransactions = transactions.filter(
@@ -2930,14 +2934,17 @@ function WalletPanel({
           accountHolderDocument: document,
         },
       });
+      const whatsappUrl = result.whatsappUrl ?? "";
+      const whatsappMessage = result.whatsappMessage ?? "";
+      if (whatsappUrl) setLastWithdrawalWhatsapp({ url: whatsappUrl, message: whatsappMessage });
       toast.success(
-        result.whatsappUrl
+        whatsappUrl
           ? "Saque registrado. Abrindo WhatsApp da plataforma."
           : "Saque registrado para transferencia manual pela diretoria.",
       );
       setAmount("");
-      if (result.whatsappUrl) window.location.href = result.whatsappUrl;
       await onChanged();
+      if (whatsappUrl) window.location.assign(whatsappUrl);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel solicitar o saque.");
     } finally {
@@ -3037,6 +3044,34 @@ function WalletPanel({
             <MessageCircle className="h-4 w-4" />
             {submitting ? "Registrando..." : "Solicitar no WhatsApp"}
           </Button>
+
+          {lastWithdrawalWhatsapp ? (
+            <div className="rounded-xl border border-bronze/30 bg-cream/70 p-3 text-sm text-brown">
+              <p className="font-semibold text-wine">Solicitacao registrada</p>
+              <p className="mt-1 text-xs text-brown-soft">
+                Se o WhatsApp nao abriu automaticamente, use o botao abaixo.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Button asChild type="button" className="bg-wine text-white hover:bg-wine/90">
+                  <a href={lastWithdrawalWhatsapp.url} target="_blank" rel="noreferrer">
+                    Abrir WhatsApp
+                  </a>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard
+                      ?.writeText(lastWithdrawalWhatsapp.message)
+                      .then(() => toast.success("Mensagem copiada."))
+                      .catch(() => toast.error("Nao foi possivel copiar a mensagem."));
+                  }}
+                >
+                  Copiar mensagem
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </form>
 
         <div className="gw-app-card rounded-xl p-5">

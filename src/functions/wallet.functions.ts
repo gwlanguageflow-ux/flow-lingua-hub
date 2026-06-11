@@ -93,6 +93,7 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
       withdrawalId,
       provider: "manual",
       status: "pendente" as WithdrawalStatus,
+      whatsappMessage,
       whatsappUrl: buildWhatsappUrl(whatsappMessage),
       message: "Saque registrado para transferencia manual pela diretoria.",
     };
