@@ -29,6 +29,11 @@ import { createSubscriptionCheckout } from "@/functions/validapay-checkout.funct
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
+import {
+  calculateSubscriptionPackage,
+  SUBSCRIPTION_PACKAGES,
+  type PackageType,
+} from "@/lib/subscription-packages";
 
 export const Route = createFileRoute("/planos")({
   head: () => ({
@@ -80,9 +85,9 @@ const comparisonRows = [
 ];
 
 const planDisplayOrder: Record<string, number> = {
-  essencial: 1,
-  essential: 1,
-  advanced: 2,
+  advanced: 1,
+  essencial: 2,
+  essential: 2,
   conversation: 3,
 };
 
@@ -109,6 +114,7 @@ function PlansPage() {
   const [teacherCoupon, setTeacherCoupon] = useState<DiscountCoupon | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [useTeacherCoupon, setUseTeacherCoupon] = useState(false);
+  const [packageType, setPackageType] = useState<PackageType>("mensal");
 
   useEffect(() => {
     let cancelled = false;
@@ -237,6 +243,7 @@ function PlansPage() {
           planSlug: selected.kind === "custom" ? null : selected.slug,
           customPlanId: selected.kind === "custom" ? selected.customPlanId : null,
           teacherId,
+          packageType,
           termsAccepted: true,
           couponCode:
             useTeacherCoupon && teacherCoupon
@@ -341,6 +348,7 @@ function PlansPage() {
                     onSelect={() => {
                       setSelected(plan);
                       setTerms(false);
+                      setPackageType("mensal");
                       setCouponCode("");
                       setUseTeacherCoupon(Boolean(teacherCoupon));
                     }}
@@ -389,6 +397,8 @@ function PlansPage() {
           setCouponCode={setCouponCode}
           useTeacherCoupon={useTeacherCoupon}
           setUseTeacherCoupon={setUseTeacherCoupon}
+          packageType={packageType}
+          setPackageType={setPackageType}
           terms={terms}
           setTerms={setTerms}
           loading={loading}
@@ -530,6 +540,8 @@ function CheckoutDialog({
   setCouponCode,
   useTeacherCoupon,
   setUseTeacherCoupon,
+  packageType,
+  setPackageType,
   terms,
   setTerms,
   loading,
@@ -542,6 +554,8 @@ function CheckoutDialog({
   setCouponCode: (value: string) => void;
   useTeacherCoupon: boolean;
   setUseTeacherCoupon: (value: boolean) => void;
+  packageType: PackageType;
+  setPackageType: (value: PackageType) => void;
   terms: boolean;
   setTerms: (terms: boolean) => void;
   loading: boolean;
@@ -550,9 +564,14 @@ function CheckoutDialog({
 }) {
   const appliedTeacherCoupon = useTeacherCoupon && teacherCoupon ? teacherCoupon : null;
   const discountPercent = appliedTeacherCoupon?.discount_percent ?? 0;
+  const packagePricing = selected
+    ? calculateSubscriptionPackage(selected.price, packageType)
+    : null;
   const discountValue =
-    selected && discountPercent > 0 ? (selected.price * discountPercent) / 100 : 0;
-  const finalValue = selected ? selected.price - discountValue : 0;
+    packagePricing && discountPercent > 0
+      ? (packagePricing.totalAmount * discountPercent) / 100
+      : 0;
+  const finalValue = packagePricing ? packagePricing.totalAmount - discountValue : 0;
 
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && onClose()}>
@@ -564,6 +583,37 @@ function CheckoutDialog({
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
+          <div className="rounded-xl border border-border bg-white p-4">
+            <p className="font-semibold text-wine">Escolha o pacote</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {(Object.keys(SUBSCRIPTION_PACKAGES) as PackageType[]).map((type) => {
+                const config = SUBSCRIPTION_PACKAGES[type];
+                const active = packageType === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setPackageType(type)}
+                    className={`rounded-lg border p-3 text-left transition ${
+                      active
+                        ? "border-wine bg-wine text-white shadow-soft"
+                        : "border-border bg-cream/60 text-brown hover:border-bronze"
+                    }`}
+                  >
+                    <span className="block text-sm font-bold">{config.label}</span>
+                    <span
+                      className={`mt-1 block text-xs ${active ? "text-white/75" : "text-brown-soft"}`}
+                    >
+                      {config.discountRate > 0
+                        ? `${Math.round(config.discountRate * 100)}% de desconto`
+                        : "Valor mensal normal"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="rounded-xl border border-bronze/30 bg-cream p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="font-semibold text-wine">Resumo do checkout</p>
@@ -579,11 +629,19 @@ function CheckoutDialog({
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-brown-soft">Valor</dt>
+                <dt className="text-brown-soft">Valor-base do pacote</dt>
                 <dd className="font-semibold text-wine">
-                  {selected ? formatMoney(selected.price) : ""}
+                  {packagePricing ? formatMoney(packagePricing.baseAmount) : ""}
                 </dd>
               </div>
+              {packagePricing && packagePricing.discountAmount > 0 && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-brown-soft">Desconto {packagePricing.label}</dt>
+                  <dd className="font-semibold text-emerald-700">
+                    -{formatMoney(packagePricing.discountAmount)}
+                  </dd>
+                </div>
+              )}
               {appliedTeacherCoupon && (
                 <>
                   <div className="flex justify-between gap-4">
@@ -605,14 +663,18 @@ function CheckoutDialog({
                 </>
               )}
               <div className="flex justify-between gap-4">
-                <dt className="text-brown-soft">Cobranca</dt>
-                <dd className="font-semibold capitalize text-wine">{selected?.interval}</dd>
+                <dt className="text-brown-soft">Pacote</dt>
+                <dd className="font-semibold text-wine">{packagePricing?.label}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Pagamento</dt>
                 <dd className="text-right font-semibold text-wine">
-                  Cartao de credito ou Pix Automatico
+                  Pagamento integral por cartao de credito ou Pix
                 </dd>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-bronze/20 pt-2">
+                <dt className="font-semibold text-wine">Total a pagar</dt>
+                <dd className="font-bold text-wine">{formatMoney(finalValue)}</dd>
               </div>
             </dl>
             <div className="mt-4 space-y-2 border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">

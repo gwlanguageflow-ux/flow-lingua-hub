@@ -53,6 +53,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   activateStudentSubscriptionManually,
+  cancelStudentSubscriptionByDirector,
   confirmTeacherWithdrawal,
   createDirectorAlert,
   createDirectorMessage,
@@ -92,7 +93,19 @@ type PlatformRange = "30d" | "90d" | "365d";
 
 type StudentSubscription = Pick<
   Tables<"student_subscriptions">,
-  "id" | "student_id" | "teacher_id" | "plan_id" | "custom_plan_id" | "status" | "created_at"
+  | "id"
+  | "student_id"
+  | "teacher_id"
+  | "plan_id"
+  | "custom_plan_id"
+  | "status"
+  | "created_at"
+  | "current_period_end"
+  | "cancel_at_period_end"
+  | "cancel_requested_at"
+  | "package_type"
+  | "package_months"
+  | "package_total_amount"
 > & {
   subscription_plans: Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug"> | null;
   teacher_custom_plans: Pick<Tables<"teacher_custom_plans">, "id" | "name" | "price"> | null;
@@ -521,6 +534,24 @@ function AdminPage() {
     }
   };
 
+  const handleCancelStudentSubscription = async (subscriptionId: string) => {
+    setSending(true);
+    try {
+      await cancelStudentSubscriptionByDirector({
+        data: {
+          subscriptionId,
+          reason: "Cancelamento solicitado pela diretoria",
+        },
+      });
+      toast.success("Cancelamento programado. O acesso segue ate o fim do periodo pago.");
+      await loadDashboard();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nao foi possivel cancelar a assinatura.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="gw-app-shell min-h-screen">
       <SiteHeader />
@@ -867,23 +898,71 @@ function AdminPage() {
                                       )}
                                     </strong>
                                   </span>
+                                  <span>
+                                    Pacote:{" "}
+                                    <strong>
+                                      {subscriptionPackageLabel(selectedSubscription.package_type)}
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    Valido ate:{" "}
+                                    <strong>
+                                      {selectedSubscription.current_period_end
+                                        ? new Date(
+                                            selectedSubscription.current_period_end,
+                                          ).toLocaleDateString("pt-BR")
+                                        : "Periodo nao definido"}
+                                    </strong>
+                                  </span>
+                                  {selectedSubscription.package_total_amount ? (
+                                    <span>
+                                      Valor do pacote:{" "}
+                                      <strong>
+                                        {formatMoney(
+                                          Number(selectedSubscription.package_total_amount),
+                                        )}
+                                      </strong>
+                                    </span>
+                                  ) : null}
                                 </div>
                               ) : (
                                 <p className="mt-2 text-sm text-brown-soft">
                                   O aluno ainda nao solicitou assinatura.
                                 </p>
                               )}
+                              {selectedSubscription?.cancel_at_period_end && (
+                                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                  Cancelamento programado para o fim do periodo atual.
+                                </p>
+                              )}
                             </div>
-                            {selectedSubscription?.status === "pendente" && (
-                              <Button
-                                onClick={() => handleActivateStudent(selectedSubscription.id)}
-                                disabled={sending}
-                                className="rounded-lg bg-wine text-white hover:bg-bronze"
-                              >
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Ativar aluno
-                              </Button>
-                            )}
+                            <div className="flex flex-col gap-2">
+                              {selectedSubscription?.status === "pendente" && (
+                                <Button
+                                  onClick={() => handleActivateStudent(selectedSubscription.id)}
+                                  disabled={sending}
+                                  className="rounded-lg bg-wine text-white hover:bg-bronze"
+                                >
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                                  Ativar aluno
+                                </Button>
+                              )}
+                              {selectedSubscription &&
+                                !selectedSubscription.cancel_at_period_end &&
+                                selectedSubscription.status !== "cancelada" &&
+                                selectedSubscription.status !== "expirada" && (
+                                  <Button
+                                    onClick={() =>
+                                      handleCancelStudentSubscription(selectedSubscription.id)
+                                    }
+                                    disabled={sending}
+                                    variant="outline"
+                                    className="rounded-lg border-red-200 bg-white text-red-700 hover:bg-red-50"
+                                  >
+                                    Cancelar no fim do periodo
+                                  </Button>
+                                )}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -2181,6 +2260,12 @@ function subscriptionStatusLabel(status: string | null | undefined) {
 function subscriptionStatusClass(status: string | null | undefined) {
   if (!status) return "border-border bg-white text-brown-soft";
   return subscriptionStatusClasses[status] ?? "border-border bg-white text-brown";
+}
+
+function subscriptionPackageLabel(packageType: string | null | undefined) {
+  if (packageType === "semestral") return "Semestral";
+  if (packageType === "anual") return "Anual";
+  return "Mensal";
 }
 
 function formatMoney(value: number | string | null | undefined) {

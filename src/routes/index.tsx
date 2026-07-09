@@ -470,8 +470,8 @@ function FlowExperience() {
 
 function PlansTeaser() {
   const cards = [
-    { name: "essential", price: "R$ 179,90", detail: "Consistência semanal", featured: true },
     { name: "advanced", price: "R$ 299,90", detail: "Evolução acelerada" },
+    { name: "essential", price: "R$ 179,90", detail: "Consistência semanal", featured: true },
     { name: "conversation", price: "R$ 169,90", detail: "Fala e confiança" },
   ];
 

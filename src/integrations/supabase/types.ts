@@ -703,12 +703,20 @@ export type Database = {
       student_subscriptions: {
         Row: {
           cancel_at_period_end: boolean;
+          cancel_reason: string | null;
+          cancel_requested_at: string | null;
+          cancel_requested_by: string | null;
           created_at: string;
           current_period_end: string | null;
           current_period_start: string | null;
           id: string;
           last_payment_at: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          package_base_amount: number | null;
+          package_discount_rate: number;
+          package_months: number;
+          package_total_amount: number | null;
+          package_type: Database["public"]["Enums"]["subscription_package"];
           plan_id: string | null;
           custom_plan_id: string | null;
           status: Database["public"]["Enums"]["subscription_status"];
@@ -727,12 +735,20 @@ export type Database = {
         };
         Insert: {
           cancel_at_period_end?: boolean;
+          cancel_reason?: string | null;
+          cancel_requested_at?: string | null;
+          cancel_requested_by?: string | null;
           created_at?: string;
           current_period_end?: string | null;
           current_period_start?: string | null;
           id?: string;
           last_payment_at?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"] | null;
+          package_base_amount?: number | null;
+          package_discount_rate?: number;
+          package_months?: number;
+          package_total_amount?: number | null;
+          package_type?: Database["public"]["Enums"]["subscription_package"];
           plan_id?: string | null;
           custom_plan_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
@@ -751,12 +767,20 @@ export type Database = {
         };
         Update: {
           cancel_at_period_end?: boolean;
+          cancel_reason?: string | null;
+          cancel_requested_at?: string | null;
+          cancel_requested_by?: string | null;
           created_at?: string;
           current_period_end?: string | null;
           current_period_start?: string | null;
           id?: string;
           last_payment_at?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"] | null;
+          package_base_amount?: number | null;
+          package_discount_rate?: number;
+          package_months?: number;
+          package_total_amount?: number | null;
+          package_type?: Database["public"]["Enums"]["subscription_package"];
           plan_id?: string | null;
           custom_plan_id?: string | null;
           status?: Database["public"]["Enums"]["subscription_status"];
@@ -774,6 +798,13 @@ export type Database = {
           validapay_subscription_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "student_subscriptions_cancel_requested_by_fkey";
+            columns: ["cancel_requested_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "student_subscriptions_plan_id_fkey";
             columns: ["plan_id"];
@@ -850,6 +881,60 @@ export type Database = {
           validapay_product_id?: string | null;
         };
         Relationships: [];
+      };
+      subscription_package_prices: {
+        Row: {
+          amount: number;
+          coupon_discount_percent: number;
+          created_at: string;
+          custom_plan_id: string | null;
+          id: string;
+          package_type: Database["public"]["Enums"]["subscription_package"];
+          plan_id: string | null;
+          updated_at: string;
+          validapay_price_id: string | null;
+          validapay_product_id: string | null;
+        };
+        Insert: {
+          amount: number;
+          coupon_discount_percent?: number;
+          created_at?: string;
+          custom_plan_id?: string | null;
+          id?: string;
+          package_type: Database["public"]["Enums"]["subscription_package"];
+          plan_id?: string | null;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Update: {
+          amount?: number;
+          coupon_discount_percent?: number;
+          created_at?: string;
+          custom_plan_id?: string | null;
+          id?: string;
+          package_type?: Database["public"]["Enums"]["subscription_package"];
+          plan_id?: string | null;
+          updated_at?: string;
+          validapay_price_id?: string | null;
+          validapay_product_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "subscription_package_prices_custom_plan_id_fkey";
+            columns: ["custom_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "teacher_custom_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "subscription_package_prices_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "subscription_plans";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       discount_coupons: {
         Row: {
@@ -2098,6 +2183,7 @@ export type Database = {
       payment_method: "card" | "pix";
       pix_key_type: "cpf" | "email" | "telefone" | "aleatoria";
       plan_interval: "mensal" | "trimestral" | "anual";
+      subscription_package: "mensal" | "semestral" | "anual";
       subscription_status: "pendente" | "ativa" | "inadimplente" | "cancelada" | "expirada";
       teacher_wallet_transaction_type:
         | "lesson_credit"
@@ -2236,6 +2322,7 @@ export const Constants = {
       payment_method: ["card", "pix"],
       pix_key_type: ["cpf", "email", "telefone", "aleatoria"],
       plan_interval: ["mensal", "trimestral", "anual"],
+      subscription_package: ["mensal", "semestral", "anual"],
       subscription_status: ["pendente", "ativa", "inadimplente", "cancelada", "expirada"],
       teacher_wallet_transaction_type: [
         "lesson_credit",

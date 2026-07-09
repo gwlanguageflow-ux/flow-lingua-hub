@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   BookOpenCheck,
   CalendarCheck,
-  Image as ImageIcon,
+  BookOpenCheck as ImageIcon,
   Languages,
   Search,
   Sparkles,

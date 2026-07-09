@@ -48,6 +48,21 @@ function addPlanInterval(startIso: string, interval: PlanInterval | null | undef
   return end.toISOString();
 }
 
+function addSubscriptionPeriod(
+  startIso: string,
+  subscription: StudentSubscription,
+  interval: PlanInterval | null | undefined,
+) {
+  const months = Number(subscription.package_months ?? 1);
+  if ([1, 6, 12].includes(months)) {
+    const end = new Date(startIso);
+    if (!Number.isFinite(end.getTime())) return null;
+    end.setMonth(end.getMonth() + months);
+    return end.toISOString();
+  }
+  return addPlanInterval(startIso, interval);
+}
+
 async function getSubscription(subscriptionId: string) {
   const { data, error } = await supabaseAdmin
     .from("student_subscriptions")
@@ -261,10 +276,13 @@ export async function activateStudentSubscriptionServer({
   const start = periodStart || new Date().toISOString();
   const plan = await getPlanForSubscription(subscription);
   const couponFinalAmount = await getCouponFinalAmount(subscription.id);
-  const grossAmount = toMoney(couponFinalAmount ?? Number(plan.price));
+  const storedPackageAmount = Number(subscription.package_total_amount ?? 0);
+  const grossAmount = toMoney(
+    couponFinalAmount ?? (storedPackageAmount > 0 ? storedPackageAmount : Number(plan.price)),
+  );
   const teacherAmount = toMoney(grossAmount * 0.9);
   const platformAmount = toMoney(grossAmount - teacherAmount);
-  const resolvedPeriodEnd = periodEnd || addPlanInterval(start, plan.interval);
+  const resolvedPeriodEnd = periodEnd || addSubscriptionPeriod(start, subscription, plan.interval);
   const teacher = await getTeacher(subscription.teacher_id);
   const student = await getStudent(subscription.student_id);
 

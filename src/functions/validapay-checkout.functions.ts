@@ -3,6 +3,7 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
+import { calculateSubscriptionPackage, type PackageType } from "@/lib/subscription-packages";
 
 type Plan = Database["public"]["Tables"]["subscription_plans"]["Row"];
 type CustomPlan = Database["public"]["Tables"]["teacher_custom_plans"]["Row"];
@@ -40,6 +41,11 @@ type PlanChoice =
       validapay_product_id: string | null;
       row: CustomPlan;
     };
+
+const cancelMySubscriptionSchema = z.object({
+  subscriptionId: z.string().uuid(),
+  reason: z.string().trim().max(500).optional().nullable(),
+});
 
 function getValidapayPriceId(response: { prices?: Array<{ priceId?: string }> }) {
   return response.prices?.find((price) => price.priceId)?.priceId ?? null;
@@ -200,6 +206,69 @@ async function ensureDiscountedPriceId({
   return priceId;
 }
 
+async function ensurePackagePriceId({
+  choice,
+  packageType,
+  coupon,
+  finalAmount,
+}: {
+  choice: PlanChoice;
+  packageType: Exclude<PackageType, "mensal">;
+  coupon: DiscountCoupon | null;
+  finalAmount: number;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { createValidapayProduct } = await import("@/server/validapay.server");
+  const discountPercent = Number(coupon?.discount_percent ?? 0);
+
+  let query = supabaseAdmin
+    .from("subscription_package_prices")
+    .select("*")
+    .eq("package_type", packageType)
+    .eq("coupon_discount_percent", discountPercent);
+  query =
+    choice.kind === "platform"
+      ? query.eq("plan_id", choice.id).is("custom_plan_id", null)
+      : query.eq("custom_plan_id", choice.id).is("plan_id", null);
+
+  const { data: existing, error: existingError } = await query.maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+  if (existing?.validapay_price_id && Math.abs(Number(existing.amount) - finalAmount) < 0.01) {
+    return existing.validapay_price_id;
+  }
+
+  const packagePricing = calculateSubscriptionPackage(Number(choice.price), packageType);
+  const packageLabel = packageType === "semestral" ? "semestral" : "anual";
+  const product = await createValidapayProduct({
+    name: `${choice.name} ${packageLabel}${coupon ? ` cupom ${coupon.code}` : ""}`,
+    description: `${choice.description ?? choice.name} Pacote ${packageLabel} pago integralmente.`,
+    slug: `${checkoutSlug(choice, coupon)}-${packageType}`,
+    amount: finalAmount,
+    interval: packageType === "anual" ? "anual" : "mensal",
+    packageMonths: packagePricing.months as 6 | 12,
+  });
+
+  const priceId = getValidapayPriceId(product);
+  if (!priceId) throw new Error("ValidaPay nao retornou o priceId do pacote.");
+
+  const values = {
+    plan_id: choice.kind === "platform" ? choice.id : null,
+    custom_plan_id: choice.kind === "custom" ? choice.id : null,
+    package_type: packageType,
+    coupon_discount_percent: discountPercent,
+    amount: finalAmount,
+    validapay_product_id: product.productId,
+    validapay_price_id: priceId,
+  };
+
+  const { error: saveError } = existing
+    ? await supabaseAdmin.from("subscription_package_prices").update(values).eq("id", existing.id)
+    : await supabaseAdmin.from("subscription_package_prices").insert(values);
+  if (saveError) throw new Error(saveError.message);
+
+  return priceId;
+}
+
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -208,6 +277,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         planSlug: z.string().min(1).max(60).optional().nullable(),
         customPlanId: z.string().uuid().optional().nullable(),
         teacherId: z.string().uuid(),
+        packageType: z.enum(["mensal", "semestral", "anual"]).default("mensal"),
         termsAccepted: z.literal(true),
         couponCode: z.string().trim().max(20).optional().nullable(),
       })
@@ -303,8 +373,9 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const requestedCouponCode = normalizeCouponCode(data.couponCode);
     let coupon: DiscountCoupon | null = null;
-    const originalAmount = toMoney(Number(choice.price));
-    let finalAmount = originalAmount;
+    const packagePricing = calculateSubscriptionPackage(Number(choice.price), data.packageType);
+    const originalAmount = packagePricing.totalAmount;
+    let finalAmount = packagePricing.totalAmount;
     let discountAmount = 0;
 
     if (requestedCouponCode) {
@@ -337,6 +408,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .eq("student_id", userId)
       .eq("teacher_id", data.teacherId)
       .eq("status", "pendente")
+      .eq("package_type", data.packageType)
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -349,9 +421,17 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (existingError) throw new Error(existingError.message);
 
     let subscriptionId = existingPending?.id;
-    const priceId = coupon
-      ? await ensureDiscountedPriceId({ choice, coupon, finalAmount })
-      : await ensureBasePriceId(choice);
+    const priceId =
+      data.packageType === "mensal"
+        ? coupon
+          ? await ensureDiscountedPriceId({ choice, coupon, finalAmount })
+          : await ensureBasePriceId(choice)
+        : await ensurePackagePriceId({
+            choice,
+            packageType: data.packageType,
+            coupon,
+            finalAmount,
+          });
 
     if (!subscriptionId) {
       const { data: created, error: createError } = await supabaseAdmin
@@ -363,6 +443,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
           custom_plan_id: choice.kind === "custom" ? choice.id : null,
           status: "pendente",
           payment_method: null,
+          package_type: data.packageType,
+          package_months: packagePricing.months,
+          package_discount_rate: packagePricing.discountRate,
+          package_base_amount: packagePricing.baseAmount,
+          package_total_amount: finalAmount,
           terms_accepted_at: now,
           terms_version: "v1",
         })
@@ -377,6 +462,18 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     }
 
     if (!subscriptionId) throw new Error("Falha ao registrar solicitacao de assinatura.");
+
+    const { error: packageUpdateError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        package_type: data.packageType,
+        package_months: packagePricing.months,
+        package_discount_rate: packagePricing.discountRate,
+        package_base_amount: packagePricing.baseAmount,
+        package_total_amount: finalAmount,
+      })
+      .eq("id", subscriptionId);
+    if (packageUpdateError) throw new Error(packageUpdateError.message);
 
     if (coupon) {
       const redemptionPayload = {
@@ -435,6 +532,12 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       plan_slug: choice.kind === "platform" ? choice.slug : null,
       teacher_id: data.teacherId,
       pricing: {
+        monthly_amount: Number(choice.price),
+        package_type: data.packageType,
+        package_months: packagePricing.months,
+        package_base_amount: packagePricing.baseAmount,
+        package_discount_rate: packagePricing.discountRate,
+        package_discount_amount: packagePricing.discountAmount,
         original_amount: originalAmount,
         discount_amount: discountAmount,
         final_amount: finalAmount,
@@ -468,6 +571,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       channel: "validapay",
       status: "pendente",
       planKind: choice.kind,
+      packageType: data.packageType,
+      packagePricing: {
+        months: packagePricing.months,
+        baseAmount: packagePricing.baseAmount,
+        packageDiscountAmount: packagePricing.discountAmount,
+        amountBeforeCoupon: originalAmount,
+        finalAmount,
+      },
       coupon: coupon
         ? {
             code: coupon.code,
@@ -487,11 +598,48 @@ export const getMySubscription = createServerFn({ method: "GET" })
     const { data } = await supabaseAdmin
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, plan_id, custom_plan_id, subscription_plans(*), teacher_custom_plans(*)",
+        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_discount_rate, package_base_amount, package_total_amount, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, plan_id, custom_plan_id, subscription_plans(*), teacher_custom_plans(*)",
       )
       .eq("student_id", userId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     return { subscription: data };
+  });
+
+export const cancelMySubscriptionAtPeriodEnd = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => cancelMySubscriptionSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: subscription, error: lookupError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("id, student_id, status, current_period_end")
+      .eq("id", data.subscriptionId)
+      .eq("student_id", context.userId)
+      .maybeSingle();
+
+    if (lookupError || !subscription) {
+      throw new Error(lookupError?.message ?? "Assinatura nao encontrada.");
+    }
+
+    if (subscription.status === "cancelada" || subscription.status === "expirada") {
+      return { ok: true, alreadyCancelled: true, accessUntil: subscription.current_period_end };
+    }
+
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        cancel_requested_at: now,
+        cancel_requested_by: context.userId,
+        cancel_reason: data.reason || "Cancelamento solicitado pelo aluno",
+        updated_at: now,
+      })
+      .eq("id", data.subscriptionId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return { ok: true, accessUntil: subscription.current_period_end };
   });

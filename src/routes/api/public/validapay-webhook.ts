@@ -144,10 +144,18 @@ function addPlanInterval(startIso: string, interval: string | null | undefined) 
 async function getSubscriptionPeriodEnd(subscriptionId: string, startIso: string) {
   const { data: subscription, error: subscriptionError } = await supabaseAdmin
     .from("student_subscriptions")
-    .select("plan_id, custom_plan_id")
+    .select("plan_id, custom_plan_id, package_months")
     .eq("id", subscriptionId)
     .maybeSingle();
   if (subscriptionError) throw subscriptionError;
+
+  const packageMonths = Number(subscription?.package_months ?? 1);
+  if ([1, 6, 12].includes(packageMonths)) {
+    const end = new Date(startIso);
+    if (!Number.isFinite(end.getTime())) return null;
+    end.setMonth(end.getMonth() + packageMonths);
+    return end.toISOString();
+  }
 
   if (subscription?.plan_id) {
     const { data: plan, error: planError } = await supabaseAdmin
@@ -177,6 +185,7 @@ async function getPendingSubscriptionAmounts(
     id: string;
     plan_id: string | null;
     custom_plan_id: string | null;
+    package_total_amount?: number | null;
   }>,
 ) {
   const amounts = new Map<string, number>();
@@ -222,6 +231,12 @@ async function getPendingSubscriptionAmounts(
     const couponAmount = couponPrices.get(subscription.id);
     if (Number.isFinite(couponAmount) && Number(couponAmount) > 0) {
       amounts.set(subscription.id, Number(couponAmount));
+      return;
+    }
+
+    const packageAmount = Number(subscription.package_total_amount ?? 0);
+    if (Number.isFinite(packageAmount) && packageAmount > 0) {
+      amounts.set(subscription.id, packageAmount);
       return;
     }
 
@@ -298,7 +313,7 @@ async function findPendingSubscription(payload: ValidapayWebhookPayload) {
 
   const { data: subscriptions, error: subscriptionError } = await supabaseAdmin
     .from("student_subscriptions")
-    .select("id, payment_method, status, plan_id, custom_plan_id")
+    .select("id, payment_method, status, plan_id, custom_plan_id, package_total_amount")
     .eq("student_id", profile.id)
     .eq("status", "pendente")
     .order("created_at", { ascending: false })

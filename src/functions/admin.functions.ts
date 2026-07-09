@@ -21,7 +21,19 @@ type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" 
 type CustomPlanSummary = Pick<Tables<"teacher_custom_plans">, "id" | "name" | "price">;
 type SubscriptionWithPlan = Pick<
   Tables<"student_subscriptions">,
-  "id" | "student_id" | "teacher_id" | "plan_id" | "custom_plan_id" | "status" | "created_at"
+  | "id"
+  | "student_id"
+  | "teacher_id"
+  | "plan_id"
+  | "custom_plan_id"
+  | "status"
+  | "created_at"
+  | "current_period_end"
+  | "cancel_at_period_end"
+  | "cancel_requested_at"
+  | "package_type"
+  | "package_months"
+  | "package_total_amount"
 > & {
   subscription_plans: SubscriptionPlanSummary | null;
   teacher_custom_plans: CustomPlanSummary | null;
@@ -81,6 +93,11 @@ const directorWithdrawalSchema = z.object({
 
 const activateSubscriptionSchema = z.object({
   subscriptionId: z.string().uuid(),
+});
+
+const cancelSubscriptionSchema = z.object({
+  subscriptionId: z.string().uuid(),
+  reason: z.string().trim().max(500).optional().nullable(),
 });
 
 const confirmTeacherWithdrawalSchema = z.object({
@@ -425,7 +442,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       supabaseAdmin
         .from("student_subscriptions")
         .select(
-          "id, student_id, teacher_id, plan_id, custom_plan_id, status, created_at, subscription_plans(id, name, price, slug), teacher_custom_plans(id, name, price)",
+          "id, student_id, teacher_id, plan_id, custom_plan_id, status, created_at, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_total_amount, subscription_plans(id, name, price, slug), teacher_custom_plans(id, name, price)",
         )
         .order("created_at", { ascending: false }),
       supabaseAdmin
@@ -470,6 +487,42 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         subscriptionRows,
       ),
     };
+  });
+
+export const cancelStudentSubscriptionByDirector = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => cancelSubscriptionSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const { data: subscription, error: lookupError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("id, status, current_period_end")
+      .eq("id", data.subscriptionId)
+      .maybeSingle();
+
+    if (lookupError || !subscription) {
+      throw new Error(lookupError?.message ?? "Assinatura nao encontrada.");
+    }
+
+    if (subscription.status === "cancelada" || subscription.status === "expirada") {
+      return { ok: true, alreadyCancelled: true, accessUntil: subscription.current_period_end };
+    }
+
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        cancel_requested_at: now,
+        cancel_requested_by: context.userId,
+        cancel_reason: data.reason || "Cancelamento feito pela diretoria",
+        updated_at: now,
+      })
+      .eq("id", data.subscriptionId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return { ok: true, accessUntil: subscription.current_period_end };
   });
 
 export const activateStudentSubscriptionManually = createServerFn({ method: "POST" })

@@ -291,9 +291,16 @@ export async function createValidapayProduct(input: {
   slug: string;
   amount: number;
   interval: "mensal" | "trimestral" | "anual";
+  packageMonths?: 1 | 6 | 12;
 }) {
-  const recurrenceType = validapayRecurrenceType(input.interval);
-  const recurrenceInterval = validapayRecurrenceInterval(input.interval);
+  const recurrenceType =
+    input.packageMonths === 12 ? "YEARLY" : validapayRecurrenceType(input.interval);
+  const recurrenceInterval =
+    input.packageMonths === 6
+      ? 6
+      : input.packageMonths === 12
+        ? 1
+        : validapayRecurrenceInterval(input.interval);
   const body: JsonBody = {
     name: `${input.name} - GWLanguageFlow`,
     description: input.description ?? `Plano ${input.name} GWLanguageFlow`,

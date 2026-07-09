@@ -8,7 +8,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { createSubscriptionCheckout } from "@/functions/validapay-checkout.functions";
+import {
+  cancelMySubscriptionAtPeriodEnd,
+  createSubscriptionCheckout,
+} from "@/functions/validapay-checkout.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/minha-assinatura")({
@@ -29,6 +32,10 @@ interface SubRow {
   current_period_start: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
+  cancel_requested_at: string | null;
+  package_type: "mensal" | "semestral" | "anual";
+  package_months: number;
+  package_total_amount: number | null;
   last_payment_at: string | null;
   terms_accepted_at: string;
   created_at: string;
@@ -75,13 +82,14 @@ function Page() {
   const [sub, setSub] = useState<SubRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [renewing, setRenewing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, teacher_id, custom_plan_id, current_period_start, current_period_end, cancel_at_period_end, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features), custom_plan:teacher_custom_plans(name, price, interval, description)",
+        "id, status, payment_method, teacher_id, custom_plan_id, current_period_start, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_total_amount, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features), custom_plan:teacher_custom_plans(name, price, interval, description)",
       )
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
@@ -120,6 +128,7 @@ function Page() {
           customPlanId,
           teacherId: sub.teacher_id,
           termsAccepted: true,
+          packageType: sub.package_type ?? "mensal",
         },
       });
 
@@ -129,6 +138,33 @@ function Page() {
         err instanceof Error ? err.message : "Nao foi possivel abrir o checkout ValidaPay.",
       );
       setRenewing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!sub) return;
+    setCancelling(true);
+    try {
+      await cancelMySubscriptionAtPeriodEnd({
+        data: {
+          subscriptionId: sub.id,
+          reason: "Cancelamento solicitado pelo aluno",
+        },
+      });
+      setSub((current) =>
+        current
+          ? {
+              ...current,
+              cancel_at_period_end: true,
+              cancel_requested_at: new Date().toISOString(),
+            }
+          : current,
+      );
+      toast.success("Cancelamento programado. Seu acesso segue ate o fim do periodo pago.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nao foi possivel cancelar a assinatura.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -231,9 +267,31 @@ function Page() {
                   icon={<MessageCircle className="h-4 w-4" />}
                   label="Valor"
                   value={
-                    currentPlan
-                      ? `${fmtBRL(Number(currentPlan.price))} / ${currentPlan.interval}`
-                      : "-"
+                    sub.package_total_amount
+                      ? fmtBRL(Number(sub.package_total_amount))
+                      : currentPlan
+                        ? `${fmtBRL(Number(currentPlan.price))} / ${currentPlan.interval}`
+                        : "-"
+                  }
+                />
+                <Info
+                  icon={<CalendarClock className="h-4 w-4" />}
+                  label="Pacote"
+                  value={
+                    sub.package_type === "anual"
+                      ? "Anual"
+                      : sub.package_type === "semestral"
+                        ? "Semestral"
+                        : "Mensal"
+                  }
+                />
+                <Info
+                  icon={<CalendarClock className="h-4 w-4" />}
+                  label="Duração"
+                  value={
+                    sub.package_months && sub.package_months > 1
+                      ? `${sub.package_months} meses`
+                      : "1 mes"
                   }
                 />
                 <Info
@@ -304,6 +362,20 @@ function Page() {
                   Meus agendamentos
                 </Button>
               </Link>
+              {sub &&
+                !sub.cancel_at_period_end &&
+                sub.status !== "cancelada" &&
+                sub.status !== "expirada" && (
+                  <Button
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    variant="outline"
+                    className="border-red-200 bg-white text-red-700 hover:bg-red-50"
+                  >
+                    {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Cancelar no fim do periodo
+                  </Button>
+                )}
             </div>
           </div>
         )}
