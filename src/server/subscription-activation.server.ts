@@ -53,6 +53,13 @@ function addSubscriptionPeriod(
   subscription: StudentSubscription,
   interval: PlanInterval | null | undefined,
 ) {
+  if (subscription.package_billing_mode === "monthly") {
+    const end = new Date(startIso);
+    if (!Number.isFinite(end.getTime())) return null;
+    end.setMonth(end.getMonth() + 1);
+    return end.toISOString();
+  }
+
   const months = Number(subscription.package_months ?? 1);
   if ([1, 6, 12].includes(months)) {
     const end = new Date(startIso);
@@ -283,6 +290,22 @@ export async function activateStudentSubscriptionServer({
   const teacherAmount = toMoney(grossAmount * 0.9);
   const platformAmount = toMoney(grossAmount - teacherAmount);
   const resolvedPeriodEnd = periodEnd || addSubscriptionPeriod(start, subscription, plan.interval);
+  const commitmentEnd = (() => {
+    const months = Number(
+      subscription.package_commitment_months ?? subscription.package_months ?? 1,
+    );
+    if (months <= 1) return null;
+    if (subscription.package_commitment_end) {
+      const current = new Date(subscription.package_commitment_end);
+      if (Number.isFinite(current.getTime()) && current.getTime() > Date.now()) {
+        return subscription.package_commitment_end;
+      }
+    }
+    const end = new Date(start);
+    if (!Number.isFinite(end.getTime())) return null;
+    end.setMonth(end.getMonth() + months);
+    return end.toISOString();
+  })();
   const teacher = await getTeacher(subscription.teacher_id);
   const student = await getStudent(subscription.student_id);
 
@@ -317,6 +340,7 @@ export async function activateStudentSubscriptionServer({
       status: "ativa",
       current_period_start: start,
       current_period_end: resolvedPeriodEnd,
+      package_commitment_end: commitmentEnd,
       last_payment_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

@@ -32,6 +32,7 @@ import { getProfileAvatarUrl } from "@/lib/profile-media";
 import {
   calculateSubscriptionPackage,
   SUBSCRIPTION_PACKAGES,
+  type PackageBillingMode,
   type PackageType,
 } from "@/lib/subscription-packages";
 
@@ -115,6 +116,7 @@ function PlansPage() {
   const [couponCode, setCouponCode] = useState("");
   const [useTeacherCoupon, setUseTeacherCoupon] = useState(false);
   const [packageType, setPackageType] = useState<PackageType>("mensal");
+  const [packageBillingMode, setPackageBillingMode] = useState<PackageBillingMode>("monthly");
 
   useEffect(() => {
     let cancelled = false;
@@ -244,6 +246,7 @@ function PlansPage() {
           customPlanId: selected.kind === "custom" ? selected.customPlanId : null,
           teacherId,
           packageType,
+          packageBillingMode,
           termsAccepted: true,
           couponCode:
             useTeacherCoupon && teacherCoupon
@@ -398,7 +401,12 @@ function PlansPage() {
           useTeacherCoupon={useTeacherCoupon}
           setUseTeacherCoupon={setUseTeacherCoupon}
           packageType={packageType}
-          setPackageType={setPackageType}
+          setPackageType={(value) => {
+            setPackageType(value);
+            if (value === "mensal") setPackageBillingMode("monthly");
+          }}
+          packageBillingMode={packageBillingMode}
+          setPackageBillingMode={setPackageBillingMode}
           terms={terms}
           setTerms={setTerms}
           loading={loading}
@@ -542,6 +550,8 @@ function CheckoutDialog({
   setUseTeacherCoupon,
   packageType,
   setPackageType,
+  packageBillingMode,
+  setPackageBillingMode,
   terms,
   setTerms,
   loading,
@@ -556,6 +566,8 @@ function CheckoutDialog({
   setUseTeacherCoupon: (value: boolean) => void;
   packageType: PackageType;
   setPackageType: (value: PackageType) => void;
+  packageBillingMode: PackageBillingMode;
+  setPackageBillingMode: (value: PackageBillingMode) => void;
   terms: boolean;
   setTerms: (terms: boolean) => void;
   loading: boolean;
@@ -565,7 +577,7 @@ function CheckoutDialog({
   const appliedTeacherCoupon = useTeacherCoupon && teacherCoupon ? teacherCoupon : null;
   const discountPercent = appliedTeacherCoupon?.discount_percent ?? 0;
   const packagePricing = selected
-    ? calculateSubscriptionPackage(selected.price, packageType)
+    ? calculateSubscriptionPackage(selected.price, packageType, packageBillingMode)
     : null;
   const discountValue =
     packagePricing && discountPercent > 0
@@ -612,6 +624,41 @@ function CheckoutDialog({
                 );
               })}
             </div>
+            {packageType !== "mensal" && (
+              <div className="mt-4 rounded-xl border border-bronze/30 bg-cream p-3">
+                <p className="text-sm font-semibold text-wine">Como deseja pagar?</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setPackageBillingMode("monthly")}
+                    className={`rounded-lg border p-3 text-left text-sm transition ${
+                      packageBillingMode === "monthly"
+                        ? "border-wine bg-white text-wine shadow-soft"
+                        : "border-border bg-white/70 text-brown hover:border-bronze"
+                    }`}
+                  >
+                    <span className="block font-bold">Parcela mensal</span>
+                    <span className="mt-1 block text-xs text-brown-soft">
+                      Compromisso do pacote, pagando mes a mes.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPackageBillingMode("upfront")}
+                    className={`rounded-lg border p-3 text-left text-sm transition ${
+                      packageBillingMode === "upfront"
+                        ? "border-wine bg-white text-wine shadow-soft"
+                        : "border-border bg-white/70 text-brown hover:border-bronze"
+                    }`}
+                  >
+                    <span className="block font-bold">À vista</span>
+                    <span className="mt-1 block text-xs text-brown-soft">
+                      Pague o pacote completo em uma única cobrança.
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-bronze/30 bg-cream p-4">
@@ -629,7 +676,9 @@ function CheckoutDialog({
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-brown-soft">Valor-base do pacote</dt>
+                <dt className="text-brown-soft">
+                  {packageBillingMode === "upfront" ? "Valor-base do pacote" : "Valor-base mensal"}
+                </dt>
                 <dd className="font-semibold text-wine">
                   {packagePricing ? formatMoney(packagePricing.baseAmount) : ""}
                 </dd>
@@ -664,16 +713,33 @@ function CheckoutDialog({
               )}
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Pacote</dt>
-                <dd className="font-semibold text-wine">{packagePricing?.label}</dd>
+                <dd className="text-right font-semibold text-wine">
+                  {packagePricing?.label}
+                  {packagePricing && packagePricing.months > 1
+                    ? ` (${packagePricing.months} meses)`
+                    : ""}
+                </dd>
               </div>
+              {packagePricing && packagePricing.months > 1 && packageBillingMode === "monthly" && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-brown-soft">Compromisso total</dt>
+                  <dd className="text-right font-semibold text-wine">
+                    {packagePricing.months} parcelas de {formatMoney(finalValue)}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-brown-soft">Pagamento</dt>
                 <dd className="text-right font-semibold text-wine">
-                  Pagamento integral por cartao de credito ou Pix
+                  {packageBillingMode === "upfront"
+                    ? "Pagamento à vista por cartão ou Pix"
+                    : "Parcela mensal por cartão ou Pix Automático"}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 border-t border-bronze/20 pt-2">
-                <dt className="font-semibold text-wine">Total a pagar</dt>
+                <dt className="font-semibold text-wine">
+                  {packageBillingMode === "upfront" ? "Total a pagar" : "Parcela de hoje"}
+                </dt>
                 <dd className="font-bold text-wine">{formatMoney(finalValue)}</dd>
               </div>
             </dl>

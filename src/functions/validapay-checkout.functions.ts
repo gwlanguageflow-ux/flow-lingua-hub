@@ -3,7 +3,11 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
-import { calculateSubscriptionPackage, type PackageType } from "@/lib/subscription-packages";
+import {
+  calculateSubscriptionPackage,
+  type PackageBillingMode,
+  type PackageType,
+} from "@/lib/subscription-packages";
 
 type Plan = Database["public"]["Tables"]["subscription_plans"]["Row"];
 type CustomPlan = Database["public"]["Tables"]["teacher_custom_plans"]["Row"];
@@ -209,11 +213,13 @@ async function ensureDiscountedPriceId({
 async function ensurePackagePriceId({
   choice,
   packageType,
+  packageBillingMode,
   coupon,
   finalAmount,
 }: {
   choice: PlanChoice;
   packageType: Exclude<PackageType, "mensal">;
+  packageBillingMode: PackageBillingMode;
   coupon: DiscountCoupon | null;
   finalAmount: number;
 }) {
@@ -225,6 +231,7 @@ async function ensurePackagePriceId({
     .from("subscription_package_prices")
     .select("*")
     .eq("package_type", packageType)
+    .eq("package_billing_mode", packageBillingMode)
     .eq("coupon_discount_percent", discountPercent);
   query =
     choice.kind === "platform"
@@ -237,15 +244,23 @@ async function ensurePackagePriceId({
     return existing.validapay_price_id;
   }
 
-  const packagePricing = calculateSubscriptionPackage(Number(choice.price), packageType);
+  const packagePricing = calculateSubscriptionPackage(
+    Number(choice.price),
+    packageType,
+    packageBillingMode,
+  );
   const packageLabel = packageType === "semestral" ? "semestral" : "anual";
+  const billingLabel = packageBillingMode === "upfront" ? "à vista" : "parcela mensal";
   const product = await createValidapayProduct({
-    name: `${choice.name} ${packageLabel}${coupon ? ` cupom ${coupon.code}` : ""}`,
-    description: `${choice.description ?? choice.name} Pacote ${packageLabel} pago integralmente.`,
-    slug: `${checkoutSlug(choice, coupon)}-${packageType}`,
+    name: `${choice.name} ${packageLabel} ${billingLabel}${coupon ? ` cupom ${coupon.code}` : ""}`,
+    description:
+      packageBillingMode === "upfront"
+        ? `${choice.description ?? choice.name} Pacote ${packageLabel} pago à vista.`
+        : `${choice.description ?? choice.name} Pacote ${packageLabel} com compromisso de ${packagePricing.months} meses e cobrança mensal.`,
+    slug: `${checkoutSlug(choice, coupon)}-${packageType}-${packageBillingMode}`,
     amount: finalAmount,
-    interval: packageType === "anual" ? "anual" : "mensal",
-    packageMonths: packagePricing.months as 6 | 12,
+    interval: packageBillingMode === "upfront" && packageType === "anual" ? "anual" : "mensal",
+    packageMonths: packageBillingMode === "upfront" ? (packagePricing.months as 6 | 12) : undefined,
   });
 
   const priceId = getValidapayPriceId(product);
@@ -255,6 +270,7 @@ async function ensurePackagePriceId({
     plan_id: choice.kind === "platform" ? choice.id : null,
     custom_plan_id: choice.kind === "custom" ? choice.id : null,
     package_type: packageType,
+    package_billing_mode: packageBillingMode,
     coupon_discount_percent: discountPercent,
     amount: finalAmount,
     validapay_product_id: product.productId,
@@ -278,6 +294,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         customPlanId: z.string().uuid().optional().nullable(),
         teacherId: z.string().uuid(),
         packageType: z.enum(["mensal", "semestral", "anual"]).default("mensal"),
+        packageBillingMode: z.enum(["monthly", "upfront"]).default("monthly"),
         termsAccepted: z.literal(true),
         couponCode: z.string().trim().max(20).optional().nullable(),
       })
@@ -373,7 +390,13 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const requestedCouponCode = normalizeCouponCode(data.couponCode);
     let coupon: DiscountCoupon | null = null;
-    const packagePricing = calculateSubscriptionPackage(Number(choice.price), data.packageType);
+    const packageBillingMode: PackageBillingMode =
+      data.packageType === "mensal" ? "monthly" : data.packageBillingMode;
+    const packagePricing = calculateSubscriptionPackage(
+      Number(choice.price),
+      data.packageType,
+      packageBillingMode,
+    );
     const originalAmount = packagePricing.totalAmount;
     let finalAmount = packagePricing.totalAmount;
     let discountAmount = 0;
@@ -409,6 +432,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .eq("teacher_id", data.teacherId)
       .eq("status", "pendente")
       .eq("package_type", data.packageType)
+      .eq("package_billing_mode", packageBillingMode)
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -429,6 +453,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         : await ensurePackagePriceId({
             choice,
             packageType: data.packageType,
+            packageBillingMode,
             coupon,
             finalAmount,
           });
@@ -444,7 +469,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
           status: "pendente",
           payment_method: null,
           package_type: data.packageType,
-          package_months: packagePricing.months,
+          package_billing_mode: packageBillingMode,
+          package_months: packagePricing.paidMonths,
+          package_commitment_months: packagePricing.months,
+          package_monthly_amount: packagePricing.monthlyAmount,
+          package_upfront_amount: packagePricing.upfrontAmount,
           package_discount_rate: packagePricing.discountRate,
           package_base_amount: packagePricing.baseAmount,
           package_total_amount: finalAmount,
@@ -467,7 +496,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       .from("student_subscriptions")
       .update({
         package_type: data.packageType,
-        package_months: packagePricing.months,
+        package_billing_mode: packageBillingMode,
+        package_months: packagePricing.paidMonths,
+        package_commitment_months: packagePricing.months,
+        package_monthly_amount: packagePricing.monthlyAmount,
+        package_upfront_amount: packagePricing.upfrontAmount,
         package_discount_rate: packagePricing.discountRate,
         package_base_amount: packagePricing.baseAmount,
         package_total_amount: finalAmount,
@@ -534,7 +567,11 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       pricing: {
         monthly_amount: Number(choice.price),
         package_type: data.packageType,
+        package_billing_mode: packageBillingMode,
         package_months: packagePricing.months,
+        paid_months: packagePricing.paidMonths,
+        package_monthly_amount: packagePricing.monthlyAmount,
+        package_upfront_amount: packagePricing.upfrontAmount,
         package_base_amount: packagePricing.baseAmount,
         package_discount_rate: packagePricing.discountRate,
         package_discount_amount: packagePricing.discountAmount,
@@ -572,8 +609,12 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       status: "pendente",
       planKind: choice.kind,
       packageType: data.packageType,
+      packageBillingMode,
       packagePricing: {
         months: packagePricing.months,
+        paidMonths: packagePricing.paidMonths,
+        monthlyAmount: packagePricing.monthlyAmount,
+        upfrontAmount: packagePricing.upfrontAmount,
         baseAmount: packagePricing.baseAmount,
         packageDiscountAmount: packagePricing.discountAmount,
         amountBeforeCoupon: originalAmount,
@@ -598,7 +639,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
     const { data } = await supabaseAdmin
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_discount_rate, package_base_amount, package_total_amount, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, plan_id, custom_plan_id, subscription_plans(*), teacher_custom_plans(*)",
+        "id, status, payment_method, current_period_start, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_billing_mode, package_months, package_commitment_months, package_commitment_end, package_monthly_amount, package_upfront_amount, package_discount_rate, package_base_amount, package_total_amount, last_payment_at, terms_accepted_at, terms_version, created_at, updated_at, plan_id, custom_plan_id, subscription_plans(*), teacher_custom_plans(*)",
       )
       .eq("student_id", userId)
       .order("created_at", { ascending: false })

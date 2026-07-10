@@ -51,6 +51,10 @@ type ClassAssignmentSubmission = Tables<"class_assignment_submissions">;
 type StudentMessage = Tables<"teacher_student_messages">;
 type StudentScore = Tables<"student_scores">;
 type TeacherProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url">;
+type StudentSubscriptionAccess = Pick<
+  Tables<"student_subscriptions">,
+  "status" | "current_period_end"
+>;
 
 export const Route = createFileRoute("/meus-agendamentos")({
   head: () => ({ meta: [{ title: "Meus agendamentos — GWLanguageFlow" }] }),
@@ -76,6 +80,7 @@ function Page() {
   const [messages, setMessages] = useState<StudentMessage[]>([]);
   const [scores, setScores] = useState<StudentScore[]>([]);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [hasActiveAccess, setHasActiveAccess] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -87,6 +92,7 @@ function Page() {
       { data: submissionRows },
       { data: messageRows },
       { data: scoreRows },
+      { data: subscriptionRows },
     ] = await Promise.all([
       supabase
         .from("bookings")
@@ -111,7 +117,19 @@ function Page() {
         .select("*")
         .eq("student_id", user.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("student_subscriptions")
+        .select("status, current_period_end")
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: false }),
     ]);
+
+    const now = Date.now();
+    const activeAccess = ((subscriptionRows ?? []) as StudentSubscriptionAccess[]).some((sub) => {
+      const periodEnd = sub.current_period_end ? new Date(sub.current_period_end).getTime() : null;
+      return sub.status === "ativa" && (periodEnd === null || periodEnd > now);
+    });
+    setHasActiveAccess(activeAccess);
 
     setItems(bookingRows || []);
     setMemberships(memberRows || []);
@@ -130,15 +148,19 @@ function Page() {
     }
 
     const activeClassIds = new Set((memberRows || []).map((item) => item.class_id));
-    const visibleMaterials = (materialRows || []).filter((item) => {
-      if (item.source === "platform") return true;
-      if (item.student_id === user.id) return true;
-      return Boolean(item.class_id && activeClassIds.has(item.class_id));
-    });
-    const visibleAssignments = (assignmentRows || []).filter((item) => {
-      if (item.student_id === user.id) return true;
-      return Boolean(item.class_id && activeClassIds.has(item.class_id));
-    });
+    const visibleMaterials = activeAccess
+      ? (materialRows || []).filter((item) => {
+          if (item.source === "platform") return true;
+          if (item.student_id === user.id) return true;
+          return Boolean(item.class_id && activeClassIds.has(item.class_id));
+        })
+      : [];
+    const visibleAssignments = activeAccess
+      ? (assignmentRows || []).filter((item) => {
+          if (item.student_id === user.id) return true;
+          return Boolean(item.class_id && activeClassIds.has(item.class_id));
+        })
+      : [];
 
     setMaterials(visibleMaterials);
     setAssignments(visibleAssignments);
@@ -391,12 +413,17 @@ function Page() {
               classes={classes}
               submissions={assignmentSubmissions}
               studentId={user?.id}
+              hasActiveAccess={hasActiveAccess}
               onChanged={load}
             />
           </TabsContent>
 
           <TabsContent value="materiais" className="mt-6">
-            <StudentMaterialsSection materials={materials} classes={classes} />
+            <StudentMaterialsSection
+              materials={materials}
+              classes={classes}
+              hasActiveAccess={hasActiveAccess}
+            />
           </TabsContent>
 
           <TabsContent value="mensagens" className="mt-6">
@@ -597,14 +624,19 @@ function StudentAssignmentsSection({
   classes,
   submissions,
   studentId,
+  hasActiveAccess,
   onChanged,
 }: {
   assignments: ClassAssignment[];
   classes: ClassGroup[];
   submissions: ClassAssignmentSubmission[];
   studentId?: string;
+  hasActiveAccess: boolean;
   onChanged: () => void | Promise<void>;
 }) {
+  if (!hasActiveAccess) {
+    return <Empty msg="Regularize sua assinatura para acessar e concluir atividades." />;
+  }
   if (assignments.length === 0) return <Empty msg="Nenhuma atividade enviada ainda." />;
 
   const submissionMap = new Map(submissions.map((item) => [item.assignment_id, item]));
@@ -691,10 +723,15 @@ function StudentAssignmentsSection({
 function StudentMaterialsSection({
   materials,
   classes,
+  hasActiveAccess,
 }: {
   materials: ClassMaterial[];
   classes: ClassGroup[];
+  hasActiveAccess: boolean;
 }) {
+  if (!hasActiveAccess) {
+    return <Empty msg="Regularize sua assinatura para acessar os materiais da plataforma." />;
+  }
   const materialTargetLabel = (item: ClassMaterial) => {
     if (item.source === "platform") return "Material padrão da plataforma";
     if (item.student_id) return "Enviado diretamente para você";

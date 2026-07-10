@@ -144,10 +144,17 @@ function addPlanInterval(startIso: string, interval: string | null | undefined) 
 async function getSubscriptionPeriodEnd(subscriptionId: string, startIso: string) {
   const { data: subscription, error: subscriptionError } = await supabaseAdmin
     .from("student_subscriptions")
-    .select("plan_id, custom_plan_id, package_months")
+    .select("plan_id, custom_plan_id, package_months, package_billing_mode")
     .eq("id", subscriptionId)
     .maybeSingle();
   if (subscriptionError) throw subscriptionError;
+
+  if (subscription?.package_billing_mode === "monthly") {
+    const end = new Date(startIso);
+    if (!Number.isFinite(end.getTime())) return null;
+    end.setMonth(end.getMonth() + 1);
+    return end.toISOString();
+  }
 
   const packageMonths = Number(subscription?.package_months ?? 1);
   if ([1, 6, 12].includes(packageMonths)) {

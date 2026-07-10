@@ -96,7 +96,10 @@ type TeacherPayoutProfile = Pick<
   "pix_key" | "account_holder_name" | "account_holder_document"
 >;
 type TeacherIdentity = Pick<Tables<"profiles">, "full_name" | "cpf">;
-type TeacherStudentSubscription = Pick<Tables<"student_subscriptions">, "student_id" | "status">;
+type TeacherStudentSubscription = Pick<
+  Tables<"student_subscriptions">,
+  "student_id" | "status" | "current_period_end"
+>;
 
 type StudentProfile = Pick<Tables<"profiles">, "id" | "full_name" | "avatar_url"> & {
   desired_language?: string | null;
@@ -308,9 +311,10 @@ function DashboardPage() {
         .limit(20),
       supabase
         .from("student_subscriptions")
-        .select("student_id, status")
+        .select("student_id, status, current_period_end")
         .eq("teacher_id", user.id)
-        .eq("status", "ativa"),
+        .eq("status", "ativa")
+        .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`),
       supabase
         .from("discount_coupons")
         .select("*")
@@ -356,10 +360,13 @@ function DashboardPage() {
       setMembers([]);
     }
 
+    const activeSubscriptionIds = new Set(
+      ((subscriptionRows || []) as TeacherStudentSubscription[]).map((item) => item.student_id),
+    );
     const studentIds = Array.from(
       new Set([
-        ...(bks || []).map((b) => b.student_id),
-        ...memberRows.map((m) => m.student_id),
+        ...(bks || []).map((b) => b.student_id).filter((id) => activeSubscriptionIds.has(id)),
+        ...memberRows.map((m) => m.student_id).filter((id) => activeSubscriptionIds.has(id)),
         ...((subscriptionRows || []) as TeacherStudentSubscription[]).map(
           (item) => item.student_id,
         ),

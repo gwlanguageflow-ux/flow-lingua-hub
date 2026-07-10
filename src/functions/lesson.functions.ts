@@ -51,31 +51,19 @@ export const scheduleTeacherLesson = createServerFn({ method: "POST" })
     if (teacherError) throw new Error(teacherError.message);
     if (!teacherProfile) throw new Error("Professor nao encontrado ou inativo.");
 
-    const [{ data: activeSubscription, error: subscriptionError }, { data: activeClassMember }] =
-      await Promise.all([
-        supabaseAdmin
-          .from("student_subscriptions")
-          .select("id")
-          .eq("teacher_id", teacherId)
-          .eq("student_id", data.studentId)
-          .eq("status", "ativa")
-          .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`)
-          .limit(1)
-          .maybeSingle(),
-        supabaseAdmin
-          .from("class_members")
-          .select("id, class_groups!inner(teacher_id, status)")
-          .eq("student_id", data.studentId)
-          .eq("status", "ativo")
-          .eq("class_groups.teacher_id", teacherId)
-          .eq("class_groups.status", "ativa")
-          .limit(1)
-          .maybeSingle(),
-      ]);
+    const { data: activeSubscription, error: subscriptionError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("id")
+      .eq("teacher_id", teacherId)
+      .eq("student_id", data.studentId)
+      .eq("status", "ativa")
+      .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`)
+      .limit(1)
+      .maybeSingle();
 
     if (subscriptionError) throw new Error(subscriptionError.message);
-    if (!activeSubscription && !activeClassMember) {
-      throw new Error("Este aluno ainda nao esta ativo com voce.");
+    if (!activeSubscription) {
+      throw new Error("Este aluno nao esta com assinatura ativa e em dia com voce.");
     }
 
     const { data: booking, error: bookingError } = await supabaseAdmin

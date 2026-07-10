@@ -105,7 +105,6 @@ async function runPixRenewalMonitor() {
   const { data: expiredSubs, error: expiredError } = await supabaseAdmin
     .from("student_subscriptions")
     .select("id, student_id, status, current_period_end, plan:subscription_plans(name, interval)")
-    .eq("payment_method", "pix")
     .eq("status", "ativa")
     .not("current_period_end", "is", null)
     .lte("current_period_end", now.toISOString());
@@ -143,7 +142,6 @@ async function runPixRenewalMonitor() {
   const { data: dueSoonSubs, error: dueSoonError } = await supabaseAdmin
     .from("student_subscriptions")
     .select("id, student_id, status, current_period_end, plan:subscription_plans(name, interval)")
-    .eq("payment_method", "pix")
     .eq("status", "ativa")
     .not("current_period_end", "is", null)
     .gt("current_period_end", now.toISOString())

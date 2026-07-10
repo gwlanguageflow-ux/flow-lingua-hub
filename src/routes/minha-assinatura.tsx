@@ -34,7 +34,12 @@ interface SubRow {
   cancel_at_period_end: boolean;
   cancel_requested_at: string | null;
   package_type: "mensal" | "semestral" | "anual";
+  package_billing_mode: "monthly" | "upfront";
   package_months: number;
+  package_commitment_months: number;
+  package_commitment_end: string | null;
+  package_monthly_amount: number | null;
+  package_upfront_amount: number | null;
   package_total_amount: number | null;
   last_payment_at: string | null;
   terms_accepted_at: string;
@@ -89,7 +94,7 @@ function Page() {
     supabase
       .from("student_subscriptions")
       .select(
-        "id, status, payment_method, teacher_id, custom_plan_id, current_period_start, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_total_amount, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features), custom_plan:teacher_custom_plans(name, price, interval, description)",
+        "id, status, payment_method, teacher_id, custom_plan_id, current_period_start, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_billing_mode, package_months, package_commitment_months, package_commitment_end, package_monthly_amount, package_upfront_amount, package_total_amount, last_payment_at, terms_accepted_at, created_at, plan:subscription_plans(name, slug, price, interval, description, features), custom_plan:teacher_custom_plans(name, price, interval, description)",
       )
       .eq("student_id", user.id)
       .order("created_at", { ascending: false })
@@ -129,6 +134,7 @@ function Page() {
           teacherId: sub.teacher_id,
           termsAccepted: true,
           packageType: sub.package_type ?? "mensal",
+          packageBillingMode: sub.package_billing_mode ?? "monthly",
         },
       });
 
@@ -268,7 +274,9 @@ function Page() {
                   label="Valor"
                   value={
                     sub.package_total_amount
-                      ? fmtBRL(Number(sub.package_total_amount))
+                      ? `${fmtBRL(Number(sub.package_total_amount))}${
+                          sub.package_billing_mode === "monthly" ? " / parcela" : ""
+                        }`
                       : currentPlan
                         ? `${fmtBRL(Number(currentPlan.price))} / ${currentPlan.interval}`
                         : "-"
@@ -289,9 +297,11 @@ function Page() {
                   icon={<CalendarClock className="h-4 w-4" />}
                   label="Duração"
                   value={
-                    sub.package_months && sub.package_months > 1
-                      ? `${sub.package_months} meses`
-                      : "1 mes"
+                    sub.package_billing_mode === "monthly" && sub.package_commitment_months > 1
+                      ? `1 mes pago, compromisso de ${sub.package_commitment_months} meses`
+                      : sub.package_months && sub.package_months > 1
+                        ? `${sub.package_months} meses`
+                        : "1 mes"
                   }
                 />
                 <Info
