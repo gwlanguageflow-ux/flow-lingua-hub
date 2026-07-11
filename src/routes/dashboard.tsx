@@ -312,9 +312,7 @@ function DashboardPage() {
       supabase
         .from("student_subscriptions")
         .select("student_id, status, current_period_end")
-        .eq("teacher_id", user.id)
-        .eq("status", "ativa")
-        .or(`current_period_end.is.null,current_period_end.gt.${new Date().toISOString()}`),
+        .eq("teacher_id", user.id),
       supabase
         .from("discount_coupons")
         .select("*")
@@ -360,13 +358,10 @@ function DashboardPage() {
       setMembers([]);
     }
 
-    const activeSubscriptionIds = new Set(
-      ((subscriptionRows || []) as TeacherStudentSubscription[]).map((item) => item.student_id),
-    );
     const studentIds = Array.from(
       new Set([
-        ...(bks || []).map((b) => b.student_id).filter((id) => activeSubscriptionIds.has(id)),
-        ...memberRows.map((m) => m.student_id).filter((id) => activeSubscriptionIds.has(id)),
+        ...(bks || []).map((b) => b.student_id),
+        ...memberRows.map((m) => m.student_id),
         ...((subscriptionRows || []) as TeacherStudentSubscription[]).map(
           (item) => item.student_id,
         ),
@@ -598,16 +593,20 @@ function DashboardPage() {
               )}
               <Link
                 to="/cadastro/professor"
-                className="ml-2 text-xs underline opacity-80 hover:opacity-100"
+                className={`ml-2 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                  pricingMode === "padrao"
+                    ? "bg-white/12 text-white hover:bg-white/20"
+                    : "bg-wine text-white hover:bg-bronze"
+                }`}
               >
-                editar
+                Editar valores
               </Link>
             </div>
           )}
         </div>
 
         <div className="mb-8 grid gap-4 lg:grid-cols-3">
-          <Stat icon={Users} label="Alunos ativos" value={students.length} />
+          <Stat icon={Users} label="Alunos vinculados" value={students.length} />
           <UpcomingLessonsCard
             upcoming={upcoming}
             studentMap={studentMap}
@@ -1519,7 +1518,7 @@ function ClassroomPanel({
                 <SelectContent>
                   {students.length === 0 ? (
                     <SelectItem value="no-students" disabled>
-                      Nenhum aluno ativo encontrado
+                      Nenhum aluno vinculado encontrado
                     </SelectItem>
                   ) : (
                     students.map((student) => (
