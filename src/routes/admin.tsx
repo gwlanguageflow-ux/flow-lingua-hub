@@ -612,7 +612,7 @@ function AdminPage() {
               <Tab value="usuarios" icon={MessageCircle} label="Usuários" />
               <Tab value="alertas" icon={BellRing} label="Alertas" />
               <Tab value="denuncias" icon={ShieldAlert} label="Denúncias" />
-              <Tab value="materiais" icon={FileText} label="Materiais" />
+              <Tab value="materiais" icon={FileText} label="Materiais base" />
               <Tab value="cupons" icon={Sparkles} label="Cupons" />
               <Tab value="carteira" icon={Wallet} label="Carteira" />
               <Tab value="operacao" icon={Calendar} label="Operação" />
@@ -959,7 +959,7 @@ function AdminPage() {
                                     variant="outline"
                                     className="rounded-lg border-red-200 bg-white text-red-700 hover:bg-red-50"
                                   >
-                                    Cancelar no fim do periodo
+                                    Cancelar assinatura do aluno
                                   </Button>
                                 )}
                             </div>
@@ -1298,9 +1298,21 @@ function DirectorMaterialsPanel({
       externalUrl: "",
     }),
   );
+  const [targetMode, setTargetMode] = useState<"all-teachers" | "selected-teachers">(
+    "all-teachers",
+  );
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const classById = useMemo(() => new Map(classes.map((item) => [item.id, item])), [classes]);
+  const teacherProfiles = useMemo(
+    () => profiles.filter((profile) => (roleByUser.get(profile.id) ?? []).includes("professor")),
+    [profiles, roleByUser],
+  );
+  const baseMaterials = useMemo(
+    () => materials.filter((material) => material.source === "director" && material.teacher_id),
+    [materials],
+  );
 
   const buildRows = (
     uploaded: Awaited<ReturnType<typeof uploadLearningFile>> | null,
@@ -1317,39 +1329,14 @@ function DirectorMaterialsPanel({
       created_by: creatorId,
     };
 
-    if (form.targetType === "all") {
-      return [{ ...base, source: "platform" }];
-    }
+    const teachers =
+      targetMode === "all-teachers"
+        ? teacherProfiles
+        : teacherProfiles.filter((profile) => selectedTeacherIds.includes(profile.id));
 
-    if (form.targetType === "class") {
-      const selectedClass = classById.get(form.targetClassId);
-      if (!selectedClass) throw new Error("Selecione uma turma.");
-      return [
-        {
-          ...base,
-          source: "director",
-          class_id: selectedClass.id,
-          teacher_id: selectedClass.teacher_id,
-        },
-      ];
-    }
+    if (teachers.length === 0) throw new Error("Selecione pelo menos um professor.");
 
-    const users =
-      form.targetType === "user"
-        ? profiles.filter((profile) => profile.id === form.targetUserId)
-        : profiles.filter((profile) =>
-            (roleByUser.get(profile.id) ?? []).includes(form.targetRole),
-          );
-
-    if (users.length === 0) throw new Error("Nenhum usuario encontrado para este destino.");
-
-    return users.map((profile) => {
-      const roles = roleByUser.get(profile.id) ?? [];
-      if (roles.includes("professor")) {
-        return { ...base, source: "director", teacher_id: profile.id };
-      }
-      return { ...base, source: "director", student_id: profile.id };
-    });
+    return teachers.map((profile) => ({ ...base, source: "director", teacher_id: profile.id }));
   };
 
   const submitMaterial = async (event: FormEvent) => {
@@ -1409,22 +1396,83 @@ function DirectorMaterialsPanel({
     }
   };
 
+  const toggleTeacher = (teacherId: string) => {
+    setSelectedTeacherIds((current) =>
+      current.includes(teacherId)
+        ? current.filter((id) => id !== teacherId)
+        : [...current, teacherId],
+    );
+  };
+
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <form onSubmit={submitMaterial} className="rounded-xl border border-border bg-white p-4">
-        <SectionTitle icon={Upload} title="Enviar material pela Diretoria" />
+        <SectionTitle icon={Upload} title="Enviar material base pela Diretoria" />
         <p className="mt-2 text-sm text-brown-soft">
-          Envie arquivo ou link para professores, alunos, todos os usuarios, uma turma ou uma pessoa
-          especifica.
+          Envie arquivos e links de apoio pedagogico para todos os professores ou selecione
+          manualmente quem deve receber.
         </p>
 
-        <TargetControls
-          form={form}
-          onChange={setForm}
-          profiles={profiles}
-          classes={classes}
-          roleByUser={roleByUser}
-        />
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setTargetMode("all-teachers")}
+            className={`rounded-xl border p-4 text-left transition ${
+              targetMode === "all-teachers"
+                ? "border-wine bg-wine text-white shadow-soft"
+                : "border-border bg-background text-brown hover:border-bronze"
+            }`}
+          >
+            <p className="font-bold">Todos os professores</p>
+            <p className="mt-1 text-xs opacity-80">O material aparece para toda a equipe.</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTargetMode("selected-teachers")}
+            className={`rounded-xl border p-4 text-left transition ${
+              targetMode === "selected-teachers"
+                ? "border-wine bg-wine text-white shadow-soft"
+                : "border-border bg-background text-brown hover:border-bronze"
+            }`}
+          >
+            <p className="font-bold">Selecionar professores</p>
+            <p className="mt-1 text-xs opacity-80">Escolha um ou mais professores pelo nome.</p>
+          </button>
+        </div>
+
+        {targetMode === "selected-teachers" && (
+          <div className="mt-4 rounded-xl border border-border bg-cream/50 p-3">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-bronze">
+              Professores
+            </p>
+            {teacherProfiles.length === 0 ? (
+              <EmptyState text="Nenhum professor cadastrado ainda." />
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {teacherProfiles.map((teacher) => {
+                  const selected = selectedTeacherIds.includes(teacher.id);
+                  return (
+                    <button
+                      key={teacher.id}
+                      type="button"
+                      onClick={() => toggleTeacher(teacher.id)}
+                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                        selected
+                          ? "border-wine bg-white text-wine shadow-sm"
+                          : "border-border bg-white/70 text-brown hover:border-bronze"
+                      }`}
+                    >
+                      <span className="font-semibold">{teacher.full_name}</span>
+                      <span className="mt-0.5 block truncate text-xs text-brown-soft">
+                        {teacher.email}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 grid gap-3">
           <Field label="Titulo">
@@ -1467,18 +1515,18 @@ function DirectorMaterialsPanel({
             className="rounded-lg bg-wine text-white hover:bg-bronze"
           >
             <Upload className="mr-2 h-4 w-4" />
-            {submitting ? "Enviando..." : "Enviar material"}
+            {submitting ? "Enviando..." : "Enviar material base"}
           </Button>
         </div>
       </form>
 
       <section className="rounded-xl border border-border bg-white p-4">
-        <SectionTitle icon={FileText} title="Materiais recentes" />
+        <SectionTitle icon={FileText} title="Materiais base recentes" />
         <div className="mt-4 space-y-3">
-          {materials.length === 0 ? (
-            <EmptyState text="Nenhum material cadastrado ainda." />
+          {baseMaterials.length === 0 ? (
+            <EmptyState text="Nenhum material base enviado ainda." />
           ) : (
-            materials.slice(0, 14).map((material) => (
+            baseMaterials.slice(0, 14).map((material) => (
               <div key={material.id} className="rounded-xl border border-border bg-background p-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">

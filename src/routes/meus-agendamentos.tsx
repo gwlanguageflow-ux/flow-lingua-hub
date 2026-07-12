@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RequireAuth } from "@/components/RequireAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -491,6 +492,18 @@ function LessonsSection({
   onDone: () => void;
 }) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [hiddenHistoryIds, setHiddenHistoryIds] = useState<Set<string>>(new Set());
+  const historyStorageKey = studentId ? `gw.student.lesson-history.hidden.${studentId}` : null;
+
+  useEffect(() => {
+    if (!historyStorageKey) return;
+    try {
+      const raw = localStorage.getItem(historyStorageKey);
+      setHiddenHistoryIds(new Set(raw ? (JSON.parse(raw) as string[]) : []));
+    } catch {
+      setHiddenHistoryIds(new Set());
+    }
+  }, [historyStorageKey]);
 
   const confirmPresence = async (booking: Booking) => {
     if (!studentId) return;
@@ -512,6 +525,20 @@ function LessonsSection({
     onDone();
   };
 
+  const historyItems = items.filter(
+    (item) => isLessonHistory(item) && !hiddenHistoryIds.has(item.id),
+  );
+  const activeItems = items.filter((item) => !isLessonHistory(item));
+  const historyByMonth = groupBookingsByMonth(historyItems);
+
+  const clearHistory = () => {
+    if (!historyStorageKey || historyItems.length === 0) return;
+    const next = new Set([...hiddenHistoryIds, ...historyItems.map((item) => item.id)]);
+    localStorage.setItem(historyStorageKey, JSON.stringify([...next]));
+    setHiddenHistoryIds(next);
+    toast.success("Historico limpo desta tela. Os registros continuam preservados.");
+  };
+
   if (items.length === 0) {
     return (
       <div className="text-center py-16">
@@ -521,51 +548,121 @@ function LessonsSection({
   }
 
   return (
-    <div className="space-y-3">
-      {items.map((b) => {
-        const t = teachers.get(b.teacher_id);
-        const past = new Date(b.scheduled_at) < new Date();
-        const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
-        return (
-          <div
-            key={b.id}
-            className="gw-app-card flex flex-col gap-4 rounded-xl p-5 transition hover:-translate-y-0.5 md:flex-row md:items-center"
-          >
-            <Avatar name={t?.full_name || "Professor"} url={t?.avatar_url} />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
-              <p className="text-sm text-brown">
-                {format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </p>
-              <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
-              {!past && !b.meeting_url && (
-                <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
-                  <Video className="h-3 w-3" /> Aguardando link da videochamada do professor
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col items-stretch md:items-end gap-2">
-              <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
-                {studentBookingStatusLabel(b.status)}
-              </span>
-              {b.meeting_url && <MeetingLinkButton url={b.meeting_url} />}
-              {b.status === "pendente" && (
-                <Button
-                  size="sm"
-                  onClick={() => confirmPresence(b)}
-                  disabled={confirmingId === b.id}
-                  className="bg-wine text-white hover:bg-bronze"
-                >
-                  {confirmingId === b.id ? "Confirmando..." : "Confirmar presenca"}
-                </Button>
-              )}
-              {canReview && <ReviewDialog booking={b} onDone={onDone} />}
-            </div>
+    <div className="space-y-6">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xl text-wine">Proximas aulas</h3>
+          <Badge variant="outline" className="rounded-full bg-white text-wine">
+            {activeItems.length} ativas
+          </Badge>
+        </div>
+        {activeItems.length === 0 ? (
+          <Empty msg="Nenhuma aula ativa no momento." />
+        ) : (
+          activeItems.map((b) => {
+            const t = teachers.get(b.teacher_id);
+            const past = new Date(b.scheduled_at) < new Date();
+            const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
+            return (
+              <div
+                key={b.id}
+                className="gw-app-card flex flex-col gap-4 rounded-xl p-5 transition hover:-translate-y-0.5 md:flex-row md:items-center"
+              >
+                <Avatar name={t?.full_name || "Professor"} url={t?.avatar_url} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
+                  <p className="text-sm text-brown">
+                    {format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'às' HH:mm", {
+                      locale: ptBR,
+                    })}
+                  </p>
+                  <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
+                  {!past && !b.meeting_url && (
+                    <p className="text-xs text-brown-soft mt-2 italic flex items-center gap-1">
+                      <Video className="h-3 w-3" /> Aguardando link da videochamada do professor
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col items-stretch md:items-end gap-2">
+                  <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
+                    {studentBookingStatusLabel(b.status)}
+                  </span>
+                  {b.meeting_url && <MeetingLinkButton url={b.meeting_url} />}
+                  {b.status === "pendente" && (
+                    <Button
+                      size="sm"
+                      onClick={() => confirmPresence(b)}
+                      disabled={confirmingId === b.id}
+                      className="bg-wine text-white hover:bg-bronze"
+                    >
+                      {confirmingId === b.id ? "Confirmando..." : "Confirmar presenca"}
+                    </Button>
+                  )}
+                  {canReview && <ReviewDialog booking={b} onDone={onDone} />}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-display text-xl text-wine">Historico de aulas</h3>
+            <p className="text-sm text-brown-soft">
+              Aulas concluidas, canceladas ou vencidas organizadas por mes.
+            </p>
           </div>
-        );
-      })}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={historyItems.length === 0}
+            onClick={clearHistory}
+            className="border-bronze text-wine hover:bg-cream"
+          >
+            Limpar historico
+          </Button>
+        </div>
+        {historyByMonth.length === 0 ? (
+          <Empty msg="Nenhum historico visivel." />
+        ) : (
+          historyByMonth.map(({ label, bookings }) => (
+            <div key={label} className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-bronze">{label}</p>
+              {bookings.map((b) => {
+                const t = teachers.get(b.teacher_id);
+                const past = new Date(b.scheduled_at) < new Date();
+                const canReview = past && b.status !== "cancelado" && !reviews.has(b.id);
+                return (
+                  <div
+                    key={b.id}
+                    className="gw-app-card flex flex-col gap-4 rounded-xl p-5 md:flex-row md:items-center"
+                  >
+                    <Avatar name={t?.full_name || "Professor"} url={t?.avatar_url} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-wine">{t?.full_name || "Professor"}</p>
+                      <p className="text-sm text-brown">
+                        {format(new Date(b.scheduled_at), "EEEE, d 'de' MMMM 'as' HH:mm", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                      <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
+                    </div>
+                    <div className="flex flex-col items-stretch gap-2 md:items-end">
+                      <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">
+                        {studentBookingStatusLabel(b.status)}
+                      </span>
+                      {b.meeting_url && <MeetingLinkButton url={b.meeting_url} />}
+                      {canReview && <ReviewDialog booking={b} onDone={onDone} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
+      </section>
     </div>
   );
 }
@@ -1082,6 +1179,23 @@ function Empty({ msg }: { msg: string }) {
       {msg}
     </div>
   );
+}
+
+function isLessonHistory(booking: Booking) {
+  if (booking.status === "concluido" || booking.status === "cancelado") return true;
+  return new Date(booking.scheduled_at) < new Date();
+}
+
+function groupBookingsByMonth(bookings: Booking[]) {
+  const groups = new Map<string, Booking[]>();
+  bookings.forEach((booking) => {
+    const label = format(new Date(booking.scheduled_at), "MMMM yyyy", { locale: ptBR });
+    groups.set(label, [...(groups.get(label) ?? []), booking]);
+  });
+  return Array.from(groups.entries()).map(([label, monthBookings]) => ({
+    label,
+    bookings: monthBookings,
+  }));
 }
 
 function studentBookingStatusLabel(status: Booking["status"]) {

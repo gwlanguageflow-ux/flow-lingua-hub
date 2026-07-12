@@ -383,10 +383,18 @@ function Page() {
                     className="border-red-200 bg-white text-red-700 hover:bg-red-50"
                   >
                     {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Cancelar no fim do periodo
+                    Cancelar assinatura
                   </Button>
                 )}
             </div>
+            {sub &&
+              !sub.cancel_at_period_end &&
+              sub.status !== "cancelada" &&
+              sub.status !== "expirada" && (
+                <p className="mt-2 text-xs text-brown-soft">
+                  O acesso continua ativo ate o fim do periodo ja contratado.
+                </p>
+              )}
           </div>
         )}
       </main>

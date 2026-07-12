@@ -36,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RequireAuth } from "@/components/RequireAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -187,6 +188,7 @@ function DashboardPage() {
   const { user } = useAuth();
   const guideVideoStatus = useTeacherGuideVideoStatus();
   const [guideIntroState, setGuideIntroState] = useState<TeacherGuideIntroState>("checking");
+  const [activeTab, setActiveTab] = useState("sala");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfileRecord | null>(null);
@@ -213,6 +215,7 @@ function DashboardPage() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [teacherCoupon, setTeacherCoupon] = useState<DiscountCoupon | null>(null);
   const [creditingBookingId, setCreditingBookingId] = useState<string | null>(null);
+  const [baseMaterialsSeenAt, setBaseMaterialsSeenAt] = useState<string | null>(null);
 
   const loadDashboard = useCallback(async () => {
     if (!user) return;
@@ -497,6 +500,18 @@ function DashboardPage() {
   }, [loadDashboard, user]);
 
   const studentMap = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
+  const directorBaseMaterials = useMemo(
+    () => materials.filter((item) => item.source === "director" && item.teacher_id === user?.id),
+    [materials, user?.id],
+  );
+  const baseMaterialsSeenKey = user?.id ? `gw.teacher.base-materials.seen.${user.id}` : null;
+  const newBaseMaterialsCount = useMemo(() => {
+    if (!directorBaseMaterials.length) return 0;
+    if (!baseMaterialsSeenAt) return directorBaseMaterials.length;
+    const seenAt = new Date(baseMaterialsSeenAt).getTime();
+    return directorBaseMaterials.filter((item) => new Date(item.created_at).getTime() > seenAt)
+      .length;
+  }, [directorBaseMaterials, baseMaterialsSeenAt]);
   const upcoming = bookings.filter(
     (b) => new Date(b.scheduled_at) > new Date() && b.status !== "cancelado",
   );
@@ -527,6 +542,20 @@ function DashboardPage() {
   const handleGuideIntroContinue = () => {
     if (user) markTeacherGuideSeen(user.id);
     setGuideIntroState("hide");
+  };
+
+  useEffect(() => {
+    if (!baseMaterialsSeenKey) return;
+    setBaseMaterialsSeenAt(localStorage.getItem(baseMaterialsSeenKey));
+  }, [baseMaterialsSeenKey]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "materiais-base" && baseMaterialsSeenKey) {
+      const now = new Date().toISOString();
+      localStorage.setItem(baseMaterialsSeenKey, now);
+      setBaseMaterialsSeenAt(now);
+    }
   };
 
   if (guideIntroState === "checking") {
@@ -615,7 +644,11 @@ function DashboardPage() {
           <Stat icon={BookOpen} label="Aulas concluídas" value={completedLessons} />
         </div>
 
-        <Tabs defaultValue="sala" className="gw-app-card rounded-xl p-3 md:p-5">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="gw-app-card rounded-xl p-3 md:p-5"
+        >
           <TabsList className="gw-tab-list h-auto w-full flex-wrap justify-start gap-1 rounded-xl p-1">
             <TeacherTab value="sala" icon={Calendar} label="Sala de Aula" />
             <TeacherTab value="alunos" icon={Users} label="Meus Alunos" />
@@ -625,6 +658,12 @@ function DashboardPage() {
             <TeacherTab value="carteira" icon={Wallet} label="Carteira" />
             <TeacherTab value="cupom" icon={Sparkles} label="Cupom" />
             <TeacherTab value="material" icon={FolderOpen} label="Material" />
+            <TeacherTab
+              value="materiais-base"
+              icon={FileText}
+              label="Materiais base"
+              badgeCount={newBaseMaterialsCount}
+            />
             <TeacherTab value="guia" icon={Video} label="Guia do professor" />
           </TabsList>
 
@@ -710,6 +749,10 @@ function DashboardPage() {
               teacherId={user?.id}
               onChanged={loadDashboard}
             />
+          </TabsContent>
+
+          <TabsContent value="materiais-base" className="mt-6">
+            <DirectorBaseMaterialsPanel materials={directorBaseMaterials} />
           </TabsContent>
 
           <TabsContent value="guia" className="mt-6">
@@ -1023,15 +1066,22 @@ function TeacherTab({
   value,
   icon: Icon,
   label,
+  badgeCount = 0,
 }: {
   value: string;
   icon: LucideIcon;
   label: string;
+  badgeCount?: number;
 }) {
   return (
-    <TabsTrigger value={value} className="gw-tab-trigger px-4 py-2 text-sm font-semibold">
+    <TabsTrigger value={value} className="gw-tab-trigger relative px-4 py-2 text-sm font-semibold">
       <Icon className="mr-2 h-4 w-4" />
       {label}
+      {badgeCount > 0 && (
+        <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-sm">
+          {badgeCount > 9 ? "9+" : badgeCount}
+        </span>
+      )}
     </TabsTrigger>
   );
 }
@@ -1135,6 +1185,32 @@ function ClassroomPanel({
   const [lessonMeetingUrl, setLessonMeetingUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [schedulingLesson, setSchedulingLesson] = useState(false);
+  const [hiddenHistoryIds, setHiddenHistoryIds] = useState<Set<string>>(new Set());
+  const historyStorageKey = teacherId ? `gw.teacher.lesson-history.hidden.${teacherId}` : null;
+
+  useEffect(() => {
+    if (!historyStorageKey) return;
+    try {
+      const raw = localStorage.getItem(historyStorageKey);
+      setHiddenHistoryIds(new Set(raw ? (JSON.parse(raw) as string[]) : []));
+    } catch {
+      setHiddenHistoryIds(new Set());
+    }
+  }, [historyStorageKey]);
+
+  const historyBookings = bookings.filter(
+    (booking) => isTeacherLessonHistory(booking) && !hiddenHistoryIds.has(booking.id),
+  );
+  const activeBookings = bookings.filter((booking) => !isTeacherLessonHistory(booking));
+  const historyByMonth = groupTeacherBookingsByMonth(historyBookings);
+
+  const clearLessonHistory = () => {
+    if (!historyStorageKey || historyBookings.length === 0) return;
+    const next = new Set([...hiddenHistoryIds, ...historyBookings.map((booking) => booking.id)]);
+    localStorage.setItem(historyStorageKey, JSON.stringify([...next]));
+    setHiddenHistoryIds(next);
+    toast.success("Historico limpo desta tela. Os registros continuam preservados.");
+  };
 
   const createClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1352,65 +1428,133 @@ function ClassroomPanel({
               </p>
             </div>
             <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-wine">
-              {bookings.length} aulas ativas
+              {activeBookings.length} aulas ativas
             </span>
           </div>
           <div className="space-y-3">
-            {bookings.map((booking) => {
-              const student = studentMap.get(booking.student_id);
-              const isPast = new Date(booking.scheduled_at) <= new Date();
-              const canComplete = isPast && booking.status === "confirmado";
-              return (
-                <div
-                  key={booking.id}
-                  className="flex flex-col gap-4 rounded-xl border border-border p-4 md:flex-row md:items-center"
-                >
-                  <Avatar name={student?.full_name || "Aluno"} url={student?.avatar_url} />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-wine">
-                      {student?.full_name || "Aluno"} - {student?.desired_language || "idiomas"}
-                    </p>
-                    <p className="text-sm text-brown">
-                      {format(new Date(booking.scheduled_at), "EEEE, d 'de' MMMM 'as' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
-                        {bookingStatusLabel(booking.status)}
-                      </span>
-                      {booking.status === "pendente" && (
-                        <span className="text-xs text-brown-soft">
-                          Aguardando confirmacao do aluno
+            {activeBookings.length === 0 ? (
+              <Empty msg="Nenhuma aula ativa no momento." />
+            ) : (
+              activeBookings.map((booking) => {
+                const student = studentMap.get(booking.student_id);
+                const isPast = new Date(booking.scheduled_at) <= new Date();
+                const canComplete = isPast && booking.status === "confirmado";
+                return (
+                  <div
+                    key={booking.id}
+                    className="flex flex-col gap-4 rounded-xl border border-border p-4 md:flex-row md:items-center"
+                  >
+                    <Avatar name={student?.full_name || "Aluno"} url={student?.avatar_url} />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-wine">
+                        {student?.full_name || "Aluno"} - {student?.desired_language || "idiomas"}
+                      </p>
+                      <p className="text-sm text-brown">
+                        {format(new Date(booking.scheduled_at), "EEEE, d 'de' MMMM 'as' HH:mm", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
+                          {bookingStatusLabel(booking.status)}
                         </span>
+                        {booking.status === "pendente" && (
+                          <span className="text-xs text-brown-soft">
+                            Aguardando confirmacao do aluno
+                          </span>
+                        )}
+                      </div>
+                      {booking.meeting_url && (
+                        <p className="mt-1 truncate text-xs text-bronze">{booking.meeting_url}</p>
                       )}
                     </div>
-                    {booking.meeting_url && (
-                      <p className="mt-1 truncate text-xs text-bronze">{booking.meeting_url}</p>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <MeetingLinkEditor
+                        bookingId={booking.id}
+                        initialUrl={booking.meeting_url}
+                        onSaved={onChanged}
+                      />
+                      {canComplete && (
+                        <Button
+                          size="sm"
+                          onClick={() => onCompleteBooking(booking.id)}
+                          disabled={creditingBookingId === booking.id}
+                          className="bg-wine text-white hover:bg-bronze gap-2"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {creditingBookingId === booking.id ? "Creditando..." : "Marcar concluida"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <MeetingLinkEditor
-                      bookingId={booking.id}
-                      initialUrl={booking.meeting_url}
-                      onSaved={onChanged}
-                    />
-                    {canComplete && (
-                      <Button
-                        size="sm"
-                        onClick={() => onCompleteBooking(booking.id)}
-                        disabled={creditingBookingId === booking.id}
-                        className="bg-wine text-white hover:bg-bronze gap-2"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {creditingBookingId === booking.id ? "Creditando..." : "Marcar concluida"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
+        </div>
+      )}
+
+      {bookings.length > 0 && (
+        <div className="gw-app-card rounded-xl p-5">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="font-display text-xl text-wine">Historico de aulas</h3>
+              <p className="text-sm text-brown-soft">
+                Aulas concluidas, canceladas ou vencidas organizadas por mes.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={historyBookings.length === 0}
+              onClick={clearLessonHistory}
+              className="border-bronze text-wine hover:bg-cream"
+            >
+              Limpar historico
+            </Button>
+          </div>
+          {historyByMonth.length === 0 ? (
+            <Empty msg="Nenhum historico visivel." />
+          ) : (
+            <div className="space-y-5">
+              {historyByMonth.map(({ label, bookings: monthBookings }) => (
+                <div key={label} className="space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-bronze">
+                    {label}
+                  </p>
+                  {monthBookings.map((booking) => {
+                    const student = studentMap.get(booking.student_id);
+                    return (
+                      <div
+                        key={booking.id}
+                        className="flex flex-col gap-4 rounded-xl border border-border p-4 md:flex-row md:items-center"
+                      >
+                        <Avatar name={student?.full_name || "Aluno"} url={student?.avatar_url} />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-wine">
+                            {student?.full_name || "Aluno"} -{" "}
+                            {student?.desired_language || "idiomas"}
+                          </p>
+                          <p className="text-sm text-brown">
+                            {format(
+                              new Date(booking.scheduled_at),
+                              "EEEE, d 'de' MMMM 'as' HH:mm",
+                              {
+                                locale: ptBR,
+                              },
+                            )}
+                          </p>
+                        </div>
+                        <span className="w-fit rounded-full bg-bronze/15 px-3 py-1 text-xs font-semibold text-bronze">
+                          {bookingStatusLabel(booking.status)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -2321,7 +2465,6 @@ function MaterialsPanel({
   }, [targetType, classes, students, classId, studentId]);
 
   const platformMaterials = materials.filter((item) => item.source === "platform");
-  const directorMaterials = materials.filter((item) => item.source === "director");
   const teacherMaterials = materials.filter(
     (item) => item.source !== "platform" && item.source !== "director",
   );
@@ -2592,24 +2735,6 @@ function MaterialsPanel({
         </div>
       )}
 
-      {directorMaterials.length > 0 && (
-        <div className="rounded-2xl border border-bronze/40 bg-cream p-5">
-          <h3 className="font-display text-xl text-wine mb-4">Materiais da Diretoria</h3>
-          <div className="grid gap-3 md:grid-cols-2">
-            {directorMaterials.map((item) => (
-              <ResourceRow
-                key={item.id}
-                title={item.title}
-                subtitle={materialTargetLabel(item)}
-                filePath={item.file_path}
-                fileName={item.file_name}
-                externalUrl={item.external_url}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="rounded-2xl border border-border p-5">
         <h3 className="font-display text-xl text-wine mb-4">Materiais enviados às turmas</h3>
         {teacherMaterials.length === 0 ? (
@@ -2629,6 +2754,45 @@ function MaterialsPanel({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DirectorBaseMaterialsPanel({ materials }: { materials: ClassMaterial[] }) {
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-bronze/40 bg-cream p-5 shadow-soft">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-bronze">Diretoria</p>
+            <h3 className="mt-1 font-display text-2xl font-bold text-wine">Materiais base</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-brown-soft">
+              Arquivos e links enviados pela diretoria para orientar aulas, sequencias e padrao
+              pedagogico.
+            </p>
+          </div>
+          <Badge variant="outline" className="w-fit rounded-full bg-white text-wine">
+            {materials.length} {materials.length === 1 ? "item" : "itens"}
+          </Badge>
+        </div>
+      </div>
+
+      {materials.length === 0 ? (
+        <Empty msg="Nenhum material base enviado pela diretoria ainda." />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {materials.map((item) => (
+            <ResourceRow
+              key={item.id}
+              title={item.title}
+              subtitle={`Enviado pela Diretoria - ${format(new Date(item.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}`}
+              filePath={item.file_path}
+              fileName={item.file_name}
+              externalUrl={item.external_url}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -3322,6 +3486,23 @@ function requestStatusLabel(status: string) {
     cancelado: "Cancelado",
   };
   return labels[status] ?? status;
+}
+
+function isTeacherLessonHistory(booking: Booking) {
+  if (booking.status === "concluido" || booking.status === "cancelado") return true;
+  return new Date(booking.scheduled_at) < new Date();
+}
+
+function groupTeacherBookingsByMonth(bookings: Booking[]) {
+  const groups = new Map<string, Booking[]>();
+  bookings.forEach((booking) => {
+    const label = format(new Date(booking.scheduled_at), "MMMM yyyy", { locale: ptBR });
+    groups.set(label, [...(groups.get(label) ?? []), booking]);
+  });
+  return Array.from(groups.entries()).map(([label, monthBookings]) => ({
+    label,
+    bookings: monthBookings,
+  }));
 }
 
 function bookingStatusLabel(status: Booking["status"]) {
