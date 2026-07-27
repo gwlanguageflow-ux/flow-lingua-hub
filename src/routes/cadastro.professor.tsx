@@ -118,6 +118,7 @@ function Page() {
           .from("teacher_custom_plans")
           .select("*")
           .eq("teacher_id", user.id)
+          .eq("is_active", true)
           .order("sort_order", { ascending: true }),
       ]).then(
         ([
@@ -186,6 +187,12 @@ function Page() {
     e.preventDefault();
     if (!user) return;
     const numericPrices: Record<string, number> = {};
+    let submittedCustomPlans: Array<{
+      id: string;
+      name: string;
+      description: string;
+      price: number;
+    }> = [];
     if (useCustomPricing) {
       const validPlans = customPlans
         .map((plan) => ({
@@ -219,6 +226,12 @@ function Page() {
       validPlans.forEach((plan, index) => {
         numericPrices[`custom_plan_${index + 1}`] = Number(plan.priceNumber.toFixed(2));
       });
+      submittedCustomPlans = validPlans.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        price: Number(plan.priceNumber.toFixed(2)),
+      }));
     }
     const parsed = schema.safeParse({
       fullName,
@@ -273,38 +286,57 @@ function Page() {
       return;
     }
 
-    const { error: deletePlansError } = await supabase
-      .from("teacher_custom_plans")
-      .delete()
-      .eq("teacher_id", user.id);
-
-    if (deletePlansError) {
-      toast.error(
-        `Perfil salvo, mas os planos proprios nao foram atualizados: ${deletePlansError.message}`,
-      );
-      setLoading(false);
-      return;
-    }
-
     if (d.useCustomPricing) {
-      const rows = customPlans
-        .map((plan, index) => ({
-          teacher_id: user.id,
-          name: plan.name.trim(),
-          description: plan.description.trim(),
-          price: Number(plan.price.replace(",", ".")),
-          interval: "mensal" as const,
-          sort_order: index + 1,
-          is_active: true,
-        }))
-        .filter(
-          (plan) => plan.name && plan.description && Number.isFinite(plan.price) && plan.price > 0,
-        );
+      const rows = submittedCustomPlans.map((plan, index) => ({
+        id: plan.id,
+        teacher_id: user.id,
+        name: plan.name,
+        description: plan.description,
+        price: plan.price,
+        interval: "mensal" as const,
+        sort_order: index + 1,
+        is_active: true,
+      }));
 
-      const { error: insertPlansError } = await supabase.from("teacher_custom_plans").insert(rows);
-      if (insertPlansError) {
+      const { error: upsertPlansError } = await supabase
+        .from("teacher_custom_plans")
+        .upsert(rows, { onConflict: "id" });
+
+      if (upsertPlansError) {
         toast.error(
-          `Perfil salvo, mas os planos proprios nao foram criados: ${insertPlansError.message}`,
+          `Perfil salvo, mas os planos proprios nao foram atualizados: ${upsertPlansError.message}`,
+        );
+        setLoading(false);
+        return;
+      }
+
+      const activePlanIds = rows.map((plan) => plan.id);
+      let deactivateQuery = supabase
+        .from("teacher_custom_plans")
+        .update({ is_active: false })
+        .eq("teacher_id", user.id);
+
+      if (activePlanIds.length > 0) {
+        deactivateQuery = deactivateQuery.not("id", "in", `(${activePlanIds.join(",")})`);
+      }
+
+      const { error: deactivatePlansError } = await deactivateQuery;
+      if (deactivatePlansError) {
+        toast.error(
+          `Perfil salvo, mas os planos removidos nao foram desativados: ${deactivatePlansError.message}`,
+        );
+        setLoading(false);
+        return;
+      }
+    } else {
+      const { error: deactivatePlansError } = await supabase
+        .from("teacher_custom_plans")
+        .update({ is_active: false })
+        .eq("teacher_id", user.id);
+
+      if (deactivatePlansError) {
+        toast.error(
+          `Perfil salvo, mas os planos proprios nao foram desativados: ${deactivatePlansError.message}`,
         );
         setLoading(false);
         return;
