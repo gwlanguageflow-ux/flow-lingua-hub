@@ -575,6 +575,17 @@ export const activateStudentSubscriptionManually = createServerFn({ method: "POS
         : Promise.resolve(),
     ]);
 
+    const { error: statusUpdateError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        validapay_payment_status: "manual_paid",
+        validapay_payment_id: `manual-admin-${data.subscriptionId}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.subscriptionId);
+
+    if (statusUpdateError) throw new Error(statusUpdateError.message);
+
     return { ok: true, activation };
   });
 
