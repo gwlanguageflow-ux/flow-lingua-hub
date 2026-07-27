@@ -326,6 +326,8 @@ export async function createValidapayProduct(input: {
 export async function createValidapayCheckoutSession(input: {
   priceId: string;
   allowedPaymentMethods?: Array<"creditcard" | "pix">;
+  subscriptionId?: string | null;
+  metadata?: JsonBody;
   customer: {
     name?: string | null;
     email?: string | null;
@@ -344,11 +346,45 @@ export async function createValidapayCheckoutSession(input: {
     allowedPaymentMethods: input.allowedPaymentMethods ?? ["creditcard", "pix"],
   };
   if (Object.keys(customer).length) body.customer = customer;
+  if (input.subscriptionId) {
+    body.referenceId = input.subscriptionId;
+    body.externalId = input.subscriptionId;
+    body.metadata = {
+      ...(input.metadata ?? {}),
+      studentSubscriptionId: input.subscriptionId,
+      source: "gwlanguageflow",
+    };
+    body.mode = "subscription";
+    body.type = "subscription";
+    body.subscription = {
+      externalId: input.subscriptionId,
+      metadata: body.metadata,
+    };
+  }
 
-  return validapayRequest<ValidapayCheckoutSession>("/v1/checkouts/session", "checkouts/write", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  try {
+    return await validapayRequest<ValidapayCheckoutSession>(
+      "/v1/checkouts/session",
+      "checkouts/write",
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    );
+  } catch (error) {
+    if (!input.subscriptionId) throw error;
+
+    const fallbackBody: JsonBody = {
+      priceId: input.priceId,
+      allowedPaymentMethods: input.allowedPaymentMethods ?? ["creditcard", "pix"],
+    };
+    if (Object.keys(customer).length) fallbackBody.customer = customer;
+
+    return validapayRequest<ValidapayCheckoutSession>("/v1/checkouts/session", "checkouts/write", {
+      method: "POST",
+      body: JSON.stringify(fallbackBody),
+    });
+  }
 }
 
 export async function createValidapayPixWithdrawal(input: {

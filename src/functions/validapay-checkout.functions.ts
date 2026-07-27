@@ -547,6 +547,16 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const session = await createValidapayCheckoutSession({
       priceId,
       allowedPaymentMethods: ["creditcard", "pix"],
+      subscriptionId,
+      metadata: {
+        studentSubscriptionId: subscriptionId,
+        teacherId: data.teacherId,
+        planKind: choice.kind,
+        planId: choice.kind === "platform" ? choice.id : null,
+        customPlanId: choice.kind === "custom" ? choice.id : null,
+        packageType: data.packageType,
+        packageBillingMode,
+      },
       customer: {
         name: student.full_name,
         email: student.email,

@@ -75,14 +75,41 @@ function periodStart(payload: ValidapayWebhookPayload) {
   return Number.isFinite(date.getTime()) ? date.toISOString() : new Date().toISOString();
 }
 
+function providerSubscriptionId(payload: ValidapayWebhookPayload) {
+  return pickStringDeep(payload, [
+    "validapaySubscriptionId",
+    "validapay_subscription_id",
+    "providerSubscriptionId",
+    "provider_subscription_id",
+    "recurringSubscriptionId",
+    "recurring_subscription_id",
+    "subscriptionId",
+    "subscription_id",
+    "assinaturaId",
+    "assinatura_id",
+    "recurrenceId",
+    "recurrence_id",
+  ]);
+}
+
+function internalSubscriptionId(payload: ValidapayWebhookPayload) {
+  return pickStringDeep(payload, [
+    "studentSubscriptionId",
+    "student_subscription_id",
+    "gwlanguageflowSubscriptionId",
+    "gwlanguageflow_subscription_id",
+    "internalSubscriptionId",
+    "internal_subscription_id",
+  ]);
+}
+
 function paymentReference(payload: ValidapayWebhookPayload) {
   return (
-    payload.paymentId ??
-    payload.chargeId ??
-    payload.checkoutSessionId ??
-    payload.sessionId ??
-    payload.subscriptionId ??
-    payload.id ??
+    pickStringDeep(payload, ["paymentId", "payment_id"]) ??
+    pickStringDeep(payload, ["chargeId", "charge_id"]) ??
+    pickStringDeep(payload, ["checkoutSessionId", "checkout_session_id", "sessionId"]) ??
+    providerSubscriptionId(payload) ??
+    pickStringDeep(payload, ["eventId", "webhookEventId", "id"]) ??
     null
   );
 }
@@ -259,11 +286,7 @@ async function getPendingSubscriptionAmounts(
 }
 
 async function findPendingSubscription(payload: ValidapayWebhookPayload) {
-  const directSubscriptionId = pickStringDeep(payload, [
-    "subscription_id",
-    "subscriptionId",
-    "studentSubscriptionId",
-  ]);
+  const directSubscriptionId = internalSubscriptionId(payload);
   if (directSubscriptionId) {
     const { data, error } = await supabaseAdmin
       .from("student_subscriptions")
@@ -291,9 +314,9 @@ async function findPendingSubscription(payload: ValidapayWebhookPayload) {
   }
 
   const externalLookups = [
-    ["validapay_charge_id", payload.chargeId],
-    ["validapay_payment_id", payload.paymentId],
-    ["validapay_subscription_id", payload.subscriptionId],
+    ["validapay_charge_id", pickStringDeep(payload, ["chargeId", "charge_id"])],
+    ["validapay_payment_id", pickStringDeep(payload, ["paymentId", "payment_id"])],
+    ["validapay_subscription_id", providerSubscriptionId(payload)],
   ] as const;
 
   for (const [column, value] of externalLookups) {
@@ -349,6 +372,7 @@ async function updateSubscriptionFromPayload(
   const start = periodStart(payload);
   const end = await getSubscriptionPeriodEnd(subscriptionId, start);
   const method = paymentMethodFromPayload(payload.paymentMethod);
+  const subscriptionReference = providerSubscriptionId(payload);
 
   await activateStudentSubscriptionServer({
     subscriptionId,
@@ -365,7 +389,7 @@ async function updateSubscriptionFromPayload(
       validapay_payment_id: payload.paymentId ?? null,
       validapay_payment_status: normalizeProviderEvent(payload.event),
       validapay_payload: payload as Json,
-      validapay_subscription_id: payload.subscriptionId ?? null,
+      ...(subscriptionReference ? { validapay_subscription_id: subscriptionReference } : {}),
       ...(method ? { payment_method: method } : {}),
     })
     .eq("id", subscriptionId);
