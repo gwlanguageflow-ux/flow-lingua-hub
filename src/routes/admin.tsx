@@ -30,6 +30,7 @@ import {
   Sparkles,
   TrendingUp,
   Upload,
+  UserPlus,
   UserRound,
   Users,
   Wallet,
@@ -56,6 +57,7 @@ import {
   cancelStudentSubscriptionByDirector,
   confirmTeacherWithdrawal,
   createDirectorAlert,
+  createExternalPaidStudent,
   createDirectorMessage,
   getAdminDashboard,
   requestDirectorWithdrawal,
@@ -87,6 +89,11 @@ type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
 type ClassMaterial = Tables<"class_materials">;
 type DiscountCoupon = Tables<"discount_coupons">;
 type CouponRedemption = Tables<"coupon_redemptions">;
+type SubscriptionPlan = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
+type TeacherCustomPlan = Pick<
+  Tables<"teacher_custom_plans">,
+  "id" | "name" | "price" | "teacher_id"
+>;
 type AppRole = Enums<"app_role">;
 type TargetType = "all" | "role" | "user" | "class";
 type PlatformRange = "30d" | "90d" | "365d";
@@ -108,7 +115,7 @@ type StudentSubscription = Pick<
   | "package_total_amount"
 > & {
   subscription_plans: Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug"> | null;
-  teacher_custom_plans: Pick<Tables<"teacher_custom_plans">, "id" | "name" | "price"> | null;
+  teacher_custom_plans: TeacherCustomPlan | null;
 };
 
 type PlatformChartPoint = {
@@ -232,6 +239,8 @@ function AdminPage() {
   const [teacherWithdrawals, setTeacherWithdrawals] = useState<TeacherWithdrawalRequest[]>([]);
   const [teacherPayoutProfiles, setTeacherPayoutProfiles] = useState<TeacherPayoutProfile[]>([]);
   const [classMaterials, setClassMaterials] = useState<ClassMaterial[]>([]);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [teacherCustomPlans, setTeacherCustomPlans] = useState<TeacherCustomPlan[]>([]);
   const [discountCoupons, setDiscountCoupons] = useState<DiscountCoupon[]>([]);
   const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
   const [platformWalletSummary, setPlatformWalletSummary] = useState<PlatformWalletSummary>(
@@ -290,6 +299,8 @@ function AdminPage() {
       setTeacherWithdrawals(dashboard.teacherWithdrawals);
       setTeacherPayoutProfiles(dashboard.teacherPayoutProfiles);
       setClassMaterials(dashboard.classMaterials);
+      setSubscriptionPlans(dashboard.subscriptionPlans);
+      setTeacherCustomPlans(dashboard.teacherCustomPlans);
       setDiscountCoupons(dashboard.discountCoupons);
       setCouponRedemptions(dashboard.couponRedemptions);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
@@ -613,6 +624,7 @@ function AdminPage() {
               <Tab value="alertas" icon={BellRing} label="Alertas" />
               <Tab value="denuncias" icon={ShieldAlert} label="Denúncias" />
               <Tab value="materiais" icon={FileText} label="Materiais base" />
+              <Tab value="externos" icon={UserPlus} label="Alunos externos" />
               <Tab value="cupons" icon={Sparkles} label="Cupons" />
               <Tab value="carteira" icon={Wallet} label="Carteira" />
               <Tab value="operacao" icon={Calendar} label="Operação" />
@@ -1245,6 +1257,16 @@ function AdminPage() {
               />
             </TabsContent>
 
+            <TabsContent value="externos" className="mt-0">
+              <ExternalPaidStudentsPanel
+                profiles={profiles}
+                teachers={teachers}
+                subscriptionPlans={subscriptionPlans}
+                teacherCustomPlans={teacherCustomPlans}
+                onChanged={loadDashboard}
+              />
+            </TabsContent>
+
             <TabsContent value="cupons" className="mt-0">
               <DirectorCouponsPanel
                 coupons={discountCoupons}
@@ -1274,6 +1296,384 @@ function AdminPage() {
           </Tabs>
         )}
       </main>
+    </div>
+  );
+}
+
+function ExternalPaidStudentsPanel({
+  profiles,
+  teachers,
+  subscriptionPlans,
+  teacherCustomPlans,
+  onChanged,
+}: {
+  profiles: Profile[];
+  teachers: TeacherProfile[];
+  subscriptionPlans: SubscriptionPlan[];
+  teacherCustomPlans: TeacherCustomPlan[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    cpf: "",
+    age: "",
+    desiredLanguage: "Inglês",
+    comprehensionLevel: "iniciante",
+    teacherId: teachers[0]?.id ?? "",
+    planMode: "platform" as "platform" | "custom",
+    planId: subscriptionPlans[0]?.id ?? "",
+    customPlanId: "",
+    paidAmount: "",
+    periodStart: "",
+    periodEnd: "",
+    paymentReference: "",
+    note: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [createdAccess, setCreatedAccess] = useState<{
+    email: string;
+    temporaryPassword: string | null;
+  } | null>(null);
+
+  const profileById = useMemo(
+    () => new Map(profiles.map((profile) => [profile.id, profile])),
+    [profiles],
+  );
+  const activeTeachers = useMemo(() => teachers.filter((teacher) => teacher.is_active), [teachers]);
+  const teacherPlans = useMemo(
+    () => teacherCustomPlans.filter((plan) => plan.teacher_id === form.teacherId),
+    [form.teacherId, teacherCustomPlans],
+  );
+  const selectedPlatformPlan = subscriptionPlans.find((plan) => plan.id === form.planId);
+  const selectedCustomPlan = teacherPlans.find((plan) => plan.id === form.customPlanId);
+  const selectedPlanValue =
+    form.planMode === "platform" ? selectedPlatformPlan?.price : selectedCustomPlan?.price;
+
+  const updateForm = (patch: Partial<typeof form>) =>
+    setForm((current) => ({ ...current, ...patch }));
+
+  const toIsoOrNull = (value: string) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) throw new Error("Informe uma data valida.");
+    return date.toISOString();
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setCreatedAccess(null);
+    try {
+      if (!form.teacherId) throw new Error("Selecione o professor.");
+      if (form.planMode === "platform" && !form.planId) {
+        throw new Error("Selecione um plano da plataforma.");
+      }
+      if (form.planMode === "custom" && !form.customPlanId) {
+        throw new Error("Selecione um plano proprio do professor.");
+      }
+
+      const result = await createExternalPaidStudent({
+        data: {
+          fullName: form.fullName,
+          email: form.email,
+          cpf: form.cpf || null,
+          age: form.age ? Number(form.age) : null,
+          desiredLanguage: form.desiredLanguage,
+          comprehensionLevel: form.comprehensionLevel as
+            | "iniciante"
+            | "basico"
+            | "intermediario"
+            | "avancado"
+            | "fluente",
+          teacherId: form.teacherId,
+          planId: form.planMode === "platform" ? form.planId : null,
+          customPlanId: form.planMode === "custom" ? form.customPlanId : null,
+          paidAmount: form.paidAmount ? parseMoney(form.paidAmount) : null,
+          periodStart: toIsoOrNull(form.periodStart),
+          periodEnd: toIsoOrNull(form.periodEnd),
+          paymentReference: form.paymentReference || null,
+          note: form.note || null,
+        },
+      });
+
+      setCreatedAccess({
+        email: form.email.trim().toLowerCase(),
+        temporaryPassword: result.temporaryPassword ?? null,
+      });
+      toast.success("Aluno externo criado, assinatura ativada e carteira do professor creditada.");
+      setForm((current) => ({
+        ...current,
+        fullName: "",
+        email: "",
+        cpf: "",
+        age: "",
+        paidAmount: "",
+        paymentReference: "",
+        note: "",
+      }));
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel criar o aluno.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <form onSubmit={submit} className="rounded-xl border border-border bg-white p-4">
+        <SectionTitle icon={UserPlus} title="Aluno pago por fora" />
+        <p className="mt-2 text-sm leading-6 text-brown-soft">
+          Use quando a Diretoria receber por Pix, dinheiro, transferência ou outro caminho externo.
+          O aluno fica ativo como qualquer assinante e o professor recebe o crédito na carteira.
+        </p>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <Field label="Nome completo">
+            <Input
+              value={form.fullName}
+              onChange={(event) => updateForm({ fullName: event.target.value })}
+              placeholder="Nome do aluno"
+              required
+            />
+          </Field>
+          <Field label="E-mail de acesso">
+            <Input
+              value={form.email}
+              onChange={(event) => updateForm({ email: event.target.value })}
+              placeholder="aluno@email.com"
+              type="email"
+              required
+            />
+          </Field>
+          <Field label="CPF">
+            <Input
+              value={form.cpf}
+              onChange={(event) => updateForm({ cpf: event.target.value })}
+              placeholder="000.000.000-00"
+            />
+          </Field>
+          <Field label="Idade">
+            <Input
+              value={form.age}
+              onChange={(event) => updateForm({ age: event.target.value.replace(/\D/g, "") })}
+              inputMode="numeric"
+              placeholder="21"
+            />
+          </Field>
+          <Field label="Idioma">
+            <Input
+              value={form.desiredLanguage}
+              onChange={(event) => updateForm({ desiredLanguage: event.target.value })}
+              placeholder="Inglês"
+            />
+          </Field>
+          <Field label="Nível">
+            <Select
+              value={form.comprehensionLevel}
+              onValueChange={(value) => updateForm({ comprehensionLevel: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="iniciante">Iniciante</SelectItem>
+                <SelectItem value="basico">Básico</SelectItem>
+                <SelectItem value="intermediario">Intermediário</SelectItem>
+                <SelectItem value="avancado">Avançado</SelectItem>
+                <SelectItem value="fluente">Fluente</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Professor">
+            <Select
+              value={form.teacherId}
+              onValueChange={(value) =>
+                updateForm({ teacherId: value, customPlanId: "", planMode: "platform" })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o professor" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeTeachers.length === 0 ? (
+                  <SelectItem value="no-teachers" disabled>
+                    Nenhum professor ativo
+                  </SelectItem>
+                ) : (
+                  activeTeachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {profileById.get(teacher.id)
+                        ? profileDisplayName(profileById.get(teacher.id)!)
+                        : `Professor ${teacher.id.slice(0, 8)}`}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Origem do plano">
+            <Select
+              value={form.planMode}
+              onValueChange={(value) =>
+                updateForm({
+                  planMode: value as "platform" | "custom",
+                  customPlanId: "",
+                  planId: value === "platform" ? form.planId || subscriptionPlans[0]?.id || "" : "",
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="platform">Planos da plataforma</SelectItem>
+                <SelectItem value="custom">Plano próprio do professor</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          {form.planMode === "platform" ? (
+            <Field label="Plano da plataforma">
+              <Select value={form.planId} onValueChange={(value) => updateForm({ planId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subscriptionPlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - {formatMoney(plan.price)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : (
+            <Field label="Plano do professor">
+              <Select
+                value={form.customPlanId}
+                onValueChange={(value) => updateForm({ customPlanId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teacherPlans.length === 0 ? (
+                    <SelectItem value="no-custom-plans" disabled>
+                      Este professor nao tem planos proprios ativos
+                    </SelectItem>
+                  ) : (
+                    teacherPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - {formatMoney(plan.price)}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+
+          <Field label="Valor recebido">
+            <Input
+              value={form.paidAmount}
+              onChange={(event) => updateForm({ paidAmount: event.target.value })}
+              placeholder={
+                selectedPlanValue
+                  ? formatMoney(selectedPlanValue).replace("R$", "").trim()
+                  : "179,90"
+              }
+              inputMode="decimal"
+            />
+          </Field>
+          <Field label="Referência do pagamento">
+            <Input
+              value={form.paymentReference}
+              onChange={(event) => updateForm({ paymentReference: event.target.value })}
+              placeholder="Pix, recibo ou observação curta"
+            />
+          </Field>
+          <Field label="Início do acesso">
+            <Input
+              type="datetime-local"
+              value={form.periodStart}
+              onChange={(event) => updateForm({ periodStart: event.target.value })}
+            />
+          </Field>
+          <Field label="Acesso até">
+            <Input
+              type="datetime-local"
+              value={form.periodEnd}
+              onChange={(event) => updateForm({ periodEnd: event.target.value })}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-3">
+          <Field label="Observação interna">
+            <Textarea
+              value={form.note}
+              onChange={(event) => updateForm({ note: event.target.value })}
+              placeholder="Ex.: aluno pagou por fora, liberar acesso e vincular ao professor."
+            />
+          </Field>
+        </div>
+
+        {createdAccess && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-bold">Acesso do aluno</p>
+            <p className="mt-1">E-mail: {createdAccess.email}</p>
+            {createdAccess.temporaryPassword ? (
+              <p>Senha temporária: {createdAccess.temporaryPassword}</p>
+            ) : (
+              <p>Este e-mail já existia; a senha anterior foi mantida.</p>
+            )}
+          </div>
+        )}
+
+        <Button
+          disabled={saving}
+          className="mt-5 w-full rounded-lg bg-wine text-white hover:bg-bronze"
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          {saving ? "Criando e liberando..." : "Criar aluno externo e liberar acesso"}
+        </Button>
+      </form>
+
+      <section className="rounded-xl border border-border bg-white p-4">
+        <SectionTitle icon={Wallet} title="Como esse lançamento funciona" />
+        <div className="mt-4 grid gap-3 text-sm leading-6 text-brown">
+          <div className="rounded-xl border border-border bg-background p-4">
+            <p className="font-bold text-wine">1. Perfil e acesso</p>
+            <p className="mt-1 text-brown-soft">
+              Se o aluno não existir, a plataforma cria um acesso com senha temporária. Se já
+              existir, ela reaproveita o cadastro.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-background p-4">
+            <p className="font-bold text-wine">2. Assinatura ativa</p>
+            <p className="mt-1 text-brown-soft">
+              O aluno entra como assinante ativo do professor escolhido e passa a aparecer nas
+              mesmas áreas dos alunos pagos pela plataforma.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-background p-4">
+            <p className="font-bold text-wine">3. Carteiras</p>
+            <p className="mt-1 text-brown-soft">
+              O valor informado credita 90% para o professor e 10% para a carteira da plataforma. Se
+              o valor ficar vazio, o sistema usa o valor do plano escolhido.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-cream p-4">
+            <p className="font-bold text-wine">Atenção</p>
+            <p className="mt-1 text-brown-soft">
+              Para liberar por um período específico, preencha “Acesso até”. Sem essa data, a
+              plataforma usa o ciclo mensal padrão do plano.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -2286,6 +2686,8 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     teacherWithdrawals: data?.teacherWithdrawals ?? [],
     teacherPayoutProfiles: data?.teacherPayoutProfiles ?? [],
     classMaterials: data?.classMaterials ?? [],
+    subscriptionPlans: data?.subscriptionPlans ?? [],
+    teacherCustomPlans: data?.teacherCustomPlans ?? [],
     discountCoupons: data?.discountCoupons ?? [],
     couponRedemptions: data?.couponRedemptions ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,

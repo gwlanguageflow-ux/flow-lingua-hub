@@ -3,7 +3,7 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { activateStudentSubscriptionServer } from "@/server/subscription-activation.server";
-import type { Enums, Tables } from "@/integrations/supabase/types";
+import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type AppRole = Enums<"app_role">;
 type WithdrawalStatus = Enums<"teacher_withdrawal_status">;
@@ -18,7 +18,10 @@ type ClassMaterial = Tables<"class_materials">;
 type DiscountCoupon = Tables<"discount_coupons">;
 type CouponRedemption = Tables<"coupon_redemptions">;
 type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
-type CustomPlanSummary = Pick<Tables<"teacher_custom_plans">, "id" | "name" | "price">;
+type CustomPlanSummary = Pick<
+  Tables<"teacher_custom_plans">,
+  "id" | "name" | "price" | "teacher_id"
+>;
 type SubscriptionWithPlan = Pick<
   Tables<"student_subscriptions">,
   | "id"
@@ -94,6 +97,30 @@ const directorWithdrawalSchema = z.object({
 const activateSubscriptionSchema = z.object({
   subscriptionId: z.string().uuid(),
 });
+
+const createExternalPaidStudentSchema = z
+  .object({
+    fullName: z.string().trim().min(3).max(160),
+    email: z.string().trim().email().max(255),
+    cpf: z.string().trim().max(20).optional().nullable(),
+    age: z.coerce.number().int().min(1).max(120).optional().nullable(),
+    desiredLanguage: z.string().trim().min(2).max(80).default("Ingles"),
+    comprehensionLevel: z
+      .enum(["iniciante", "basico", "intermediario", "avancado", "fluente"])
+      .default("iniciante"),
+    teacherId: z.string().uuid(),
+    planId: z.string().uuid().optional().nullable(),
+    customPlanId: z.string().uuid().optional().nullable(),
+    paidAmount: z.coerce.number().positive().optional().nullable(),
+    periodStart: z.string().datetime().optional().nullable(),
+    periodEnd: z.string().datetime().optional().nullable(),
+    paymentReference: z.string().trim().max(120).optional().nullable(),
+    note: z.string().trim().max(500).optional().nullable(),
+  })
+  .refine((value) => Boolean(value.planId) !== Boolean(value.customPlanId), {
+    message: "Selecione um plano da plataforma ou um plano proprio do professor.",
+    path: ["planId"],
+  });
 
 const cancelSubscriptionSchema = z.object({
   subscriptionId: z.string().uuid(),
@@ -195,6 +222,19 @@ function readAmount(value: number | string | null | undefined) {
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
+}
+
+async function createTemporaryPassword() {
+  const { randomUUID } = await import("node:crypto");
+  return `GW${randomUUID().replace(/-/g, "").slice(0, 10)}!2026`;
+}
+
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function externalPaymentReference(prefix: string, subscriptionId: string) {
+  return `${prefix}-${subscriptionId}-${Date.now()}`;
 }
 
 function maskCpf(value: string) {
@@ -388,6 +428,8 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       { data: teacherPayoutProfiles },
       { data: classMaterials },
       { data: subscriptions },
+      { data: subscriptionPlans },
+      { data: teacherCustomPlans },
       { data: discountCoupons },
       { data: couponRedemptions },
     ] = await Promise.all([
@@ -442,9 +484,19 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       supabaseAdmin
         .from("student_subscriptions")
         .select(
-          "id, student_id, teacher_id, plan_id, custom_plan_id, status, created_at, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_total_amount, subscription_plans(id, name, price, slug), teacher_custom_plans(id, name, price)",
+          "id, student_id, teacher_id, plan_id, custom_plan_id, status, created_at, current_period_end, cancel_at_period_end, cancel_requested_at, package_type, package_months, package_total_amount, subscription_plans(id, name, price, slug), teacher_custom_plans(id, name, price, teacher_id)",
         )
         .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("subscription_plans")
+        .select("id, name, price, slug")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      supabaseAdmin
+        .from("teacher_custom_plans")
+        .select("id, name, price, teacher_id")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
       supabaseAdmin
         .from("discount_coupons")
         .select("*")
@@ -473,6 +525,8 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       directMessages: directMessages ?? [],
       anonymousReports: anonymousReports ?? [],
       subscriptions: subscriptionRows,
+      subscriptionPlans: (subscriptionPlans ?? []) as SubscriptionPlanSummary[],
+      teacherCustomPlans: (teacherCustomPlans ?? []) as CustomPlanSummary[],
       platformWalletTransactions: walletTransactions,
       teacherWalletTransactions: (teacherWalletTransactions ?? []) as TeacherWalletTransaction[],
       teacherWithdrawals: (teacherWithdrawals ?? []) as TeacherWithdrawalRequest[],
@@ -486,6 +540,198 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         (roles ?? []) as UserRole[],
         subscriptionRows,
       ),
+    };
+  });
+
+export const createExternalPaidStudent = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => createExternalPaidStudentSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const now = new Date().toISOString();
+    const email = normalizeEmail(data.email);
+    const cpf = data.cpf?.trim() ? onlyDigits(data.cpf) : null;
+    let temporaryPassword: string | null = null;
+
+    const { data: teacher, error: teacherError } = await supabaseAdmin
+      .from("teacher_profiles")
+      .select("id, is_active")
+      .eq("id", data.teacherId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (teacherError || !teacher) {
+      throw new Error(teacherError?.message ?? "Professor nao encontrado ou inativo.");
+    }
+
+    if (data.planId) {
+      const { data: plan, error: planError } = await supabaseAdmin
+        .from("subscription_plans")
+        .select("id, is_active")
+        .eq("id", data.planId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (planError || !plan) {
+        throw new Error(planError?.message ?? "Plano da plataforma nao encontrado ou inativo.");
+      }
+    }
+
+    if (data.customPlanId) {
+      const { data: customPlan, error: customPlanError } = await supabaseAdmin
+        .from("teacher_custom_plans")
+        .select("id, teacher_id, is_active")
+        .eq("id", data.customPlanId)
+        .eq("teacher_id", data.teacherId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (customPlanError || !customPlan) {
+        throw new Error(
+          customPlanError?.message ?? "Plano proprio nao encontrado para este professor.",
+        );
+      }
+    }
+
+    const { data: existingProfile, error: profileLookupError } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (profileLookupError) throw new Error(profileLookupError.message);
+
+    let studentId = existingProfile?.id ?? null;
+
+    if (!studentId) {
+      temporaryPassword = await createTemporaryPassword();
+      const { data: createdUser, error: createUserError } =
+        await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: temporaryPassword,
+          email_confirm: true,
+          user_metadata: {
+            full_name: data.fullName.trim(),
+            cpf,
+          },
+          app_metadata: {
+            role: "aluno",
+          },
+        });
+
+      if (createUserError || !createdUser.user) {
+        throw new Error(createUserError?.message ?? "Nao foi possivel criar o acesso do aluno.");
+      }
+
+      studentId = createdUser.user.id;
+    }
+
+    const profilePayload: TablesInsert<"profiles"> = {
+      id: studentId,
+      full_name: data.fullName.trim(),
+      email,
+      cpf,
+      age: data.age ?? null,
+      updated_at: now,
+    };
+
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .upsert(profilePayload, { onConflict: "id" });
+
+    if (profileError) throw new Error(profileError.message);
+
+    const { data: existingStudentRole, error: roleLookupError } = await supabaseAdmin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", studentId)
+      .eq("role", "aluno")
+      .maybeSingle();
+
+    if (roleLookupError) throw new Error(roleLookupError.message);
+
+    if (!existingStudentRole) {
+      const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
+        user_id: studentId,
+        role: "aluno",
+      });
+      if (roleError) throw new Error(roleError.message);
+    }
+
+    const { error: studentProfileError } = await supabaseAdmin.from("student_profiles").upsert(
+      {
+        id: studentId,
+        desired_language: data.desiredLanguage.trim(),
+        comprehension_level: data.comprehensionLevel,
+        updated_at: now,
+      },
+      { onConflict: "id" },
+    );
+
+    if (studentProfileError) throw new Error(studentProfileError.message);
+
+    const subscriptionInsert: TablesInsert<"student_subscriptions"> = {
+      student_id: studentId,
+      teacher_id: data.teacherId,
+      plan_id: data.planId ?? null,
+      custom_plan_id: data.customPlanId ?? null,
+      status: "pendente",
+      package_type: "mensal",
+      package_billing_mode: "monthly",
+      package_months: 1,
+      package_commitment_months: 1,
+      package_discount_rate: 0,
+      package_total_amount: data.paidAmount ?? null,
+      package_base_amount: data.paidAmount ?? null,
+      package_monthly_amount: data.paidAmount ?? null,
+      package_upfront_amount: data.paidAmount ?? null,
+      terms_accepted_at: now,
+      terms_version: "pagamento-externo-diretoria-v1",
+      validapay_payment_status: "external_paid_pending_activation",
+      validapay_payload: {
+        source: "director_external_payment",
+        note: data.note ?? null,
+        payment_reference: data.paymentReference ?? null,
+      },
+    };
+
+    const { data: subscription, error: subscriptionError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .insert(subscriptionInsert)
+      .select("id")
+      .single();
+
+    if (subscriptionError) throw new Error(subscriptionError.message);
+
+    const paymentReference =
+      data.paymentReference?.trim() || externalPaymentReference("external-admin", subscription.id);
+
+    const activation = await activateStudentSubscriptionServer({
+      subscriptionId: subscription.id,
+      periodStart: data.periodStart ?? now,
+      periodEnd: data.periodEnd ?? null,
+      paymentReference,
+      teacherDescription: "Credito de aluno pago por fora",
+      platformDescription: "Taxa da plataforma sobre aluno pago por fora",
+    });
+
+    const { error: paymentStatusError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        validapay_payment_status: "external_paid",
+        validapay_payment_id: paymentReference,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", subscription.id);
+
+    if (paymentStatusError) throw new Error(paymentStatusError.message);
+
+    return {
+      ok: true,
+      studentId,
+      subscriptionId: subscription.id,
+      temporaryPassword,
+      activation,
     };
   });
 
