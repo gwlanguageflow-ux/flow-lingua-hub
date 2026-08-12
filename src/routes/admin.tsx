@@ -612,6 +612,30 @@ function AdminPage() {
           </div>
         )}
 
+        <div className="mb-6 rounded-xl border border-bronze/30 bg-bronze/10 p-4 shadow-soft">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white text-bronze shadow-soft">
+              <BellRing className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="rounded-full bg-wine text-white">Atualizacao publicada</Badge>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-bronze">
+                  Aviso da plataforma
+                </p>
+              </div>
+              <h2 className="mt-2 font-display text-xl font-bold text-wine">
+                Cadastro de alunos pagos por fora liberado para a Diretoria.
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-brown">
+                A nova aba <strong>Alunos externos</strong> permite criar ou localizar um aluno,
+                escolher a professora, selecionar plano da plataforma ou plano proprio do professor
+                e liberar o acesso mantendo o registro financeiro dentro da plataforma.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="rounded-xl border border-border bg-background p-8 text-center text-sm text-brown-soft">
             Carregando Diretoria...
