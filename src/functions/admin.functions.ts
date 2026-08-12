@@ -98,6 +98,11 @@ const activateSubscriptionSchema = z.object({
   subscriptionId: z.string().uuid(),
 });
 
+const manualSubscriptionStatusSchema = z.object({
+  subscriptionId: z.string().uuid(),
+  status: z.enum(["ativa", "inadimplente"]),
+});
+
 const createExternalPaidStudentSchema = z
   .object({
     fullName: z.string().trim().min(3).max(160),
@@ -833,6 +838,48 @@ export const activateStudentSubscriptionManually = createServerFn({ method: "POS
     if (statusUpdateError) throw new Error(statusUpdateError.message);
 
     return { ok: true, activation };
+  });
+
+export const updateStudentSubscriptionStatusByDirector = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => manualSubscriptionStatusSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+
+    const { data: subscription, error: lookupError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .select("id, status")
+      .eq("id", data.subscriptionId)
+      .maybeSingle();
+
+    if (lookupError || !subscription) {
+      throw new Error(lookupError?.message ?? "Assinatura nao encontrada.");
+    }
+
+    if (subscription.status === "cancelada" || subscription.status === "expirada") {
+      throw new Error(
+        "Assinaturas canceladas ou expiradas nao podem ser alteradas por este controle.",
+      );
+    }
+
+    if (subscription.status === data.status) {
+      return { ok: true, unchanged: true, status: data.status };
+    }
+
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabaseAdmin
+      .from("student_subscriptions")
+      .update({
+        status: data.status,
+        validapay_payment_status:
+          data.status === "ativa" ? "manual_status_active" : "manual_status_overdue",
+        updated_at: now,
+      })
+      .eq("id", data.subscriptionId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return { ok: true, status: data.status };
   });
 
 export const requestDirectorWithdrawal = createServerFn({ method: "POST" })

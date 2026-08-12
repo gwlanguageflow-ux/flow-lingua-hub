@@ -64,6 +64,7 @@ import {
   sendDirectorDirectMessage,
   updateAnonymousReport,
   updateDirectorAlertStatus,
+  updateStudentSubscriptionStatusByDirector,
 } from "@/functions/admin.functions";
 import { createDirectorCoupon } from "@/functions/coupon.functions";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -545,6 +546,26 @@ function AdminPage() {
     }
   };
 
+  const handleManualSubscriptionStatus = async (
+    subscriptionId: string,
+    status: "ativa" | "inadimplente",
+  ) => {
+    setSending(true);
+    try {
+      await updateStudentSubscriptionStatusByDirector({ data: { subscriptionId, status } });
+      toast.success(
+        status === "ativa"
+          ? "Aluno marcado como ativo manualmente."
+          : "Aluno marcado como inadimplente manualmente.",
+      );
+      await loadDashboard();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nao foi possivel alterar o status.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   const handleCancelStudentSubscription = async (subscriptionId: string) => {
     setSending(true);
     try {
@@ -983,6 +1004,47 @@ function AdminPage() {
                                   Ativar aluno
                                 </Button>
                               )}
+                              {selectedSubscription &&
+                                selectedSubscription.status !== "cancelada" &&
+                                selectedSubscription.status !== "expirada" && (
+                                  <div className="rounded-xl border border-border bg-white p-3">
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-brown-soft">
+                                      Ajuste manual
+                                    </p>
+                                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                                      <Button
+                                        onClick={() =>
+                                          handleManualSubscriptionStatus(
+                                            selectedSubscription.id,
+                                            "ativa",
+                                          )
+                                        }
+                                        disabled={
+                                          sending || selectedSubscription.status === "ativa"
+                                        }
+                                        variant="outline"
+                                        className="rounded-lg border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
+                                      >
+                                        Marcar ativo
+                                      </Button>
+                                      <Button
+                                        onClick={() =>
+                                          handleManualSubscriptionStatus(
+                                            selectedSubscription.id,
+                                            "inadimplente",
+                                          )
+                                        }
+                                        disabled={
+                                          sending || selectedSubscription.status === "inadimplente"
+                                        }
+                                        variant="outline"
+                                        className="rounded-lg border-red-200 bg-white text-red-700 hover:bg-red-50"
+                                      >
+                                        Marcar inadimplente
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
                               {selectedSubscription &&
                                 !selectedSubscription.cancel_at_period_end &&
                                 selectedSubscription.status !== "cancelada" &&
