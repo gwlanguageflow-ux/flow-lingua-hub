@@ -3151,13 +3151,13 @@ function WalletPanel({
       <div className="grid gap-4 md:grid-cols-4">
         <WalletStat
           icon={Wallet}
-          label="Saldo disponível"
+          label="Saldo liquido disponivel"
           value={formatMoney(summary.available_balance)}
           strong
         />
         <WalletStat
           icon={Banknote}
-          label="Total recebido"
+          label="Total liquido recebido"
           value={formatMoney(summary.total_received)}
         />
         <WalletStat icon={Send} label="Saques pagos" value={formatMoney(summary.total_withdrawn)} />
@@ -3171,7 +3171,8 @@ function WalletPanel({
       <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
         <p className="font-semibold text-wine">Regra de repasse ativa</p>
         <p className="mt-1">
-          A assinatura paga credita a carteira do professor e reserva 10% como taxa da plataforma.
+          Os valores exibidos aqui ja estao liquidos para o professor, com a taxa de 10% da
+          plataforma descontada antes de entrar no saldo.
         </p>
       </div>
 
@@ -3289,12 +3290,9 @@ function WalletPanel({
                     <p className="text-xs text-brown-soft">
                       {format(new Date(item.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}
                     </p>
-                    {item.gross_amount && (
-                      <p className="text-[11px] text-brown-soft mt-1">
-                        Bruto {formatMoney(item.gross_amount)} | taxa{" "}
-                        {formatMoney(item.platform_fee ?? 0)}
-                      </p>
-                    )}
+                    <p className="text-[11px] text-brown-soft mt-1">
+                      Valor liquido ja descontado da taxa da plataforma.
+                    </p>
                   </div>
                   <p
                     className={`font-semibold ${Number(item.amount) >= 0 ? "text-emerald-700" : "text-wine"}`}
