@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CookieConsent } from "@/components/CookieConsent";
+import { TermsAcceptanceGate } from "@/components/TermsAcceptanceGate";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -106,6 +107,7 @@ function RootComponent() {
       <AuthProvider>
         <Outlet />
         <CookieConsent />
+        <TermsAcceptanceGate />
         <Toaster richColors position="top-center" />
       </AuthProvider>
     </QueryClientProvider>

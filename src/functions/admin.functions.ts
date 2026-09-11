@@ -2,7 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { activateStudentSubscriptionServer } from "@/server/subscription-activation.server";
+import {
+  activateStudentSubscriptionServer,
+  syncManualSubscriptionAccess,
+} from "@/server/subscription-activation.server";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type AppRole = Enums<"app_role">;
@@ -17,6 +20,7 @@ type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
 type ClassMaterial = Tables<"class_materials">;
 type DiscountCoupon = Tables<"discount_coupons">;
 type CouponRedemption = Tables<"coupon_redemptions">;
+type Review = Tables<"reviews">;
 type SubscriptionPlanSummary = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
 type CustomPlanSummary = Pick<
   Tables<"teacher_custom_plans">,
@@ -143,6 +147,10 @@ const alertStatusSchema = z.object({
 
 const readSchema = z.object({
   messageId: z.string().uuid(),
+});
+
+const deleteReviewSchema = z.object({
+  reviewId: z.string().uuid(),
 });
 
 const trimRole = (role: AppRole | null | undefined) => role ?? null;
@@ -437,6 +445,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       { data: teacherCustomPlans },
       { data: discountCoupons },
       { data: couponRedemptions },
+      { data: reviews },
     ] = await Promise.all([
       supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("*"),
@@ -512,6 +521,11 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500),
+      supabaseAdmin
+        .from("reviews")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
 
     const walletTransactions = (platformWalletTransactions ?? []) as PlatformWalletTransaction[];
@@ -539,6 +553,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       classMaterials: (classMaterials ?? []) as ClassMaterial[],
       discountCoupons: (discountCoupons ?? []) as DiscountCoupon[],
       couponRedemptions: (couponRedemptions ?? []) as CouponRedemption[],
+      reviews: (reviews ?? []) as Review[],
       platformWalletSummary: buildPlatformWalletSummary(
         walletTransactions,
         (profiles ?? []) as Profile[],
@@ -546,6 +561,16 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
         subscriptionRows,
       ),
     };
+  });
+
+export const deleteReviewByDirector = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => deleteReviewSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const { error } = await supabaseAdmin.from("reviews").delete().eq("id", data.reviewId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const createExternalPaidStudent = createServerFn({ method: "POST" })
@@ -871,6 +896,10 @@ export const updateStudentSubscriptionStatusByDirector = createServerFn({ method
       .from("student_subscriptions")
       .update({
         status: data.status,
+        // A manual activation is an explicit operational override. Clear a stale
+        // payment-period end date so the same subscription is accepted by the
+        // booking and learning-area RLS policies, without creating a payment.
+        ...(data.status === "ativa" ? { current_period_start: now, current_period_end: null } : {}),
         validapay_payment_status:
           data.status === "ativa" ? "manual_status_active" : "manual_status_overdue",
         updated_at: now,
@@ -878,6 +907,10 @@ export const updateStudentSubscriptionStatusByDirector = createServerFn({ method
       .eq("id", data.subscriptionId);
 
     if (updateError) throw new Error(updateError.message);
+
+    if (data.status === "ativa") {
+      await syncManualSubscriptionAccess(data.subscriptionId);
+    }
 
     return { ok: true, status: data.status };
   });

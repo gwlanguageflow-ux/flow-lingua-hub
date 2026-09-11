@@ -737,6 +737,8 @@ function StudentAssignmentsSection({
   if (assignments.length === 0) return <Empty msg="Nenhuma atividade enviada ainda." />;
 
   const submissionMap = new Map(submissions.map((item) => [item.assignment_id, item]));
+  const completedAssignments = assignments.filter((item) => submissionMap.has(item.id));
+  const openAssignments = assignments.filter((item) => !submissionMap.has(item.id));
 
   const assignmentTargetLabel = (item: ClassAssignment) => {
     if (item.class_id) return classes.find((cls) => cls.id === item.class_id)?.name || "Turma";
@@ -773,46 +775,89 @@ function StudentAssignmentsSection({
     await onChanged();
   };
 
+  const renderAssignment = (item: ClassAssignment) => {
+    const submission = submissionMap.get(item.id);
+    return (
+      <div key={item.id} className="space-y-2">
+        <ResourceRow
+          icon={GraduationCap}
+          title={item.title}
+          subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
+          description={item.instructions}
+          filePath={item.file_path}
+          fileName={item.file_name}
+          externalUrl={item.external_url}
+        />
+        <div className="flex flex-col gap-2 rounded-xl border border-border bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between">
+          {submission ? (
+            <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+              <CheckCircle2 className="h-4 w-4" />
+              Pronto em {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
+            </p>
+          ) : (
+            <p className="text-sm font-semibold text-amber-800">
+              Pendente - marque quando terminar para avisar o professor.
+            </p>
+          )}
+          {!submission && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => confirmAssignmentDone(item)}
+              className="bg-wine text-white hover:bg-bronze"
+            >
+              Fiz atividades
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-3">
-      {assignments.map((item) => {
-        const submission = submissionMap.get(item.id);
-        return (
-          <div key={item.id} className="space-y-2">
-            <ResourceRow
-              icon={GraduationCap}
-              title={item.title}
-              subtitle={`${assignmentTargetLabel(item)}${item.due_at ? ` · prazo ${format(new Date(item.due_at), "dd/MM/yyyy HH:mm")}` : ""}`}
-              description={item.instructions}
-              filePath={item.file_path}
-              fileName={item.file_name}
-              externalUrl={item.external_url}
-            />
-            <div className="flex flex-col gap-2 rounded-xl border border-border bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between">
-              {submission ? (
-                <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Pronto em {format(new Date(submission.completed_at), "dd/MM/yyyy HH:mm")}
-                </p>
-              ) : (
-                <p className="text-sm font-semibold text-amber-800">
-                  Pendente - marque quando terminar para avisar o professor.
-                </p>
-              )}
-              {!submission && (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => confirmAssignmentDone(item)}
-                  className="bg-wine text-white hover:bg-bronze"
-                >
-                  Fiz atividades
-                </Button>
-              )}
-            </div>
+    <div className="space-y-6">
+      <section className="rounded-xl border border-border bg-cream/45 p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="font-display text-xl font-bold text-wine">Atividades em aberto</h3>
+            <p className="text-sm text-brown-soft">Organize o que falta concluir antes do prazo.</p>
           </div>
-        );
-      })}
+          <Badge variant="outline" className="rounded-full bg-white text-wine">
+            {openAssignments.length} pendente{openAssignments.length === 1 ? "" : "s"}
+          </Badge>
+        </div>
+        <div className="space-y-3">
+          {openAssignments.length === 0 ? (
+            <Empty msg="Nenhuma atividade pendente." />
+          ) : (
+            openAssignments.map(renderAssignment)
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="font-display text-xl font-bold text-wine">Atividades concluídas</h3>
+            <p className="text-sm text-brown-soft">
+              Seu histórico de entregas permanece disponível aqui.
+            </p>
+          </div>
+          <Badge
+            variant="outline"
+            className="rounded-full border-emerald-300 bg-white text-emerald-800"
+          >
+            {completedAssignments.length} concluída{completedAssignments.length === 1 ? "" : "s"}
+          </Badge>
+        </div>
+        <div className="space-y-3">
+          {completedAssignments.length === 0 ? (
+            <Empty msg="As atividades concluídas aparecerão nesta pasta." />
+          ) : (
+            completedAssignments.map(renderAssignment)
+          )}
+        </div>
+      </section>
     </div>
   );
 }

@@ -269,6 +269,21 @@ async function ensureStudentClass({
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Restores the learning-area access for an administratively activated subscription.
+ * This deliberately does not touch wallet or payment records.
+ */
+export async function syncManualSubscriptionAccess(subscriptionId: string) {
+  const subscription = await getSubscription(subscriptionId);
+  if (subscription.status !== "ativa") return;
+
+  const [teacher, student] = await Promise.all([
+    getTeacher(subscription.teacher_id),
+    getStudent(subscription.student_id),
+  ]);
+  await ensureStudentClass({ subscription, teacher, student });
+}
+
 export async function activateStudentSubscriptionServer({
   subscriptionId,
   periodStart,

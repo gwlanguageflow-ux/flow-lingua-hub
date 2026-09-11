@@ -28,6 +28,7 @@ import {
   Send,
   ShieldAlert,
   Sparkles,
+  Star,
   TrendingUp,
   Upload,
   UserPlus,
@@ -64,9 +65,10 @@ import {
   sendDirectorDirectMessage,
   updateAnonymousReport,
   updateDirectorAlertStatus,
+  deleteReviewByDirector,
   updateStudentSubscriptionStatusByDirector,
 } from "@/functions/admin.functions";
-import { createDirectorCoupon } from "@/functions/coupon.functions";
+import { createDirectorCoupon, deleteDirectorCoupon } from "@/functions/coupon.functions";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
 import { normalizeExternalUrl } from "@/lib/resource-links";
@@ -90,6 +92,7 @@ type TeacherPayoutProfile = Tables<"teacher_payout_profiles">;
 type ClassMaterial = Tables<"class_materials">;
 type DiscountCoupon = Tables<"discount_coupons">;
 type CouponRedemption = Tables<"coupon_redemptions">;
+type Review = Tables<"reviews">;
 type SubscriptionPlan = Pick<Tables<"subscription_plans">, "id" | "name" | "price" | "slug">;
 type TeacherCustomPlan = Pick<
   Tables<"teacher_custom_plans">,
@@ -244,6 +247,7 @@ function AdminPage() {
   const [teacherCustomPlans, setTeacherCustomPlans] = useState<TeacherCustomPlan[]>([]);
   const [discountCoupons, setDiscountCoupons] = useState<DiscountCoupon[]>([]);
   const [couponRedemptions, setCouponRedemptions] = useState<CouponRedemption[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [platformWalletSummary, setPlatformWalletSummary] = useState<PlatformWalletSummary>(
     emptyPlatformWalletSummary,
   );
@@ -304,6 +308,7 @@ function AdminPage() {
       setTeacherCustomPlans(dashboard.teacherCustomPlans);
       setDiscountCoupons(dashboard.discountCoupons);
       setCouponRedemptions(dashboard.couponRedemptions);
+      setReviews(dashboard.reviews);
       setPlatformWalletSummary(dashboard.platformWalletSummary);
       setReportDrafts(
         Object.fromEntries(
@@ -673,6 +678,7 @@ function AdminPage() {
               <Tab value="cupons" icon={Sparkles} label="Cupons" />
               <Tab value="carteira" icon={Wallet} label="Carteira" />
               <Tab value="operacao" icon={Calendar} label="Operação" />
+              <Tab value="avaliacoes" icon={Star} label="Avaliações" />
             </TabsList>
 
             <TabsContent value="comunicados" className="mt-0">
@@ -1379,6 +1385,10 @@ function AdminPage() {
                 </div>
               </section>
             </TabsContent>
+
+            <TabsContent value="avaliacoes" className="mt-0">
+              <ReviewsPanel reviews={reviews} profiles={profiles} onChanged={loadDashboard} />
+            </TabsContent>
           </Tabs>
         )}
       </main>
@@ -2038,6 +2048,80 @@ function DirectorMaterialsPanel({
   );
 }
 
+function ReviewsPanel({
+  reviews,
+  profiles,
+  onChanged,
+}: {
+  reviews: Review[];
+  profiles: Profile[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const removeReview = async (review: Review) => {
+    if (
+      !window.confirm("Excluir esta avaliação permanentemente? Esta ação não pode ser desfeita.")
+    ) {
+      return;
+    }
+    setRemovingId(review.id);
+    try {
+      await deleteReviewByDirector({ data: { reviewId: review.id } });
+      toast.success("Avaliação excluída.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir a avaliação.");
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-white p-4">
+      <SectionTitle icon={Star} title="Avaliações publicadas" />
+      <p className="mt-2 text-sm leading-6 text-brown-soft">
+        Revise avaliações enviadas pelos alunos e remova registros equivocados ou inadequados.
+      </p>
+      <div className="mt-4 space-y-3">
+        {reviews.length === 0 ? (
+          <EmptyState text="Nenhuma avaliação publicada." />
+        ) : (
+          reviews.map((review) => (
+            <article key={review.id} className="rounded-xl border border-border bg-background p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-wine">
+                      {userName(review.student_id, profiles)} para{" "}
+                      {userName(review.teacher_id, profiles)}
+                    </p>
+                    <Badge className="rounded-full bg-bronze text-white">{review.rating}/5</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-brown-soft">
+                    {new Date(review.created_at).toLocaleString("pt-BR")}
+                  </p>
+                  {review.comment && <p className="mt-3 text-sm text-brown">{review.comment}</p>}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={removingId === review.id}
+                  onClick={() => removeReview(review)}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  {removingId === review.id ? "Excluindo..." : "Excluir"}
+                </Button>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 function DirectorCouponsPanel({
   coupons,
   redemptions,
@@ -2083,6 +2167,20 @@ function DirectorCouponsPanel({
       toast.error(error instanceof Error ? error.message : "Nao foi possivel criar o cupom.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeCoupon = async (coupon: DiscountCoupon) => {
+    if (!window.confirm(`Excluir o cupom ${coupon.code}? Ele deixará de aparecer no checkout.`)) {
+      return;
+    }
+
+    try {
+      await deleteDirectorCoupon({ data: { couponId: coupon.id } });
+      toast.success("Cupom excluído do checkout.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir o cupom.");
     }
   };
 
@@ -2177,6 +2275,17 @@ function DirectorCouponsPanel({
                       <Info label="Pagos" value={stats.paid} />
                     </div>
                   </div>
+                  {coupon.scope === "director" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeCoupon(coupon)}
+                      className="mt-3 border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      Excluir cupom
+                    </Button>
+                  )}
                 </article>
               );
             })
@@ -2776,6 +2885,7 @@ function normalizeAdminDashboard(data: Awaited<ReturnType<typeof getAdminDashboa
     teacherCustomPlans: data?.teacherCustomPlans ?? [],
     discountCoupons: data?.discountCoupons ?? [],
     couponRedemptions: data?.couponRedemptions ?? [],
+    reviews: data?.reviews ?? [],
     platformWalletSummary: data?.platformWalletSummary ?? emptyPlatformWalletSummary,
   };
 }

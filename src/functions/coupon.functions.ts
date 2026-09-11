@@ -22,6 +22,10 @@ const directorCouponSchema = z.object({
   title: z.string().trim().max(120).optional().nullable(),
 });
 
+const couponIdSchema = z.object({
+  couponId: z.string().uuid(),
+});
+
 function normalizeLetters(value: string) {
   return value
     .normalize("NFD")
@@ -163,4 +167,27 @@ export const createDirectorCoupon = createServerFn({ method: "POST" })
 
     if (error || !coupon) throw new Error(error?.message ?? "Nao foi possivel criar o cupom.");
     return { coupon };
+  });
+
+export const deleteDirectorCoupon = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => couponIdSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireRole(context.userId, ["dev"]);
+    const now = new Date().toISOString();
+
+    const { error } = await supabaseAdmin
+      .from("discount_coupons")
+      .update({
+        active: false,
+        deleted_at: now,
+        updated_at: now,
+        title: "Cupom removido pela diretoria",
+      })
+      .eq("id", data.couponId)
+      .eq("scope", "director")
+      .is("deleted_at", null);
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

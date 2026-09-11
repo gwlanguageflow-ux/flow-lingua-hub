@@ -127,6 +127,20 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         ],
       },
       {
+        title: "Condições específicas para alunos",
+        body: [
+          "O aluno deve manter a assinatura regular para acessar recursos vinculados ao plano, agendar aulas e receber materiais. A falta de pagamento pode limitar esses recursos até a regularização.",
+          "O aluno se compromete a comparecer às aulas agendadas, comunicar impedimentos com antecedência quando possível e usar materiais, mensagens e avaliações apenas para a finalidade educacional.",
+        ],
+      },
+      {
+        title: "Condições específicas para professores",
+        body: [
+          "O professor é responsável pela veracidade do perfil, disponibilidade, aulas, materiais e comunicações publicados na plataforma, devendo manter postura profissional e respeitosa.",
+          "Os valores devidos ao professor, os repasses e eventuais solicitações de saque seguem os registros da carteira e as regras operacionais da plataforma.",
+        ],
+      },
+      {
         title: "Assinaturas e pagamentos",
         body: [
           "Planos sao pagos por checkout hospedado ValidaPay, com cartao ou Pix conforme disponibilidade operacional. O cartao e processado pelo provedor e nao e armazenado pela GWLanguageFlow.",
@@ -145,6 +159,13 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         body: [
           "A plataforma depende de servicos externos como Supabase, Vercel, ValidaPay e provedores de conexao. Instabilidades desses servicos podem afetar disponibilidade.",
           "Mudanças relevantes nas regras devem ser versionadas e apresentadas de forma clara aos usuários.",
+        ],
+      },
+      {
+        title: "Aceite eletrônico e comunicações",
+        body: [
+          "Versões relevantes destes termos exigem aceite eletrônico antes da continuidade de uso. O registro contém a versão aceita, perfil aplicável, nome informado e data/hora do aceite.",
+          "Quando o serviço de e-mail transacional estiver configurado, a confirmação do aceite será enviada ao endereço cadastrado. O registro na plataforma permanece como comprovante operacional do aceite.",
         ],
       },
     ],
