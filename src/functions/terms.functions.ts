@@ -40,7 +40,16 @@ export const getTermsAcceptanceStatus = createServerFn({ method: "GET" })
       .select("role")
       .eq("user_id", context.userId)
       .eq("terms_version", CURRENT_TERMS_VERSION);
-    if (error) throw new Error(error.message);
+    // The application can be deployed before its database migration reaches
+    // Supabase. Do not let that temporary mismatch take the whole page down,
+    // especially on clients opening a freshly cached mobile bundle.
+    if (error) {
+      const missingTable =
+        error.code === "42P01" ||
+        /terms_acceptances|relation .* does not exist|schema cache/i.test(error.message);
+      if (missingTable) return { required: false, roles: [], fullName };
+      throw new Error(error.message);
+    }
 
     const acceptedRoles = new Set((data ?? []).map((item) => item.role));
     return {
