@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CookieConsent } from "@/components/CookieConsent";
-import { TermsAcceptanceGate } from "@/components/TermsAcceptanceGate";
 import { SupportWhatsAppButton } from "@/components/SupportWhatsAppButton";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -108,7 +107,6 @@ function RootComponent() {
       <AuthProvider>
         <Outlet />
         <CookieConsent />
-        <TermsAcceptanceGate />
         <SupportWhatsAppButton />
         <Toaster richColors position="top-center" />
       </AuthProvider>
