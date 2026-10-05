@@ -267,7 +267,7 @@ export const submitPrivacyRequest = createServerFn({ method: "POST" })
       .single();
 
     if (error || !requestRow) {
-      throw new Error(error?.message ?? "Nao foi possivel registrar a solicitacao LGPD.");
+      throw new Error(error?.message ?? "Não foi possível registrar a solicitacao LGPD.");
     }
 
     await writeAuditLog({
@@ -310,7 +310,7 @@ export const revokeUserConsent = createServerFn({ method: "POST" })
       .single();
 
     if (error || !consent) {
-      throw new Error(error?.message ?? "Nao foi possivel revogar o consentimento.");
+      throw new Error(error?.message ?? "Não foi possível revogar o consentimento.");
     }
 
     await writeAuditLog({
@@ -412,7 +412,7 @@ export const updatePrivacyRequestAdmin = createServerFn({ method: "POST" })
       .select("*")
       .single();
 
-    if (error || !updated) throw new Error(error?.message ?? "Nao foi possivel atualizar.");
+    if (error || !updated) throw new Error(error?.message ?? "Não foi possível atualizar.");
 
     await writeAuditLog({
       actorUserId: context.userId,

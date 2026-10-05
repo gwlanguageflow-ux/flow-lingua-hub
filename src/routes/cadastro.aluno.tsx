@@ -39,7 +39,8 @@ const schema = z.object({
 });
 
 function Page() {
-  const { user, roles, refreshRoles } = useAuth();
+  const { user, roles, rolesLoading, refreshRoles } = useAuth();
+  const userId = user?.id;
   const [fullName, setFullName] = useState("");
   const [cpf, setCpf] = useState("");
   const [age, setAge] = useState<string>("");
@@ -52,29 +53,66 @@ function Page() {
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
   const [languagesLoading, setLanguagesLoading] = useState(true);
 
-  // Se aluno já tem perfil completo, vai direto para o feed
+  // Carrega o perfil existente para permitir que o aluno atualize seus dados.
   useEffect(() => {
-    if (!user) return;
-    if (roles.includes("aluno")) {
-      supabase
-        .from("student_profiles")
-        .select("id, desired_language")
-        .eq("id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            const query = data.desired_language
-              ? `?idioma=${encodeURIComponent(data.desired_language)}`
-              : "";
-            window.location.assign(`/feed${query}`);
-          } else {
-            setChecking(false);
-          }
-        });
-    } else {
+    let active = true;
+
+    async function loadExistingProfile() {
+      if (rolesLoading || !userId) {
+        if (!rolesLoading && active) setChecking(false);
+        return;
+      }
+
+      if (!roles.includes("aluno")) {
+        const { data: onboarding } = await supabase.rpc("get_own_onboarding_profile").maybeSingle();
+        if (!active) return;
+        if (onboarding) {
+          setFullName(onboarding.full_name || "");
+          if (onboarding.cpf) setCpf(formatCpf(onboarding.cpf));
+          if (onboarding.avatar_url) setAvatarPreview(onboarding.avatar_url);
+          if (onboarding.age) setAge(String(onboarding.age));
+        }
+        setChecking(false);
+        return;
+      }
+
+      setChecking(true);
+      const [
+        { data: studentProfile, error: studentError },
+        { data: ownProfile, error: profileError },
+      ] = await Promise.all([
+        supabase
+          .from("student_profiles")
+          .select("id, desired_language, comprehension_level")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase.rpc("get_own_onboarding_profile").maybeSingle(),
+      ]);
+
+      if (!active) return;
+      if (studentError || profileError) {
+        toast.error(
+          studentError?.message ?? profileError?.message ?? "Não foi possível carregar seu perfil.",
+        );
+      }
+      if (studentProfile) {
+        setDesiredLanguage(studentProfile.desired_language ?? "");
+        setLevel(studentProfile.comprehension_level ?? "iniciante");
+      }
+      if (ownProfile) {
+        setFullName(ownProfile.full_name ?? "");
+        if (ownProfile.cpf) setCpf(formatCpf(ownProfile.cpf));
+        if (ownProfile.age) setAge(String(ownProfile.age));
+        if (ownProfile.avatar_url) setAvatarPreview(ownProfile.avatar_url);
+      }
       setChecking(false);
     }
-  }, [user, roles]);
+
+    void loadExistingProfile();
+    return () => {
+      active = false;
+    };
+  }, [userId, roles, rolesLoading]);
 
   useEffect(() => {
     let active = true;
@@ -98,20 +136,6 @@ function Page() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .rpc("get_own_onboarding_profile")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setFullName(data.full_name || "");
-          if (data.cpf) setCpf(formatCpf(data.cpf));
-          if (data.avatar_url) setAvatarPreview(data.avatar_url);
-          if (data.age) setAge(String(data.age));
-        }
-      });
-  }, [user]);
 
   const handleFile = (f: File) => {
     setAvatarFile(f);
@@ -157,9 +181,14 @@ function Page() {
       setLoading(false);
       return;
     }
+    const wasStudent = roles.includes("aluno");
     await refreshRoles();
 
-    toast.success("Perfil criado! Conheça nossos professores.");
+    toast.success("Perfil atualizado com sucesso.");
+    if (wasStudent) {
+      window.location.assign("/configuracoes/perfil/cadastro");
+      return;
+    }
     window.location.assign(`/feed?idioma=${encodeURIComponent(parsed.data.desiredLanguage)}`);
   };
 
@@ -176,9 +205,11 @@ function Page() {
       <SiteHeader />
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="gw-command-hero mb-6 rounded-xl p-6 md:p-8">
-          <p className="gw-section-kicker">Cadastro de aluno</p>
+          <p className="gw-section-kicker">
+            {roles.includes("aluno") ? "Perfil do aluno" : "Cadastro de aluno"}
+          </p>
           <h1 className="mt-2 font-display text-3xl font-bold text-wine md:text-4xl">
-            Vamos conhecer você
+            {roles.includes("aluno") ? "Editar seu perfil" : "Vamos conhecer você"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-brown-soft">
             Essas informações ajudam a direcionar você para professores, materiais e planos mais

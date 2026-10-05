@@ -113,8 +113,8 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
   "termos-de-uso": {
     slug: "termos-de-uso",
     title: "Termos de Uso",
-    version: "2026.05.19",
-    updatedAt: "19 de maio de 2026",
+    version: "2026.10.03",
+    updatedAt: "3 de outubro de 2026",
     icon: Scale,
     summary:
       "Regras de acesso, conduta, assinaturas, aulas, materiais, pagamentos e responsabilidades da plataforma.",
@@ -124,6 +124,13 @@ export const legalPages: Record<LegalPageSlug, LegalPageContent> = {
         body: [
           "A GWLanguageFlow conecta alunos, professores e diretoria para aulas de idiomas, materiais, agenda, mensagens e acompanhamento pedagógico.",
           "Cada usuário deve manter seus dados atualizados, proteger suas credenciais e usar as ferramentas de forma respeitosa e compatível com a finalidade educacional.",
+        ],
+      },
+      {
+        title: "Condições de uso por perfil",
+        body: [
+          "Alunos devem manter os dados atualizados, acompanhar a regularidade da assinatura para acessar aulas e materiais do plano, comparecer às aulas e comunicar impedimentos com antecedência quando possível.",
+          "Professores devem manter perfil e disponibilidade corretos, conduzir aulas e comunicações de forma profissional e acompanhar os registros da carteira e as regras operacionais da plataforma.",
         ],
       },
       {

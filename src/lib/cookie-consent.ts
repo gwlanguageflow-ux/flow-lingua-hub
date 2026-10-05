@@ -5,11 +5,7 @@ export const PRIVACY_POLICY_VERSION = "2026.05.19";
 export const COOKIES_POLICY_VERSION = "2026.05.19";
 
 export type ConsentCategory =
-  | "necessary"
-  | "analytics"
-  | "marketing"
-  | "preferences"
-  | "third_parties";
+  "necessary" | "analytics" | "marketing" | "preferences" | "third_parties";
 
 export type ConsentCategoryState = Record<ConsentCategory, boolean>;
 

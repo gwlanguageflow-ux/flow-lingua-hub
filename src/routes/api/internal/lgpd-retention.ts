@@ -11,7 +11,7 @@ function verifyCron(request: Request) {
 export const Route = createFileRoute("/api/internal/lgpd-retention")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         if (!verifyCron(request)) return new Response("Unauthorized", { status: 401 });
         const db = getComplianceDb();
         const { data, error } = await db.rpc("retention_cleanup_lgpd", { _dry_run: false });

@@ -36,7 +36,7 @@ export const Route = createFileRoute("/configuracoes/perfil/cadastro")({
 });
 
 function AccountSettingsPage() {
-  const { user, roles } = useAuth();
+  const { user, roles, rolesLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -66,7 +66,7 @@ function AccountSettingsPage() {
     if (roles.includes("dev")) return "Diretoria";
     if (roles.includes("professor")) return "Professor";
     if (roles.includes("aluno")) return "Aluno";
-    return "Perfil em configuracao";
+    return "Perfil em configuração";
   }, [roles]);
 
   const handlePasswordUpdate = async (event: React.FormEvent) => {
@@ -79,7 +79,7 @@ function AccountSettingsPage() {
 
     const email = user?.email ?? profile?.email;
     if (!email) {
-      toast.error("Nao foi possivel localizar o e-mail da conta.");
+      toast.error("Não foi possível localizar o e-mail da conta.");
       return;
     }
 
@@ -106,7 +106,7 @@ function AccountSettingsPage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
-    toast.success("Senha atualizada com seguranca.");
+    toast.success("Senha atualizada com segurança.");
   };
 
   return (
@@ -116,7 +116,7 @@ function AccountSettingsPage() {
         <div className="container mx-auto max-w-5xl px-4">
           <div className="mb-6">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-bronze">
-              Configuracoes
+              Configurações
             </p>
             <h1 className="mt-2 font-display text-4xl font-bold text-wine">Perfil e cadastro</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-brown-soft">
@@ -144,16 +144,16 @@ function AccountSettingsPage() {
                 <AccountInfo
                   icon={KeyRound}
                   label="Senha"
-                  value="Protegida. Por seguranca, a senha atual nao fica visivel."
+                  value="Protegida. Por segurança, a senha atual não fica visível."
                 />
               </div>
 
               <div className="mt-5 rounded-xl border border-border bg-cream p-4 text-sm text-brown">
-                Para alterar nome, CPF, idioma, foto ou dados pedagogicos, use o cadastro do seu
+                Para alterar nome, CPF, idioma, foto ou dados pedagógicos, use o cadastro do seu
                 perfil.
               </div>
 
-              <ProfileEditLink roles={roles} />
+              <ProfileEditLink roles={roles} rolesLoading={rolesLoading} />
             </section>
 
             <form onSubmit={handlePasswordUpdate} className="gw-app-card rounded-xl p-5">
@@ -239,7 +239,15 @@ function AccountInfo({
   );
 }
 
-function ProfileEditLink({ roles }: { roles: string[] }) {
+function ProfileEditLink({ roles, rolesLoading }: { roles: string[]; rolesLoading: boolean }) {
+  if (rolesLoading) {
+    return (
+      <Button variant="outline" className="mt-4 w-full rounded-lg" disabled>
+        Carregando perfil...
+      </Button>
+    );
+  }
+
   const button = (
     <Button variant="outline" className="w-full rounded-lg">
       Editar cadastro do perfil

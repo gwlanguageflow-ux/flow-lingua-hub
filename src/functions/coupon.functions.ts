@@ -112,7 +112,7 @@ export const upsertTeacherCoupon = createServerFn({ method: "POST" })
       : supabaseAdmin.from("discount_coupons").insert(payload);
 
     const { data: coupon, error } = await query.select("*").single();
-    if (error || !coupon) throw new Error(error?.message ?? "Nao foi possivel salvar o cupom.");
+    if (error || !coupon) throw new Error(error?.message ?? "Não foi possível salvar o cupom.");
 
     return { coupon };
   });
@@ -165,8 +165,35 @@ export const createDirectorCoupon = createServerFn({ method: "POST" })
       .select("*")
       .single();
 
-    if (error || !coupon) throw new Error(error?.message ?? "Nao foi possivel criar o cupom.");
+    if (error || !coupon) throw new Error(error?.message ?? "Não foi possível criar o cupom.");
     return { coupon };
+  });
+
+export const toggleDirectorCouponStatus = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        couponId: z.string().uuid(),
+        active: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireRole(context.userId, ["dev"]);
+    const now = new Date().toISOString();
+
+    const { error } = await supabaseAdmin
+      .from("discount_coupons")
+      .update({
+        active: data.active,
+        updated_at: now,
+      })
+      .eq("id", data.couponId)
+      .is("deleted_at", null);
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const deleteDirectorCoupon = createServerFn({ method: "POST" })
@@ -185,9 +212,9 @@ export const deleteDirectorCoupon = createServerFn({ method: "POST" })
         title: "Cupom removido pela diretoria",
       })
       .eq("id", data.couponId)
-      .eq("scope", "director")
       .is("deleted_at", null);
 
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+

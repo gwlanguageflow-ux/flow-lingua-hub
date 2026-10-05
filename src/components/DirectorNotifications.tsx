@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BellRing, CheckCheck, MessageCircle, Send, ShieldAlert, Sparkles } from "lucide-react";
+import { BellRing, CheckCheck, MessageCircle, Send, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   createAnonymousReport,
+  dismissAllDirectorNotifications,
+  dismissDirectorNotification,
   getDirectorInbox,
   markDirectorMessageRead,
   replyToDirector,
@@ -106,6 +108,44 @@ export function DirectorNotifications({ mobile = false }: { mobile?: boolean }) 
     }
   };
 
+  const handleDismiss = async (itemType: "message" | "alert", itemId: string) => {
+    try {
+      await dismissDirectorNotification({ data: { itemType, itemId } });
+      setInbox((current) => ({
+        ...current,
+        messages: itemType === "message" ? current.messages.filter((m) => m.id !== itemId) : current.messages,
+        alerts: itemType === "alert" ? current.alerts.filter((a) => a.id !== itemId) : current.alerts,
+        unreadCount:
+          itemType === "message" && current.messages.find((m) => m.id === itemId && !m.read)
+            ? Math.max(0, current.unreadCount - 1)
+            : current.unreadCount,
+      }));
+      toast.success("Notificação excluída.");
+    } catch {
+      toast.error("Não foi possível excluir a notificação.");
+    }
+  };
+
+  const handleDismissAll = async () => {
+    const items = [
+      ...inbox.messages.map((m) => ({ itemType: "message" as const, itemId: m.id })),
+      ...inbox.alerts.map((a) => ({ itemType: "alert" as const, itemId: a.id })),
+    ];
+    if (items.length === 0) return;
+    try {
+      await dismissAllDirectorNotifications({ data: { items } });
+      setInbox((current) => ({
+        ...current,
+        messages: [],
+        alerts: [],
+        unreadCount: 0,
+      }));
+      toast.success("Todas as notificações foram limpas.");
+    } catch {
+      toast.error("Não foi possível limpar as notificações.");
+    }
+  };
+
   const handleReply = async () => {
     if (!reply.trim()) return;
     try {
@@ -190,6 +230,20 @@ export function DirectorNotifications({ mobile = false }: { mobile?: boolean }) 
               </p>
             )}
 
+            {!loading && (inbox.alerts.length > 0 || inbox.messages.length > 0) && (
+              <div className="flex justify-end pb-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDismissAll}
+                  className="h-7 text-xs text-brown-soft hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  Limpar todas
+                </Button>
+              </div>
+            )}
+
             {inbox.alerts.map((alert) => (
               <article
                 key={alert.id}
@@ -199,11 +253,23 @@ export function DirectorNotifications({ mobile = false }: { mobile?: boolean }) 
                     : "border-bronze/40 bg-amber-50"
                 }`}
               >
-                <div className="mb-2 flex items-center gap-2">
-                  <BellRing className="h-4 w-4 text-bronze" />
-                  <h3 className="font-bold text-wine">{alert.title}</h3>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <BellRing className="h-4 w-4 text-bronze" />
+                    <h3 className="font-bold text-wine">{alert.title}</h3>
+                  </div>
+                  <Button
+                    onClick={() => handleDismiss("alert", alert.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-brown-soft hover:text-red-700 hover:bg-red-100/60 rounded-full"
+                    title="Excluir notificação"
+                    aria-label="Excluir notificação"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <p className="text-sm text-brown">{alert.body}</p>
+                <p className="mt-1 text-sm text-brown">{alert.body}</p>
               </article>
             ))}
 
@@ -224,17 +290,30 @@ export function DirectorNotifications({ mobile = false }: { mobile?: boolean }) 
                       {new Date(message.created_at).toLocaleString("pt-BR")}
                     </p>
                   </div>
-                  {!message.read && (
+                  <div className="flex items-center gap-1">
+                    {!message.read && (
+                      <Button
+                        onClick={() => handleMarkRead(message.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-full px-2"
+                        title="Marcar como lido"
+                        aria-label="Marcar como lido"
+                      >
+                        <CheckCheck className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
-                      onClick={() => handleMarkRead(message.id)}
+                      onClick={() => handleDismiss("message", message.id)}
                       variant="ghost"
                       size="sm"
-                      className="h-8 rounded-full px-2"
-                      aria-label="Marcar como lido"
+                      className="h-8 w-8 p-0 text-brown-soft hover:text-red-700 hover:bg-red-50 rounded-full"
+                      title="Excluir notificação"
+                      aria-label="Excluir notificação"
                     >
-                      <CheckCheck className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  )}
+                  </div>
                 </div>
                 <p className="mt-2 text-sm text-brown">{message.body}</p>
               </article>

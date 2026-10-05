@@ -70,13 +70,15 @@ export function SiteHeader() {
                 <DropdownMenuContent align="end" className="w-60">
                   <DropdownMenuItem onClick={() => navigate({ to: dashboardLink })}>
                     <LayoutDashboard className="mr-2 h-4 w-4" />
-                    {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
+                    {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Meus agendamentos"}
                   </DropdownMenuItem>
+                  {(isStudent || isTeacher) && (
+                    <DropdownMenuItem onClick={() => navigate({ to: "/feed" })}>
+                      Feed
+                    </DropdownMenuItem>
+                  )}
                   {isStudent && (
                     <>
-                      <DropdownMenuItem onClick={() => navigate({ to: "/meus-agendamentos" })}>
-                        Meus agendamentos
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate({ to: "/minha-assinatura" })}>
                         Minha assinatura
                       </DropdownMenuItem>
@@ -141,8 +143,17 @@ export function SiteHeader() {
                 onClick={() => setOpen(false)}
                 className="block rounded-xl px-3 py-3 text-sm font-semibold text-wine hover:bg-cream"
               >
-                {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Feed"}
+                {isDev ? "Painel ADM" : isTeacher ? "Dashboard" : "Meus agendamentos"}
               </Link>
+              {(isStudent || isTeacher) && (
+                <Link
+                  to="/feed"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-3 text-sm font-semibold text-wine hover:bg-cream"
+                >
+                  Feed
+                </Link>
+              )}
               <Link
                 to={accountSettingsLink}
                 onClick={() => setOpen(false)}

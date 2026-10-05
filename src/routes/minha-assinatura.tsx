@@ -114,14 +114,14 @@ function Page() {
 
   const handleManualRenewal = async () => {
     if (!sub) {
-      toast.error("Nao foi possivel identificar sua assinatura.");
+      toast.error("Não foi possível identificar sua assinatura.");
       return;
     }
 
     const planSlug = sub.plan?.slug ?? null;
     const customPlanId = sub.custom_plan_id ?? null;
     if ((!planSlug && !customPlanId) || !sub.teacher_id) {
-      toast.error("Nao foi possivel identificar o plano e professor desta assinatura.");
+      toast.error("Não foi possível identificar o plano e professor desta assinatura.");
       return;
     }
 
@@ -141,7 +141,7 @@ function Page() {
       if ("url" in res && res.url) window.location.href = res.url;
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Nao foi possivel abrir o checkout ValidaPay.",
+        err instanceof Error ? err.message : "Não foi possível abrir o checkout ValidaPay.",
       );
       setRenewing(false);
     }
@@ -168,7 +168,7 @@ function Page() {
       );
       toast.success("Cancelamento programado. Seu acesso segue ate o fim do periodo pago.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nao foi possivel cancelar a assinatura.");
+      toast.error(err instanceof Error ? err.message : "Não foi possível cancelar a assinatura.");
     } finally {
       setCancelling(false);
     }
@@ -198,7 +198,7 @@ function Page() {
 
         {!sub ? (
           <div className="gw-empty-state rounded-xl p-10 text-center shadow-soft">
-            <h2 className="font-display text-xl text-wine">Voce ainda nao tem uma assinatura</h2>
+            <h2 className="font-display text-xl text-wine">Você ainda não tem uma assinatura</h2>
             <p className="text-brown mt-2">Escolha um plano para comecar a agendar aulas.</p>
             <Link to="/feed">
               <Button className="mt-6 bg-bronze text-white hover:bg-wine shadow-bronze">

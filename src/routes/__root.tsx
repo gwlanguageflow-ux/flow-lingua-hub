@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CookieConsent } from "@/components/CookieConsent";
 import { SupportWhatsAppButton } from "@/components/SupportWhatsAppButton";
+import { TermsAcceptanceGate } from "@/components/TermsAcceptanceGate";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -106,6 +107,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Outlet />
+        <TermsAcceptanceGate />
         <CookieConsent />
         <SupportWhatsAppButton />
         <Toaster richColors position="top-center" />

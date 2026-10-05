@@ -9,113 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
-import { Route as SobreRouteImport } from './routes/sobre'
-import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
-import { Route as SegurancaRouteImport } from './routes/seguranca'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as PoliticaDeRetencaoRouteImport } from './routes/politica-de-retencao'
-import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
-import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cookies'
-import { Route as PlanosRouteImport } from './routes/planos'
-import { Route as MinhaAssinaturaRouteImport } from './routes/minha-assinatura'
-import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
-import { Route as MenoresRouteImport } from './routes/menores'
-import { Route as FeedRouteImport } from './routes/feed'
-import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProfessorIdRouteImport } from './routes/professor.$id'
-import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
-import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
-import { Route as AuthSignupRouteImport } from './routes/auth.signup'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
-import { Route as AuthLoginRouteImport } from './routes/auth.login'
-import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as EscolherPerfilRouteImport } from './routes/escolher-perfil'
+import { Route as FeedRouteImport } from './routes/feed'
+import { Route as MenoresRouteImport } from './routes/menores'
+import { Route as MeusAgendamentosRouteImport } from './routes/meus-agendamentos'
+import { Route as MinhaAssinaturaRouteImport } from './routes/minha-assinatura'
+import { Route as PlanosRouteImport } from './routes/planos'
+import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cookies'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as PoliticaDeRetencaoRouteImport } from './routes/politica-de-retencao'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as SegurancaRouteImport } from './routes/seguranca'
+import { Route as SejaProfessorRouteImport } from './routes/seja-professor'
+import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as AdminLgpdRouteImport } from './routes/admin.lgpd'
-import { Route as ConfiguracoesPerfilCadastroRouteImport } from './routes/configuracoes.perfil.cadastro'
-import { Route as ApiPublicValidapayWebhookRouteImport } from './routes/api/public/validapay-webhook'
-import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
-import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
-import { Route as ApiPrivateLearningUploadRouteImport } from './routes/api/private/learning-upload'
-import { Route as ApiPrivateLearningFileRouteImport } from './routes/api/private/learning-file'
-import { Route as ApiInternalPixRenewalMonitorRouteImport } from './routes/api/internal/pix-renewal-monitor'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as CadastroAlunoRouteImport } from './routes/cadastro.aluno'
+import { Route as CadastroProfessorRouteImport } from './routes/cadastro.professor'
+import { Route as ProfessorIdRouteImport } from './routes/professor.$id'
 import { Route as ApiInternalLgpdRetentionRouteImport } from './routes/api/internal/lgpd-retention'
+import { Route as ApiInternalPixRenewalMonitorRouteImport } from './routes/api/internal/pix-renewal-monitor'
+import { Route as ApiPrivateLearningFileRouteImport } from './routes/api/private/learning-file'
+import { Route as ApiPrivateLearningUploadRouteImport } from './routes/api/private/learning-upload'
+import { Route as ApiPublicConsentRouteImport } from './routes/api/public/consent'
+import { Route as ApiPublicSecurityEventRouteImport } from './routes/api/public/security-event'
+import { Route as ApiPublicValidapayWebhookRouteImport } from './routes/api/public/validapay-webhook'
+import { Route as ConfiguracoesPerfilCadastroRouteImport } from './routes/configuracoes.perfil.cadastro'
 
-const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
-  id: '/termos-de-uso',
-  path: '/termos-de-uso',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SobreRoute = SobreRouteImport.update({
-  id: '/sobre',
-  path: '/sobre',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SejaProfessorRoute = SejaProfessorRouteImport.update({
-  id: '/seja-professor',
-  path: '/seja-professor',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SegurancaRoute = SegurancaRouteImport.update({
-  id: '/seguranca',
-  path: '/seguranca',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliticaDeRetencaoRoute = PoliticaDeRetencaoRouteImport.update({
-  id: '/politica-de-retencao',
-  path: '/politica-de-retencao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
-  id: '/politica-de-privacidade',
-  path: '/politica-de-privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliticaDeCookiesRoute = PoliticaDeCookiesRouteImport.update({
-  id: '/politica-de-cookies',
-  path: '/politica-de-cookies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlanosRoute = PlanosRouteImport.update({
-  id: '/planos',
-  path: '/planos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MinhaAssinaturaRoute = MinhaAssinaturaRouteImport.update({
-  id: '/minha-assinatura',
-  path: '/minha-assinatura',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
-  id: '/meus-agendamentos',
-  path: '/meus-agendamentos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MenoresRoute = MenoresRouteImport.update({
-  id: '/menores',
-  path: '/menores',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedRoute = FeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
-  id: '/escolher-perfil',
-  path: '/escolher-perfil',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -123,44 +53,79 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfessorIdRoute = ProfessorIdRouteImport.update({
-  id: '/professor/$id',
-  path: '/professor/$id',
+const EscolherPerfilRoute = EscolherPerfilRouteImport.update({
+  id: '/escolher-perfil',
+  path: '/escolher-perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CadastroProfessorRoute = CadastroProfessorRouteImport.update({
-  id: '/cadastro/professor',
-  path: '/cadastro/professor',
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CadastroAlunoRoute = CadastroAlunoRouteImport.update({
-  id: '/cadastro/aluno',
-  path: '/cadastro/aluno',
+const MenoresRoute = MenoresRouteImport.update({
+  id: '/menores',
+  path: '/menores',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/auth/signup',
-  path: '/auth/signup',
+const MeusAgendamentosRoute = MeusAgendamentosRouteImport.update({
+  id: '/meus-agendamentos',
+  path: '/meus-agendamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/auth/reset-password',
-  path: '/auth/reset-password',
+const MinhaAssinaturaRoute = MinhaAssinaturaRouteImport.update({
+  id: '/minha-assinatura',
+  path: '/minha-assinatura',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/auth/forgot-password',
-  path: '/auth/forgot-password',
+const PoliticaDeCookiesRoute = PoliticaDeCookiesRouteImport.update({
+  id: '/politica-de-cookies',
+  path: '/politica-de-cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDeRetencaoRoute = PoliticaDeRetencaoRouteImport.update({
+  id: '/politica-de-retencao',
+  path: '/politica-de-retencao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SegurancaRoute = SegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SejaProfessorRoute = SejaProfessorRouteImport.update({
+  id: '/seja-professor',
+  path: '/seja-professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SobreRoute = SobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
+  id: '/termos-de-uso',
+  path: '/termos-de-uso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLgpdRoute = AdminLgpdRouteImport.update({
@@ -168,26 +133,56 @@ const AdminLgpdRoute = AdminLgpdRouteImport.update({
   path: '/lgpd',
   getParentRoute: () => AdminRoute,
 } as any)
-const ConfiguracoesPerfilCadastroRoute =
-  ConfiguracoesPerfilCadastroRouteImport.update({
-    id: '/configuracoes/perfil/cadastro',
-    path: '/configuracoes/perfil/cadastro',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicValidapayWebhookRoute =
-  ApiPublicValidapayWebhookRouteImport.update({
-    id: '/api/public/validapay-webhook',
-    path: '/api/public/validapay-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicSecurityEventRoute = ApiPublicSecurityEventRouteImport.update({
-  id: '/api/public/security-event',
-  path: '/api/public/security-event',
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicConsentRoute = ApiPublicConsentRouteImport.update({
-  id: '/api/public/consent',
-  path: '/api/public/consent',
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroAlunoRoute = CadastroAlunoRouteImport.update({
+  id: '/cadastro/aluno',
+  path: '/cadastro/aluno',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroProfessorRoute = CadastroProfessorRouteImport.update({
+  id: '/cadastro/professor',
+  path: '/cadastro/professor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfessorIdRoute = ProfessorIdRouteImport.update({
+  id: '/professor/$id',
+  path: '/professor/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalLgpdRetentionRoute =
+  ApiInternalLgpdRetentionRouteImport.update({
+    id: '/api/internal/lgpd-retention',
+    path: '/api/internal/lgpd-retention',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalPixRenewalMonitorRoute =
+  ApiInternalPixRenewalMonitorRouteImport.update({
+    id: '/api/internal/pix-renewal-monitor',
+    path: '/api/internal/pix-renewal-monitor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPrivateLearningFileRoute = ApiPrivateLearningFileRouteImport.update({
+  id: '/api/private/learning-file',
+  path: '/api/private/learning-file',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPrivateLearningUploadRoute =
@@ -196,21 +191,26 @@ const ApiPrivateLearningUploadRoute =
     path: '/api/private/learning-upload',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPrivateLearningFileRoute = ApiPrivateLearningFileRouteImport.update({
-  id: '/api/private/learning-file',
-  path: '/api/private/learning-file',
+const ApiPublicConsentRoute = ApiPublicConsentRouteImport.update({
+  id: '/api/public/consent',
+  path: '/api/public/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiInternalPixRenewalMonitorRoute =
-  ApiInternalPixRenewalMonitorRouteImport.update({
-    id: '/api/internal/pix-renewal-monitor',
-    path: '/api/internal/pix-renewal-monitor',
+const ApiPublicSecurityEventRoute = ApiPublicSecurityEventRouteImport.update({
+  id: '/api/public/security-event',
+  path: '/api/public/security-event',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicValidapayWebhookRoute =
+  ApiPublicValidapayWebhookRouteImport.update({
+    id: '/api/public/validapay-webhook',
+    path: '/api/public/validapay-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiInternalLgpdRetentionRoute =
-  ApiInternalLgpdRetentionRouteImport.update({
-    id: '/api/internal/lgpd-retention',
-    path: '/api/internal/lgpd-retention',
+const ConfiguracoesPerfilCadastroRoute =
+  ConfiguracoesPerfilCadastroRouteImport.update({
+    id: '/configuracoes/perfil/cadastro',
+    path: '/configuracoes/perfil/cadastro',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -465,109 +465,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/termos-de-uso': {
-      id: '/termos-de-uso'
-      path: '/termos-de-uso'
-      fullPath: '/termos-de-uso'
-      preLoaderRoute: typeof TermosDeUsoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sobre': {
-      id: '/sobre'
-      path: '/sobre'
-      fullPath: '/sobre'
-      preLoaderRoute: typeof SobreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seja-professor': {
-      id: '/seja-professor'
-      path: '/seja-professor'
-      fullPath: '/seja-professor'
-      preLoaderRoute: typeof SejaProfessorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seguranca': {
-      id: '/seguranca'
-      path: '/seguranca'
-      fullPath: '/seguranca'
-      preLoaderRoute: typeof SegurancaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/politica-de-retencao': {
-      id: '/politica-de-retencao'
-      path: '/politica-de-retencao'
-      fullPath: '/politica-de-retencao'
-      preLoaderRoute: typeof PoliticaDeRetencaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/politica-de-privacidade': {
-      id: '/politica-de-privacidade'
-      path: '/politica-de-privacidade'
-      fullPath: '/politica-de-privacidade'
-      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/politica-de-cookies': {
-      id: '/politica-de-cookies'
-      path: '/politica-de-cookies'
-      fullPath: '/politica-de-cookies'
-      preLoaderRoute: typeof PoliticaDeCookiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/planos': {
-      id: '/planos'
-      path: '/planos'
-      fullPath: '/planos'
-      preLoaderRoute: typeof PlanosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/minha-assinatura': {
-      id: '/minha-assinatura'
-      path: '/minha-assinatura'
-      fullPath: '/minha-assinatura'
-      preLoaderRoute: typeof MinhaAssinaturaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/meus-agendamentos': {
-      id: '/meus-agendamentos'
-      path: '/meus-agendamentos'
-      fullPath: '/meus-agendamentos'
-      preLoaderRoute: typeof MeusAgendamentosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/menores': {
-      id: '/menores'
-      path: '/menores'
-      fullPath: '/menores'
-      preLoaderRoute: typeof MenoresRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feed': {
-      id: '/feed'
-      path: '/feed'
-      fullPath: '/feed'
-      preLoaderRoute: typeof FeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/escolher-perfil': {
-      id: '/escolher-perfil'
-      path: '/escolher-perfil'
-      fullPath: '/escolher-perfil'
-      preLoaderRoute: typeof EscolherPerfilRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -577,60 +479,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/professor/$id': {
-      id: '/professor/$id'
-      path: '/professor/$id'
-      fullPath: '/professor/$id'
-      preLoaderRoute: typeof ProfessorIdRouteImport
+    '/escolher-perfil': {
+      id: '/escolher-perfil'
+      path: '/escolher-perfil'
+      fullPath: '/escolher-perfil'
+      preLoaderRoute: typeof EscolherPerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cadastro/professor': {
-      id: '/cadastro/professor'
-      path: '/cadastro/professor'
-      fullPath: '/cadastro/professor'
-      preLoaderRoute: typeof CadastroProfessorRouteImport
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cadastro/aluno': {
-      id: '/cadastro/aluno'
-      path: '/cadastro/aluno'
-      fullPath: '/cadastro/aluno'
-      preLoaderRoute: typeof CadastroAlunoRouteImport
+    '/menores': {
+      id: '/menores'
+      path: '/menores'
+      fullPath: '/menores'
+      preLoaderRoute: typeof MenoresRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/signup': {
-      id: '/auth/signup'
-      path: '/auth/signup'
-      fullPath: '/auth/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
+    '/meus-agendamentos': {
+      id: '/meus-agendamentos'
+      path: '/meus-agendamentos'
+      fullPath: '/meus-agendamentos'
+      preLoaderRoute: typeof MeusAgendamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/auth/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
+    '/minha-assinatura': {
+      id: '/minha-assinatura'
+      path: '/minha-assinatura'
+      fullPath: '/minha-assinatura'
+      preLoaderRoute: typeof MinhaAssinaturaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/forgot-password': {
-      id: '/auth/forgot-password'
-      path: '/auth/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+    '/politica-de-cookies': {
+      id: '/politica-de-cookies'
+      path: '/politica-de-cookies'
+      fullPath: '/politica-de-cookies'
+      preLoaderRoute: typeof PoliticaDeCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-retencao': {
+      id: '/politica-de-retencao'
+      path: '/politica-de-retencao'
+      fullPath: '/politica-de-retencao'
+      preLoaderRoute: typeof PoliticaDeRetencaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seguranca': {
+      id: '/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof SegurancaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seja-professor': {
+      id: '/seja-professor'
+      path: '/seja-professor'
+      fullPath: '/seja-professor'
+      preLoaderRoute: typeof SejaProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sobre': {
+      id: '/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos-de-uso': {
+      id: '/termos-de-uso'
+      path: '/termos-de-uso'
+      fullPath: '/termos-de-uso'
+      preLoaderRoute: typeof TermosDeUsoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/lgpd': {
@@ -640,46 +591,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLgpdRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/configuracoes/perfil/cadastro': {
-      id: '/configuracoes/perfil/cadastro'
-      path: '/configuracoes/perfil/cadastro'
-      fullPath: '/configuracoes/perfil/cadastro'
-      preLoaderRoute: typeof ConfiguracoesPerfilCadastroRouteImport
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/validapay-webhook': {
-      id: '/api/public/validapay-webhook'
-      path: '/api/public/validapay-webhook'
-      fullPath: '/api/public/validapay-webhook'
-      preLoaderRoute: typeof ApiPublicValidapayWebhookRouteImport
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/security-event': {
-      id: '/api/public/security-event'
-      path: '/api/public/security-event'
-      fullPath: '/api/public/security-event'
-      preLoaderRoute: typeof ApiPublicSecurityEventRouteImport
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/consent': {
-      id: '/api/public/consent'
-      path: '/api/public/consent'
-      fullPath: '/api/public/consent'
-      preLoaderRoute: typeof ApiPublicConsentRouteImport
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/private/learning-upload': {
-      id: '/api/private/learning-upload'
-      path: '/api/private/learning-upload'
-      fullPath: '/api/private/learning-upload'
-      preLoaderRoute: typeof ApiPrivateLearningUploadRouteImport
+    '/cadastro/aluno': {
+      id: '/cadastro/aluno'
+      path: '/cadastro/aluno'
+      fullPath: '/cadastro/aluno'
+      preLoaderRoute: typeof CadastroAlunoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/private/learning-file': {
-      id: '/api/private/learning-file'
-      path: '/api/private/learning-file'
-      fullPath: '/api/private/learning-file'
-      preLoaderRoute: typeof ApiPrivateLearningFileRouteImport
+    '/cadastro/professor': {
+      id: '/cadastro/professor'
+      path: '/cadastro/professor'
+      fullPath: '/cadastro/professor'
+      preLoaderRoute: typeof CadastroProfessorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/professor/$id': {
+      id: '/professor/$id'
+      path: '/professor/$id'
+      fullPath: '/professor/$id'
+      preLoaderRoute: typeof ProfessorIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/lgpd-retention': {
+      id: '/api/internal/lgpd-retention'
+      path: '/api/internal/lgpd-retention'
+      fullPath: '/api/internal/lgpd-retention'
+      preLoaderRoute: typeof ApiInternalLgpdRetentionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/internal/pix-renewal-monitor': {
@@ -689,11 +654,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInternalPixRenewalMonitorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/internal/lgpd-retention': {
-      id: '/api/internal/lgpd-retention'
-      path: '/api/internal/lgpd-retention'
-      fullPath: '/api/internal/lgpd-retention'
-      preLoaderRoute: typeof ApiInternalLgpdRetentionRouteImport
+    '/api/private/learning-file': {
+      id: '/api/private/learning-file'
+      path: '/api/private/learning-file'
+      fullPath: '/api/private/learning-file'
+      preLoaderRoute: typeof ApiPrivateLearningFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/private/learning-upload': {
+      id: '/api/private/learning-upload'
+      path: '/api/private/learning-upload'
+      fullPath: '/api/private/learning-upload'
+      preLoaderRoute: typeof ApiPrivateLearningUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/consent': {
+      id: '/api/public/consent'
+      path: '/api/public/consent'
+      fullPath: '/api/public/consent'
+      preLoaderRoute: typeof ApiPublicConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/security-event': {
+      id: '/api/public/security-event'
+      path: '/api/public/security-event'
+      fullPath: '/api/public/security-event'
+      preLoaderRoute: typeof ApiPublicSecurityEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/validapay-webhook': {
+      id: '/api/public/validapay-webhook'
+      path: '/api/public/validapay-webhook'
+      fullPath: '/api/public/validapay-webhook'
+      preLoaderRoute: typeof ApiPublicValidapayWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/perfil/cadastro': {
+      id: '/configuracoes/perfil/cadastro'
+      path: '/configuracoes/perfil/cadastro'
+      fullPath: '/configuracoes/perfil/cadastro'
+      preLoaderRoute: typeof ConfiguracoesPerfilCadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

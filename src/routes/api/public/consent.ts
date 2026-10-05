@@ -28,7 +28,7 @@ const consentSchema = z.object({
 export const Route = createFileRoute("/api/public/consent")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const meta = getRequestMeta(request);
         const limit = checkRateLimit(`consent:${meta.ipAddress ?? "unknown"}`, 40, 60_000);
         if (!limit.allowed) return new Response("Rate limit exceeded", { status: 429 });

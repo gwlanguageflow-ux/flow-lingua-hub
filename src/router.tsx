@@ -1,7 +1,7 @@
 import { createRouter, useRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   const router = useRouter();
   const safeMessage = getSafeErrorMessage(error);
 
@@ -55,8 +55,8 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
   );
 }
 
-function getSafeErrorMessage(error: Error) {
-  if (!error.message) return null;
+function getSafeErrorMessage(error: unknown) {
+  if (!(error instanceof Error) || !error.message) return null;
   if (import.meta.env.DEV) return error.message;
 
   const safePrefixes = [

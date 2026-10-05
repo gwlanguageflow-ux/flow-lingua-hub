@@ -66,7 +66,7 @@ export const requestTeacherWithdrawal = createServerFn({ method: "POST" })
     );
 
     if (rpcError || !withdrawalId) {
-      throw new Error(rpcError?.message ?? "Nao foi possivel criar o saque.");
+      throw new Error(rpcError?.message ?? "Não foi possível criar o saque.");
     }
 
     const { error: updateError } = await supabaseAdmin

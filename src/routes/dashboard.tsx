@@ -190,6 +190,7 @@ function DashboardPage() {
   const [guideIntroState, setGuideIntroState] = useState<TeacherGuideIntroState>("checking");
   const [activeTab, setActiveTab] = useState("sala");
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [completedLessonCount, setCompletedLessonCount] = useState(0);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfileRecord | null>(null);
   const [teacherIdentity, setTeacherIdentity] = useState<TeacherIdentity | null>(null);
@@ -390,6 +391,15 @@ function DashboardPage() {
     } else {
       setStudents([]);
     }
+
+    if (user) {
+      const { count } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("teacher_id", user.id)
+        .eq("status", "concluido");
+      setCompletedLessonCount(count ?? 0);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -516,7 +526,7 @@ function DashboardPage() {
     (b) => new Date(b.scheduled_at) > new Date() && b.status !== "cancelado",
   );
   const classroomBookings = bookings.filter((b) => b.status !== "cancelado");
-  const completedLessons = bookings.filter((b) => b.status === "concluido").length;
+  const completedLessons = completedLessonCount;
 
   const handleCompleteBooking = async (bookingId: string) => {
     setCreditingBookingId(bookingId);
@@ -891,7 +901,7 @@ function TeacherCouponPanel({
       toast.success(active ? "Cupom ativado no feed." : "Cupom pausado.");
       await onChanged();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o cupom.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o cupom.");
     } finally {
       setSaving(false);
     }
@@ -907,7 +917,7 @@ function TeacherCouponPanel({
       toast.success("Cupom excluido.");
       await onChanged();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel excluir o cupom.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir o cupom.");
     } finally {
       setDeleting(false);
     }
@@ -1322,7 +1332,7 @@ function ClassroomPanel({
       setLessonMeetingUrl("");
       await onChanged();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel agendar a aula.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível agendar a aula.");
     } finally {
       setSchedulingLesson(false);
     }
@@ -2131,6 +2141,7 @@ function AssignmentsPanel({
   const [externalUrl, setExternalUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [assignmentFolder, setAssignmentFolder] = useState<"abertas" | "concluidas">("abertas");
 
   useEffect(() => {
     if (targetType === "class" && !classes.some((item) => item.id === classId)) {
@@ -2163,7 +2174,7 @@ function AssignmentsPanel({
       return;
     }
     if (externalUrl.trim() && !normalizeExternalUrl(externalUrl)) {
-      toast.error("Informe um link externo valido.");
+      toast.error("Informe um link externo válido.");
       return;
     }
     setSubmitting(true);
@@ -2246,6 +2257,18 @@ function AssignmentsPanel({
 
     return [];
   };
+
+  const isAssignmentCompleted = (assignment: ClassAssignment) => {
+    const targets = assignmentTargetStudents(assignment);
+    if (targets.length === 0) return false;
+    const submissions = submissionsByAssignment.get(assignment.id) ?? [];
+    return targets.every((student) => submissions.some((submission) => submission.student_id === student.id));
+  };
+  const visibleAssignments = assignments.filter((assignment) =>
+    assignmentFolder === "concluidas"
+      ? isAssignmentCompleted(assignment)
+      : !isAssignmentCompleted(assignment),
+  );
 
   return (
     <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
@@ -2358,12 +2381,20 @@ function AssignmentsPanel({
       </form>
 
       <div className="rounded-2xl border border-border p-5">
-        <h3 className="font-display text-xl text-wine mb-4">Atividades enviadas</h3>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-display text-xl text-wine">Atividades enviadas</h3>
+          <div className="flex gap-2" role="group" aria-label="Pastas de atividades">
+            <Button type="button" size="sm" variant={assignmentFolder === "abertas" ? "default" : "outline"} onClick={() => setAssignmentFolder("abertas")}>Em andamento</Button>
+            <Button type="button" size="sm" variant={assignmentFolder === "concluidas" ? "default" : "outline"} onClick={() => setAssignmentFolder("concluidas")}>Concluídas</Button>
+          </div>
+        </div>
         {assignments.length === 0 ? (
           <Empty msg="Nenhuma atividade enviada ainda." />
+        ) : visibleAssignments.length === 0 ? (
+          <Empty msg={assignmentFolder === "concluidas" ? "Nenhuma atividade concluída." : "Nenhuma atividade em andamento."} />
         ) : (
           <div className="space-y-3">
-            {assignments.map((item) => {
+            {visibleAssignments.map((item) => {
               const submissions = submissionsByAssignment.get(item.id) || [];
               const submissionByStudent = new Map(
                 submissions.map((submission) => [submission.student_id, submission]),
@@ -2491,7 +2522,7 @@ function MaterialsPanel({
       return;
     }
     if (externalUrl.trim() && !normalizeExternalUrl(externalUrl)) {
-      toast.error("Informe um link externo valido.");
+      toast.error("Informe um link externo válido.");
       return;
     }
     setSubmitting(true);
@@ -3140,7 +3171,7 @@ function WalletPanel({
       await onChanged();
       if (whatsappUrl) window.location.assign(whatsappUrl);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel solicitar o saque.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível solicitar o saque.");
     } finally {
       setSubmitting(false);
     }
@@ -3259,7 +3290,7 @@ function WalletPanel({
                     navigator.clipboard
                       ?.writeText(lastWithdrawalWhatsapp.message)
                       .then(() => toast.success("Mensagem copiada."))
-                      .catch(() => toast.error("Nao foi possivel copiar a mensagem."));
+                      .catch(() => toast.error("Não foi possível copiar a mensagem."));
                   }}
                 >
                   Copiar mensagem

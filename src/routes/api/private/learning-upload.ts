@@ -83,7 +83,7 @@ async function requireUploader(request: Request): Promise<AuthenticatedUploader 
     .eq("user_id", user.id);
 
   if (rolesError) {
-    return jsonResponse({ error: "Nao foi possivel validar suas permissoes." }, { status: 500 });
+    return jsonResponse({ error: "Não foi possível validar suas permissoes." }, { status: 500 });
   }
 
   const roles = (roleRows ?? []).map((item) => item.role);
@@ -125,7 +125,7 @@ async function createSignedUpload(request: Request, uploader: AuthenticatedUploa
   const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data?.token) {
     return jsonResponse(
-      { error: error?.message ?? "Nao foi possivel preparar o envio do arquivo." },
+      { error: error?.message ?? "Não foi possível preparar o envio do arquivo." },
       { status: 500 },
     );
   }
@@ -204,7 +204,7 @@ async function uploadThroughServer(request: Request, uploader: AuthenticatedUplo
 export const Route = createFileRoute("/api/private/learning-upload")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const uploader = await requireUploader(request);
         if (uploader instanceof Response) return uploader;
 

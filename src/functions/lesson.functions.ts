@@ -63,7 +63,32 @@ export const scheduleTeacherLesson = createServerFn({ method: "POST" })
 
     if (subscriptionError) throw new Error(subscriptionError.message);
     if (!activeSubscription) {
-      throw new Error("Este aluno nao esta com assinatura ativa e em dia com voce.");
+      const { data: latest } = await supabaseAdmin
+        .from("student_subscriptions")
+        .select("status, current_period_end")
+        .eq("teacher_id", teacherId)
+        .eq("student_id", data.studentId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!latest) {
+        throw new Error("Este aluno não possui assinatura vinculada a você. Confira se ele assinou o seu plano.");
+      }
+      if (latest.status === "ativa" && latest.current_period_end) {
+        throw new Error(
+          `A assinatura deste aluno venceu em ${new Date(latest.current_period_end).toLocaleDateString("pt-BR")}.`,
+        );
+      }
+      const reasons: Record<string, string> = {
+        pendente: "aguardando ativação pela diretoria",
+        inadimplente: "inadimplente",
+        cancelada: "cancelada",
+        expirada: "expirada",
+      };
+      throw new Error(
+        `A assinatura deste aluno com você está ${reasons[latest.status] ?? latest.status}.`,
+      );
     }
 
     const { data: booking, error: bookingError } = await supabaseAdmin

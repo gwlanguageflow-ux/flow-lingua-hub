@@ -102,7 +102,7 @@ export function SubscriptionStatusBanner() {
       />
       <div className="flex-1 text-sm">
         <p className="font-semibold text-wine">
-          {isOverdue ? "Assinatura vencida" : "Voce ainda nao tem assinatura ativa"}
+          {isOverdue ? "Assinatura vencida" : "Você ainda não tem assinatura ativa"}
         </p>
         <p className="mt-0.5 text-xs text-brown-soft">
           {isOverdue

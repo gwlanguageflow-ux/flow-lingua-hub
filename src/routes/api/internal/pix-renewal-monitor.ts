@@ -158,8 +158,8 @@ async function runPixRenewalMonitor() {
     const created = await createDailyAlert({
       createdBy: directorId,
       studentId: sub.student_id,
-      title: `Sua assinatura vence em ${pluralDays(daysLeft)}`,
-      body: `Falta pouco para vencer seu plano ${sub.plan?.name ?? "GWLanguageFlow"} pago por PIX. No vencimento, acesse Minha assinatura e pague novamente para manter seu acesso.`,
+      title: `Sua assinatura vence em ${pluralDays(daysLeft)} (${periodEnd.toLocaleDateString("pt-BR")})`,
+      body: `Falta pouco para vencer seu plano ${sub.plan?.name ?? "GWLanguageFlow"} pago por PIX. A data de vencimento é ${periodEnd.toLocaleDateString("pt-BR")}. No vencimento, acesse Minha assinatura e pague novamente para manter seu acesso.`,
       tone: daysLeft <= 1 ? "urgent" : "warning",
       now,
     });
@@ -177,7 +177,7 @@ async function runPixRenewalMonitor() {
 export const Route = createFileRoute("/api/internal/pix-renewal-monitor")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         if (!verifyCron(request)) return new Response("Unauthorized", { status: 401 });
         try {
           const result = { pixRenewal: await runPixRenewalMonitor() };

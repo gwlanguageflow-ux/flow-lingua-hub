@@ -491,7 +491,7 @@ async function verifyWebhookRequest(request: Request, rawBody: string) {
 export const Route = createFileRoute("/api/public/validapay-webhook")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const rawBody = await request.text();
 
         if (!(await verifyWebhookRequest(request, rawBody))) {

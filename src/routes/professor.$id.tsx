@@ -526,7 +526,7 @@ function TeacherPostCard({
       .single();
     setSaving(false);
     if (error || !data) {
-      toast.error(error?.message || "Nao foi possivel salvar o post.");
+      toast.error(error?.message || "Não foi possível salvar o post.");
       return;
     }
     onUpdated(data);

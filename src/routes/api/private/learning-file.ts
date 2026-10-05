@@ -77,7 +77,7 @@ async function requireViewer(request: Request): Promise<AuthenticatedViewer | Re
     .eq("user_id", user.id);
 
   if (rolesError) {
-    return jsonResponse({ error: "Nao foi possivel validar suas permissoes." }, { status: 500 });
+    return jsonResponse({ error: "Não foi possível validar suas permissoes." }, { status: 500 });
   }
 
   return { id: user.id, roles: (roleRows ?? []).map((item) => item.role) };
@@ -165,7 +165,7 @@ async function hasAccessToPath(viewer: AuthenticatedViewer, path: string) {
 export const Route = createFileRoute("/api/private/learning-file")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const viewer = await requireViewer(request);
         if (viewer instanceof Response) return viewer;
 
@@ -183,7 +183,7 @@ export const Route = createFileRoute("/api/private/learning-file")({
           const allowed = await hasAccessToPath(viewer, path);
           if (!allowed) {
             return jsonResponse(
-              { error: "Voce nao tem permissao para abrir este arquivo." },
+              { error: "Você nao tem permissao para abrir este arquivo." },
               { status: 403 },
             );
           }
@@ -194,7 +194,7 @@ export const Route = createFileRoute("/api/private/learning-file")({
 
           if (error || !data?.signedUrl) {
             return jsonResponse(
-              { error: error?.message ?? "Nao foi possivel gerar o link do arquivo." },
+              { error: error?.message ?? "Não foi possível gerar o link do arquivo." },
               { status: 500 },
             );
           }
@@ -203,7 +203,7 @@ export const Route = createFileRoute("/api/private/learning-file")({
         } catch (error) {
           return jsonResponse(
             {
-              error: error instanceof Error ? error.message : "Nao foi possivel validar o arquivo.",
+              error: error instanceof Error ? error.message : "Não foi possível validar o arquivo.",
             },
             { status: 500 },
           );

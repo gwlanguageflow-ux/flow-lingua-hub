@@ -20,7 +20,7 @@ const securityEventSchema = z.object({
 export const Route = createFileRoute("/api/public/security-event")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const meta = getRequestMeta(request);
         const limit = checkRateLimit(`security:${meta.ipAddress ?? "unknown"}`, 30, 60_000);
         if (!limit.allowed) return new Response("Rate limit exceeded", { status: 429 });

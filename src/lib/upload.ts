@@ -132,7 +132,7 @@ async function uploadLearningFileWithSignedUrl({
 
     const signed = (await response.json()) as SignedLearningUpload;
     if (!signed.path || !signed.token) {
-      lastLearningUploadError = "Nao foi possivel preparar o envio do arquivo.";
+      lastLearningUploadError = "Não foi possível preparar o envio do arquivo.";
       return null;
     }
 

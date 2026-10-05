@@ -3,7 +3,7 @@ import { z } from "zod";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export const CURRENT_TERMS_VERSION = "2026.05.19";
+export const CURRENT_TERMS_VERSION = "2026.10.03";
 
 const acceptanceSchema = z.object({
   signerName: z.string().trim().min(3).max(160),
@@ -43,13 +43,7 @@ export const getTermsAcceptanceStatus = createServerFn({ method: "GET" })
     // The application can be deployed before its database migration reaches
     // Supabase. Do not let that temporary mismatch take the whole page down,
     // especially on clients opening a freshly cached mobile bundle.
-    if (error) {
-      const missingTable =
-        error.code === "42P01" ||
-        /terms_acceptances|relation .* does not exist|schema cache/i.test(error.message);
-      if (missingTable) return { required: false, roles: [], fullName };
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     const acceptedRoles = new Set((data ?? []).map((item) => item.role));
     return {

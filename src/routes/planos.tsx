@@ -234,7 +234,7 @@ function PlansPage() {
       return;
     }
     if (!terms) {
-      toast.error("Voce precisa aceitar o Termo de Adesao e Contrato.");
+      toast.error("Você precisa aceitar o Termo de Adesao e Contrato.");
       return;
     }
 
@@ -282,7 +282,7 @@ function PlansPage() {
                   <p className="mt-4 max-w-2xl leading-7 text-brown-soft">
                     {teacherPricingMode === "custom"
                       ? "Este professor trabalha com valores próprios. A assinatura continua registrada na plataforma, com checkout ValidaPay e liberação automática após pagamento."
-                      : "Cada assinatura combina aula, material, atividade e acompanhamento. Voce escolhe o ritmo, a plataforma organiza o percurso."}
+                      : "Cada assinatura combina aula, material, atividade e acompanhamento. Você escolhe o ritmo, a plataforma organiza o percurso."}
                   </p>
                 </div>
                 <div className="gw-ink-panel p-6 md:p-8">
@@ -744,7 +744,7 @@ function CheckoutDialog({
               </div>
             </dl>
             <div className="mt-4 space-y-2 border-t border-bronze/20 pt-3 text-xs leading-5 text-brown-soft">
-              <p>Ao continuar, voce sera direcionado ao checkout seguro da ValidaPay.</p>
+              <p>Ao continuar, você será direcionado ao checkout seguro da ValidaPay.</p>
               <p>O acesso e a carteira do professor sao liberados apos confirmacao do pagamento.</p>
               <p>O acesso ao agendamento depende da assinatura ativa.</p>
             </div>
@@ -758,7 +758,7 @@ function CheckoutDialog({
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-wine">Adicionar cupom</p>
                 <p className="mt-1 text-xs leading-5 text-brown-soft">
-                  Se o professor tiver cupom ativo, ele aparece aqui automaticamente. Voce escolhe
+                  Se o professor tiver cupom ativo, ele aparece aqui automaticamente. Você escolhe
                   se quer aplicar antes de pagar.
                 </p>
               </div>

@@ -529,14 +529,25 @@ function LessonsSection({
     (item) => isLessonHistory(item) && !hiddenHistoryIds.has(item.id),
   );
   const activeItems = items.filter((item) => !isLessonHistory(item));
-  const historyByMonth = groupBookingsByMonth(historyItems);
+  const [historyFilter, setHistoryFilter] = useState<"todas" | "concluidas" | "canceladas" | "encerradas">("todas");
+
+  const filteredHistoryItems = useMemo(() => {
+    return historyItems.filter((item) => {
+      if (historyFilter === "concluidas") return item.status === "concluido";
+      if (historyFilter === "canceladas") return item.status === "cancelado";
+      if (historyFilter === "encerradas") return item.status !== "concluido" && item.status !== "cancelado";
+      return true;
+    });
+  }, [historyItems, historyFilter]);
+
+  const historyByMonth = groupBookingsByMonth(filteredHistoryItems);
 
   const clearHistory = () => {
     if (!historyStorageKey || historyItems.length === 0) return;
     const next = new Set([...hiddenHistoryIds, ...historyItems.map((item) => item.id)]);
     localStorage.setItem(historyStorageKey, JSON.stringify([...next]));
     setHiddenHistoryIds(next);
-    toast.success("Historico limpo desta tela. Os registros continuam preservados.");
+    toast.success("Histórico limpo desta tela. Os registros continuam preservados.");
   };
 
   if (items.length === 0) {
@@ -551,7 +562,7 @@ function LessonsSection({
     <div className="space-y-6">
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-xl text-wine">Proximas aulas</h3>
+          <h3 className="font-display text-xl text-wine">Próximas aulas</h3>
           <Badge variant="outline" className="rounded-full bg-white text-wine">
             {activeItems.length} ativas
           </Badge>
@@ -595,7 +606,7 @@ function LessonsSection({
                       disabled={confirmingId === b.id}
                       className="bg-wine text-white hover:bg-bronze"
                     >
-                      {confirmingId === b.id ? "Confirmando..." : "Confirmar presenca"}
+                      {confirmingId === b.id ? "Confirmando..." : "Confirmar presença"}
                     </Button>
                   )}
                   {canReview && <ReviewDialog booking={b} onDone={onDone} />}
@@ -609,20 +620,61 @@ function LessonsSection({
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="font-display text-xl text-wine">Historico de aulas</h3>
+            <h3 className="font-display text-xl text-wine">Histórico de aulas</h3>
             <p className="text-sm text-brown-soft">
-              Aulas concluidas, canceladas ou vencidas organizadas por mes.
+              Aulas concluídas, canceladas ou vencidas organizadas por mês, com status e detalhes.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={historyItems.length === 0}
-            onClick={clearHistory}
-            className="border-bronze text-wine hover:bg-cream"
-          >
-            Limpar historico
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-lg border border-border bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setHistoryFilter("todas")}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                  historyFilter === "todas" ? "bg-wine text-white shadow-soft" : "text-brown-soft hover:text-wine"
+                }`}
+              >
+                Todas ({historyItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryFilter("concluidas")}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                  historyFilter === "concluidas" ? "bg-wine text-white shadow-soft" : "text-brown-soft hover:text-wine"
+                }`}
+              >
+                Concluídas ({historyItems.filter((i) => i.status === "concluido").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryFilter("canceladas")}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                  historyFilter === "canceladas" ? "bg-wine text-white shadow-soft" : "text-brown-soft hover:text-wine"
+                }`}
+              >
+                Canceladas ({historyItems.filter((i) => i.status === "cancelado").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryFilter("encerradas")}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                  historyFilter === "encerradas" ? "bg-wine text-white shadow-soft" : "text-brown-soft hover:text-wine"
+                }`}
+              >
+                Outras ({historyItems.filter((i) => i.status !== "concluido" && i.status !== "cancelado").length})
+              </button>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={historyItems.length === 0}
+              onClick={clearHistory}
+              className="border-bronze text-wine hover:bg-cream text-xs"
+            >
+              Limpar histórico
+            </Button>
+          </div>
         </div>
         {historyByMonth.length === 0 ? (
           <Empty msg="Nenhum historico visivel." />
@@ -648,6 +700,16 @@ function LessonsSection({
                         })}
                       </p>
                       <p className="text-xs text-brown-soft mt-1">{b.duration_minutes} min</p>
+                      <p className="text-xs text-brown-soft mt-1">
+                        {b.status === "cancelado"
+                          ? "Esta aula foi cancelada."
+                          : b.status === "concluido"
+                            ? "Aula concluída."
+                            : new Date(b.scheduled_at) < new Date()
+                              ? "Horário encerrado sem confirmação de conclusão."
+                              : "Aula agendada."}
+                      </p>
+                      {b.notes && <p className="mt-2 text-sm text-brown">Detalhes: {b.notes}</p>}
                     </div>
                     <div className="flex flex-col items-stretch gap-2 md:items-end">
                       <span className="text-xs px-3 py-1 rounded-full bg-bronze/15 text-bronze capitalize text-center">

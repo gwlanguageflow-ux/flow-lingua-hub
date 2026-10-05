@@ -127,7 +127,7 @@ const createExternalPaidStudentSchema = z
     note: z.string().trim().max(500).optional().nullable(),
   })
   .refine((value) => Boolean(value.planId) !== Boolean(value.customPlanId), {
-    message: "Selecione um plano da plataforma ou um plano proprio do professor.",
+    message: "Selecione um plano da plataforma ou um plano próprio do professor.",
     path: ["planId"],
   });
 
@@ -147,6 +147,11 @@ const alertStatusSchema = z.object({
 
 const readSchema = z.object({
   messageId: z.string().uuid(),
+});
+
+const dismissNotificationSchema = z.object({
+  itemType: z.enum(["message", "alert"]),
+  itemId: z.string().uuid(),
 });
 
 const deleteReviewSchema = z.object({
@@ -650,7 +655,7 @@ export const createExternalPaidStudent = createServerFn({ method: "POST" })
         });
 
       if (createUserError || !createdUser.user) {
-        throw new Error(createUserError?.message ?? "Nao foi possivel criar o acesso do aluno.");
+        throw new Error(createUserError?.message ?? "Não foi possível criar o acesso do aluno.");
       }
 
       studentId = createdUser.user.id;
@@ -958,7 +963,7 @@ export const requestDirectorWithdrawal = createServerFn({ method: "POST" })
       .single();
 
     if (withdrawalError || !withdrawal) {
-      throw new Error(withdrawalError?.message ?? "Nao foi possivel criar o saque da plataforma.");
+      throw new Error(withdrawalError?.message ?? "Não foi possível criar o saque da plataforma.");
     }
 
     const { data: walletTransaction, error: walletError } = await supabaseAdmin
@@ -1182,6 +1187,32 @@ export const updateDirectorAlertStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteDirectorMessage = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ messageId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const { error } = await supabaseAdmin
+      .from("director_messages")
+      .delete()
+      .eq("id", data.messageId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteDirectorAlert = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ alertId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireDirector(context.userId);
+    const { error } = await supabaseAdmin
+      .from("director_alerts")
+      .delete()
+      .eq("id", data.alertId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const sendDirectorDirectMessage = createServerFn({ method: "POST" })
   .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => directMessageSchema.parse(input))
@@ -1234,6 +1265,7 @@ export const getDirectorInbox = createServerFn({ method: "GET" })
       { data: reads },
       { data: alerts },
       { data: directMessages },
+      { data: dismissals },
     ] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
       supabaseAdmin
@@ -1266,6 +1298,10 @@ export const getDirectorInbox = createServerFn({ method: "GET" })
         .eq("user_id", userId)
         .order("created_at", { ascending: true })
         .limit(100),
+      supabaseAdmin
+        .from("director_notification_dismissals")
+        .select("item_type, item_id")
+        .eq("user_id", userId),
     ]);
 
     const roles = (roleRows ?? []).map((row) => row.role as AppRole);
@@ -1275,11 +1311,22 @@ export const getDirectorInbox = createServerFn({ method: "GET" })
     ]);
     const readIds = new Set((reads ?? []).map((read) => read.message_id));
 
-    const targetedMessages = ((messages ?? []) as Array<Tables<"director_messages">>).filter(
-      (item) => isTargetedToUser(item as DirectorTarget, userId, roles, classIds),
+    const dismissedMessageIds = new Set(
+      (dismissals ?? []).filter((row) => row.item_type === "message").map((row) => row.item_id),
     );
-    const targetedAlerts = ((alerts ?? []) as Array<Tables<"director_alerts">>).filter((item) =>
-      isTargetedToUser(item as DirectorTarget, userId, roles, classIds),
+    const dismissedAlertIds = new Set(
+      (dismissals ?? []).filter((row) => row.item_type === "alert").map((row) => row.item_id),
+    );
+
+    const targetedMessages = ((messages ?? []) as Array<Tables<"director_messages">>).filter(
+      (item) =>
+        !dismissedMessageIds.has(item.id) &&
+        isTargetedToUser(item as DirectorTarget, userId, roles, classIds),
+    );
+    const targetedAlerts = ((alerts ?? []) as Array<Tables<"director_alerts">>).filter(
+      (item) =>
+        !dismissedAlertIds.has(item.id) &&
+        isTargetedToUser(item as DirectorTarget, userId, roles, classIds),
     );
 
     return {
@@ -1306,6 +1353,47 @@ export const markDirectorMessageRead = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const dismissDirectorNotification = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) => dismissNotificationSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("director_notification_dismissals").upsert({
+      user_id: context.userId,
+      item_type: data.itemType,
+      item_id: data.itemId,
+      dismissed_at: new Date().toISOString(),
+    });
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const dismissAllDirectorNotifications = createServerFn({ method: "POST" })
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        items: z.array(dismissNotificationSchema).min(1).max(200),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const { error } = await supabaseAdmin.from("director_notification_dismissals").upsert(
+      data.items.map((item) => ({
+        user_id: context.userId,
+        item_type: item.itemType,
+        item_id: item.itemId,
+        dismissed_at: now,
+      })),
+    );
+
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.items.length };
   });
 
 export const replyToDirector = createServerFn({ method: "POST" })

@@ -60,6 +60,8 @@ import {
   createDirectorAlert,
   createExternalPaidStudent,
   createDirectorMessage,
+  deleteDirectorAlert,
+  deleteDirectorMessage,
   getAdminDashboard,
   requestDirectorWithdrawal,
   sendDirectorDirectMessage,
@@ -68,7 +70,11 @@ import {
   deleteReviewByDirector,
   updateStudentSubscriptionStatusByDirector,
 } from "@/functions/admin.functions";
-import { createDirectorCoupon, deleteDirectorCoupon } from "@/functions/coupon.functions";
+import {
+  createDirectorCoupon,
+  deleteDirectorCoupon,
+  toggleDirectorCouponStatus,
+} from "@/functions/coupon.functions";
 import type { Enums, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { getProfileAvatarUrl } from "@/lib/profile-media";
 import { normalizeExternalUrl } from "@/lib/resource-links";
@@ -278,6 +284,14 @@ function AdminPage() {
       expiresAt: "",
     }),
   );
+  useEffect(() => {
+    if (alertForm.tone !== "urgent" || alertForm.expiresAt) return;
+    const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const localDate = new Date(expiry.getTime() - expiry.getTimezoneOffset() * 60_000)
+      .toISOString()
+      .slice(0, 16);
+    setAlertForm((form) => ({ ...form, expiresAt: localDate }));
+  }, [alertForm.tone, alertForm.expiresAt]);
   const [directBody, setDirectBody] = useState("");
   const [reportDrafts, setReportDrafts] = useState<
     Record<string, { status: string; notes: string }>
@@ -538,6 +552,26 @@ function AdminPage() {
     }
   };
 
+  const handleDeleteDirectorMessage = async (messageId: string) => {
+    try {
+      await deleteDirectorMessage({ data: { messageId } });
+      toast.success("Comunicado excluído.");
+      await loadDashboard();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível excluir o comunicado.");
+    }
+  };
+
+  const handleDeleteDirectorAlert = async (alertId: string) => {
+    try {
+      await deleteDirectorAlert({ data: { alertId } });
+      toast.success("Alerta excluído.");
+      await loadDashboard();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível excluir o alerta.");
+    }
+  };
+
   const handleActivateStudent = async (subscriptionId: string) => {
     setSending(true);
     try {
@@ -545,7 +579,7 @@ function AdminPage() {
       toast.success("Aluno ativado e carteira do professor creditada.");
       await loadDashboard();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nao foi possivel ativar o aluno.");
+      toast.error(err instanceof Error ? err.message : "Não foi possível ativar o aluno.");
     } finally {
       setSending(false);
     }
@@ -565,7 +599,7 @@ function AdminPage() {
       );
       await loadDashboard();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nao foi possivel alterar o status.");
+      toast.error(err instanceof Error ? err.message : "Não foi possível alterar o status.");
     } finally {
       setSending(false);
     }
@@ -583,7 +617,7 @@ function AdminPage() {
       toast.success("Cancelamento programado. O acesso segue ate o fim do periodo pago.");
       await loadDashboard();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nao foi possivel cancelar a assinatura.");
+      toast.error(err instanceof Error ? err.message : "Não foi possível cancelar a assinatura.");
     } finally {
       setSending(false);
     }
@@ -655,7 +689,7 @@ function AdminPage() {
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-brown">
                 A nova aba <strong>Alunos externos</strong> permite criar ou localizar um aluno,
-                escolher a professora, selecionar plano da plataforma ou plano proprio do professor
+                escolher a professora, selecionar plano da plataforma ou plano próprio do professor
                 e liberar o acesso mantendo o registro financeiro dentro da plataforma.
               </p>
             </div>
@@ -754,6 +788,7 @@ function AdminPage() {
                           body={message.body}
                           date={message.created_at}
                           urgent={message.priority === "urgent"}
+                          onDelete={() => handleDeleteDirectorMessage(message.id)}
                         />
                       ))
                     )}
@@ -1225,6 +1260,12 @@ function AdminPage() {
                               <p className="mt-1 text-xs text-brown-soft">
                                 {targetLabel(alert, profiles, classById)}
                               </p>
+                              <p className="mt-1 text-xs text-brown-soft">
+                                Criado em {new Date(alert.created_at).toLocaleString("pt-BR")}
+                                {alert.expires_at
+                                  ? ` • expira em ${new Date(alert.expires_at).toLocaleString("pt-BR")}`
+                                  : " • sem data de expiração"}
+                              </p>
                               <p className="mt-2 text-sm text-brown">{alert.body}</p>
                             </div>
                             <Button
@@ -1233,6 +1274,13 @@ function AdminPage() {
                               className="rounded-full"
                             >
                               {alert.active ? "Pausar" : "Ativar"}
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteDirectorAlert(alert.id)}
+                              variant="outline"
+                              className="rounded-full text-destructive"
+                            >
+                              Excluir
                             </Button>
                           </div>
                         </div>
@@ -1466,7 +1514,7 @@ function ExternalPaidStudentsPanel({
         throw new Error("Selecione um plano da plataforma.");
       }
       if (form.planMode === "custom" && !form.customPlanId) {
-        throw new Error("Selecione um plano proprio do professor.");
+        throw new Error("Selecione um plano próprio do professor.");
       }
 
       const result = await createExternalPaidStudent({
@@ -1477,11 +1525,7 @@ function ExternalPaidStudentsPanel({
           age: form.age ? Number(form.age) : null,
           desiredLanguage: form.desiredLanguage,
           comprehensionLevel: form.comprehensionLevel as
-            | "iniciante"
-            | "basico"
-            | "intermediario"
-            | "avancado"
-            | "fluente",
+            "iniciante" | "basico" | "intermediario" | "avancado" | "fluente",
           teacherId: form.teacherId,
           planId: form.planMode === "platform" ? form.planId : null,
           customPlanId: form.planMode === "custom" ? form.customPlanId : null,
@@ -1510,7 +1554,7 @@ function ExternalPaidStudentsPanel({
       }));
       await onChanged();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel criar o aluno.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o aluno.");
     } finally {
       setSaving(false);
     }
@@ -1657,7 +1701,7 @@ function ExternalPaidStudentsPanel({
                 <SelectContent>
                   {teacherPlans.length === 0 ? (
                     <SelectItem value="no-custom-plans" disabled>
-                      Este professor nao tem planos proprios ativos
+                      Este professor nao tem planos próprios ativos
                     </SelectItem>
                   ) : (
                     teacherPlans.map((plan) => (
@@ -1846,7 +1890,7 @@ function DirectorMaterialsPanel({
       return;
     }
     if (form.externalUrl.trim() && !normalizeExternalUrl(form.externalUrl)) {
-      toast.error("Informe um link externo valido.");
+      toast.error("Informe um link externo válido.");
       return;
     }
 
@@ -1886,7 +1930,7 @@ function DirectorMaterialsPanel({
       setFile(null);
       await onChanged();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nao foi possivel enviar o material.");
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar o material.");
     } finally {
       setSubmitting(false);
     }
@@ -2164,7 +2208,7 @@ function DirectorCouponsPanel({
       toast.success("Cupom criado para a diretoria.");
       await onChanged();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel criar o cupom.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o cupom.");
     } finally {
       setSaving(false);
     }
@@ -2275,17 +2319,38 @@ function DirectorCouponsPanel({
                       <Info label="Pagos" value={stats.paid} />
                     </div>
                   </div>
-                  {coupon.scope === "director" && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await toggleDirectorCouponStatus({
+                            data: { couponId: coupon.id, active: !coupon.active },
+                          });
+                          toast.success(coupon.active ? "Cupom pausado." : "Cupom ativado.");
+                          await onChanged();
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error ? error.message : "Não foi possível alterar o status do cupom.",
+                          );
+                        }
+                      }}
+                      className="text-xs"
+                    >
+                      {coupon.active ? "Pausar cupom" : "Ativar cupom"}
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => removeCoupon(coupon)}
-                      className="mt-3 border-destructive/40 text-destructive hover:bg-destructive/10"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10 text-xs"
                     >
                       Excluir cupom
                     </Button>
-                  )}
+                  </div>
                 </article>
               );
             })
@@ -2580,7 +2645,7 @@ function TeacherWithdrawalQueue({
       toast.success("Saque confirmado e marcado como pago.");
       await onChanged();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel confirmar o saque.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível confirmar o saque.");
     } finally {
       setConfirmingId(null);
     }
@@ -3133,23 +3198,32 @@ function ArticleItem({
   body,
   date,
   urgent,
+  onDelete,
 }: {
   title: string;
   meta: string;
   body: string;
   date: string;
   urgent?: boolean;
+  onDelete?: () => void;
 }) {
   return (
     <article
       className={`rounded-xl border p-3 ${urgent ? "border-wine/40 bg-rose-50" : "border-border bg-background"}`}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <h3 className="font-bold text-wine">{title}</h3>
           <p className="mt-1 text-xs text-brown-soft">{meta}</p>
         </div>
-        <p className="text-xs text-brown-soft">{new Date(date).toLocaleString("pt-BR")}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-brown-soft">{new Date(date).toLocaleString("pt-BR")}</p>
+          {onDelete && (
+            <Button type="button" variant="ghost" size="sm" onClick={onDelete}>
+              Excluir
+            </Button>
+          )}
+        </div>
       </div>
       <p className="mt-2 text-sm text-brown">{body}</p>
     </article>

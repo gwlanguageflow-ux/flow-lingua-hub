@@ -9,6 +9,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  rolesLoading: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshRoles: () => Promise<void>;
@@ -20,7 +21,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
+
+  // Mantém a mesma referência quando os papéis não mudaram, evitando re-renders e
+  // recargas de formulários (ex.: edição de perfil) a cada evento de autenticação.
+  const setRolesIfChanged = (next: AppRole[]) => {
+    setRoles((current) =>
+      current.length === next.length && current.every((role, index) => role === next[index])
+        ? current
+        : next,
+    );
+  };
 
   const fetchRoles = async (userId: string) => {
     try {
@@ -29,10 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select("role")
         .eq("user_id", userId);
       if (error) throw error;
-      setRoles(data?.map((r) => r.role as AppRole) ?? []);
+      setRolesIfChanged(
+        (data?.map((r) => r.role as AppRole) ?? []).sort((a, b) => a.localeCompare(b)),
+      );
     } catch (error) {
       console.error("Falha ao carregar permissões do usuário.", error);
-      setRoles([]);
+      setRolesIfChanged([]);
     }
   };
 
@@ -41,16 +55,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Set listener FIRST
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
         setSession(newSession);
-        setUser(newSession?.user ?? null);
+        setUser((current) =>
+          event !== "USER_UPDATED" && current?.id === newSession?.user?.id
+            ? current
+            : (newSession?.user ?? null),
+        );
+        if (event === "TOKEN_REFRESHED") return;
         if (newSession?.user) {
+          setRolesLoading(true);
           // defer to avoid deadlock
-          setTimeout(() => {
-            fetchRoles(newSession.user.id);
+          setTimeout(async () => {
+            try {
+              await fetchRoles(newSession.user.id);
+            } finally {
+              setRolesLoading(false);
+            }
           }, 0);
         } else {
           setRoles([]);
+          setRolesLoading(false);
         }
       });
       subscription = sub.subscription;
@@ -58,16 +83,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Then check existing
       supabase.auth
         .getSession()
-        .then(({ data: { session: s } }) => {
+        .then(async ({ data: { session: s } }) => {
           setSession(s);
           setUser(s?.user ?? null);
-          if (s?.user) fetchRoles(s.user.id);
+          if (s?.user) {
+            setRolesLoading(true);
+            await fetchRoles(s.user.id);
+          } else {
+            setRoles([]);
+            setRolesLoading(false);
+          }
         })
         .catch((error) => {
           console.error("Falha ao recuperar sessão do usuário.", error);
           setSession(null);
           setUser(null);
           setRoles([]);
+          setRolesLoading(false);
         })
         .finally(() => {
           setLoading(false);
@@ -98,7 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, loading, signOut, refreshRoles }}>
+    <AuthContext.Provider
+      value={{ user, session, roles, rolesLoading, loading, signOut, refreshRoles }}
+    >
       {children}
     </AuthContext.Provider>
   );
