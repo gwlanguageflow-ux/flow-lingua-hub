@@ -3200,9 +3200,9 @@ function WalletPanel({
       </div>
 
       <div className="rounded-2xl border border-bronze/30 bg-cream p-4 text-sm text-brown">
-        <p className="font-semibold text-wine">Regra de repasse ativa (90% / 10%)</p>
+        <p className="font-semibold text-wine">Carteira do Professor</p>
         <p className="mt-1">
-          O valor pago pelo aluno é dividido automaticamente: 90% entra no seu saldo líquido disponível e 10% vai para a carteira da diretoria da plataforma. Todos os valores do extrato e de saldo já refletem o valor com a taxa descontada.
+          Todos os valores exibidos no seu saldo disponível e no extrato financeiro já estão líquidos e liberados para solicitação de saque via Pix.
         </p>
       </div>
 
@@ -3320,15 +3320,11 @@ function WalletPanel({
                     <p className="text-xs text-brown-soft">
                       {format(new Date(item.created_at), "dd/MM/yyyy 'as' HH:mm", { locale: ptBR })}
                     </p>
-                    {item.gross_amount && Number(item.gross_amount) > Number(item.amount) && Number(item.amount) > 0 ? (
-                      <p className="text-[11px] text-brown-soft mt-1">
-                        Plano: {formatMoney(item.gross_amount)} • Taxa da plataforma (10%): -{formatMoney(item.platform_fee ?? Number(item.gross_amount) * 0.1)} • Líquido: {formatMoney(item.amount)}
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-brown-soft mt-1">
-                        Valor líquido já com os 10% da taxa da plataforma descontados.
-                      </p>
-                    )}
+                    <p className="text-[11px] text-brown-soft mt-1">
+                      {Number(item.amount) >= 0
+                        ? "Valor líquido creditado na carteira."
+                        : "Solicitação de transferência Pix."}
+                    </p>
                   </div>
                   <p
                     className={`font-semibold ${Number(item.amount) >= 0 ? "text-emerald-700" : "text-wine"}`}
