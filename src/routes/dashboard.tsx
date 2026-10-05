@@ -3322,7 +3322,7 @@ function WalletPanel({
                     </p>
                     {item.gross_amount && Number(item.gross_amount) > Number(item.amount) && Number(item.amount) > 0 ? (
                       <p className="text-[11px] text-brown-soft mt-1">
-                        Plano: {formatMoney(item.gross_amount)} • Taxa Ello (10%): -{formatMoney(item.platform_fee ?? Number(item.gross_amount) * 0.1)} • Líquido: {formatMoney(item.amount)}
+                        Plano: {formatMoney(item.gross_amount)} • Taxa da plataforma (10%): -{formatMoney(item.platform_fee ?? Number(item.gross_amount) * 0.1)} • Líquido: {formatMoney(item.amount)}
                       </p>
                     ) : (
                       <p className="text-[11px] text-brown-soft mt-1">
